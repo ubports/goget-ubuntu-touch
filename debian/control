@@ -14,7 +14,7 @@ Vcs-Bzr: lp:goget-ubuntu-touch
 
 Package: ubuntu-device-flash
 Architecture: any
-Depends: ${misc:Depends}, ${shlibs:Depends}
+Depends: android-tools-adb, android-tools-fastboot, ${misc:Depends}, ${shlibs:Depends}
 Description: Flash supported Nexus devices with Ubuntu
  Use this tool to flash a suported device with Ubuntu by either
  bootstrapping from fastboot or reflashing from an already
@@ -23,6 +23,7 @@ Description: Flash supported Nexus devices with Ubuntu
 Package: ubuntu-emulator
 Architecture: any
 Depends: ubuntu-emulator-runtime, xz-utils, ${misc:Depends}, ${shlibs:Depends}
+Recommends: android-tools-adb
 Description: Create and run emulator images of Ubuntu Touch
  Create and destroy Ubuntu Touch instances and run them with the emulator
 
