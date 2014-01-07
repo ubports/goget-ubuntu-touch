@@ -1,0 +1,188 @@
+//
+// ubuntu-emu - Tool to download and run Ubuntu Touch emulator instances
+//
+// Copyright (c) 2013 Canonical Ltd.
+//
+// Written by Sergio Schvezov <sergio.schvezov@canonical.com>
+//
+package diskimage
+
+// This program is free software: you can redistribute it and/or modify it
+// under the terms of the GNU General Public License version 3, as published
+// by the Free Software Foundation.
+//
+// This program is distributed in the hope that it will be useful, but
+// WITHOUT ANY WARRANTY; without even the implied warranties of
+// MERCHANTABILITY, SATISFACTORY QUALITY, or FITNESS FOR A PARTICULAR
+// PURPOSE.  See the GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License along
+// with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+import (
+	"bufio"
+	"errors"
+	"fmt"
+	"io"
+	"io/ioutil"
+	"launchpad.net/goget-ubuntu-touch/ubuntu-emulator/sysutils"
+	"os"
+	"os/exec"
+	"path/filepath"
+)
+
+type DiskImage struct {
+	path, label, Mountpoint string
+	size                    int64
+}
+
+//New creates a new DiskImage
+func New(path, label string, size int64) *DiskImage {
+	var img DiskImage
+	img.path = path
+	img.label = label
+	img.size = size
+	return &img
+}
+
+//New creates a new DiskImage
+func NewExisting(path string) *DiskImage {
+	var img DiskImage
+	img.path = path
+	return &img
+}
+
+func (img *DiskImage) Move(dst string) error {
+	if err := img.Copy(dst); err != nil {
+		return err
+	}
+	if err := os.Remove(img.path); err != nil {
+		return errors.New(fmt.Sprintf("Unable to remove %s when moving to %s", img.path, dst))
+	}
+	img.path = dst
+	return nil
+}
+
+func (img *DiskImage) Copy(dst string) (err error) {
+	dstFile, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	defer dstFile.Close()
+
+	srcFile, err := os.Open(img.path)
+	if err != nil {
+		return err
+	}
+	defer srcFile.Close()
+
+	reader := bufio.NewReader(srcFile)
+	writer := bufio.NewWriter(dstFile)
+	defer func() {
+		if err != nil {
+			writer.Flush()
+		}
+	}()
+	if _, err = io.Copy(writer, reader); err != nil {
+		return err
+	}
+	writer.Flush()
+	return nil
+}
+
+//Mount the DiskImage
+func (img *DiskImage) Mount() (err error) {
+	img.Mountpoint, err = ioutil.TempDir(os.TempDir(), "ubuntu-system")
+	if err != nil {
+		return errors.New(fmt.Sprintf("Unable to create temp dir to create system image: %s", err))
+	}
+	//Remove Mountpoint if we fail along the way
+	defer func() {
+		if err != nil {
+			os.Remove(img.Mountpoint)
+		}
+	}()
+	if out, err := exec.Command("mount", img.path, img.Mountpoint).CombinedOutput(); err != nil {
+		return errors.New(fmt.Sprintf("Unable to mount temp dir to create system image %s", out))
+	}
+	return nil
+}
+
+//Unmount the DiskImage
+func (img *DiskImage) Unmount() error {
+	if img.Mountpoint == "" {
+		return nil
+	}
+	defer os.Remove(img.Mountpoint)
+	if out, err := exec.Command("sync").CombinedOutput(); err != nil {
+		exec.Command("umount", img.Mountpoint).Run()
+		return errors.New(fmt.Sprintf("Failed to sync filesystems before unmounting: %s", out))
+	}
+	if err := exec.Command("umount", img.Mountpoint).Run(); err != nil {
+		return errors.New("Failed to unmount temp dir where system image was created")
+	}
+	img.Mountpoint = ""
+	return nil
+}
+
+//Provision unpacks the tarList into the given DiskImage
+func (img *DiskImage) Provision(tarList []string) error {
+	//TODO use archive/tar
+	for _, tar := range tarList {
+		if out, err := exec.Command("tar", "--numeric-owner", "--exclude", "partitions*",
+			"-xf", tar, "-C", img.Mountpoint).CombinedOutput(); err != nil {
+			return errors.New(fmt.Sprintf("Unable to extract rootfs %s to %s: %s", tar, img.Mountpoint, out))
+		}
+	}
+	if err := img.unpackSystem(); err != nil {
+		return err
+	}
+	for _, job := range overrides {
+		if err := img.overrideJob(job); err != nil {
+			return err
+		}
+	}
+	for _, file := range setupFiles {
+		if err := img.writeFile(file); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+//Create returns a ext4 partition for a given file
+func (img DiskImage) Create() error {
+	if err := sysutils.CreateEmptyFile(img.path, img.size); err != nil {
+		return err
+	}
+	if err := exec.Command("mkfs.ext4", "-F", "-L",
+		img.label, img.path).Run(); err != nil {
+		return err
+	}
+	return nil
+}
+
+//unpackSystem moves the system partition up one level
+func (img DiskImage) unpackSystem() error {
+	os.Rename(filepath.Join(img.Mountpoint, "system"),
+		filepath.Join(img.Mountpoint, "system-unpack"))
+	defer os.Remove(filepath.Join(img.Mountpoint, "system-unpack"))
+	dir, err := os.Open(filepath.Join(img.Mountpoint, "system-unpack"))
+	if err != nil {
+		return err
+	}
+	defer dir.Close()
+	fileInfos, err := dir.Readdir(-1)
+	if err != nil {
+		return err
+	}
+	for _, fileInfo := range fileInfos {
+		name := fileInfo.Name()
+		err := os.Rename(filepath.Join(img.Mountpoint, "system-unpack", name),
+			filepath.Join(img.Mountpoint, name))
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}

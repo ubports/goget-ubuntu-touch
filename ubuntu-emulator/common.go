@@ -1,0 +1,79 @@
+//
+// ubuntu-emu - Tool to download and run Ubuntu Touch emulator instances
+//
+// Copyright (c) 2013 Canonical Ltd.
+//
+// Written by Sergio Schvezov <sergio.schvezov@canonical.com>
+//
+package main
+
+// This program is free software: you can redistribute it and/or modify it
+// under the terms of the GNU General Public License version 3, as published
+// by the Free Software Foundation.
+//
+// This program is distributed in the hope that it will be useful, but
+// WITHOUT ANY WARRANTY; without even the implied warranties of
+// MERCHANTABILITY, SATISFACTORY QUALITY, or FITNESS FOR A PARTICULAR
+// PURPOSE.  See the GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License along
+// with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+import (
+	"errors"
+	"fmt"
+	"io/ioutil"
+	"launchpad.net/goget-ubuntu-touch/bootimg"
+	"os"
+	"path/filepath"
+	"strings"
+)
+
+func getDeviceTar(files []string) (string, error) {
+	for _, file := range files {
+		if strings.Contains(file, "device") {
+			return file, nil
+		}
+	}
+	return "", errors.New("Could not find device specific tar")
+}
+
+func extractBoot(dataDir string) error {
+	bootPath := filepath.Join(dataDir, "boot.img")
+	imgBytes, err := ioutil.ReadFile(bootPath)
+	if err != nil {
+		return errors.New(fmt.Sprintf("Cannot read %s", bootPath))
+	}
+	boot, err := bootimg.New(imgBytes)
+	if err != nil {
+		return err
+	}
+	ramdiskPath := filepath.Join(dataDir, "ramdisk.img")
+	kernelPath := filepath.Join(dataDir, kernelName)
+	if err := boot.WriteRamdisk(ramdiskPath); err != nil {
+		return err
+	}
+	if boot.WriteKernel(kernelPath); err != nil {
+		return err
+	}
+	return nil
+}
+
+func instanceExists(path string) bool {
+	f, err := os.Stat(path)
+	if err == nil {
+		if f.IsDir() {
+			return true
+		}
+	}
+	return false
+}
+
+func getInstanceDataDir(instanceName string) (dataDir string) {
+	dataDir = os.Getenv("XDG_DATA_HOME")
+	if dataDir == "" {
+		dataDir = "$HOME/.local/share"
+	}
+	dataDir = os.ExpandEnv(dataDir)
+	return filepath.Join(dataDir, filepath.Base(os.Args[0]), instanceName)
+}
