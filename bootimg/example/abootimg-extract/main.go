@@ -23,7 +23,7 @@ import (
 	"log"
 	"io/ioutil"
 	"os"
-	"launchpad.net/phablet-tools/bootimg"
+	"launchpad.net/goget-ubuntu-touch/bootimg"
 )
 
 func checkError(err error) {
