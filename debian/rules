@@ -1,0 +1,12 @@
+#!/usr/bin/make -f
+# -*- makefile -*-
+
+export DH_OPTIONS
+export DH_GOPKG := launchpad.net/goget-ubuntu-touch
+
+%:
+	dh $@ --buildsystem=golang --with=golang
+
+override_dh_auto_install:
+	dh_auto_install -O--buildsystem=golang
+	rm ${CURDIR}/debian/tmp/usr/bin/abootimg-extract

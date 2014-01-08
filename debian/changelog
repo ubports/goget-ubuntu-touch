@@ -1,0 +1,5 @@
+golang-goget-ubuntu-touch (0.1-0ubuntu1) UNRELEASED; urgency=low
+
+  * Initial release.
+
+ -- Sergio Schvezov <sergio.schvezov@canonical.com>  Wed, 08 Jan 2014 09:07:21 -0300

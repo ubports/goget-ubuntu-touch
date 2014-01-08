@@ -1,0 +1,56 @@
+.TH UBUNTU-EMULATOR 1
+.SH NAME
+ubuntu-emulator \- create and run emulator images of Ubuntu Touch
+
+.SH SYNOPSIS
+.B ubuntu-emulator
+create|destroy|snapshot
+[OPTIONS]
+.IR instance
+
+.SH DESCRIPTION
+.B ubuntu-emulator
+Use this tool to create and destroy Ubuntu Touch instances and run them 
+with the emulator
+
+.SH OPTIONS
+Run --help on each subcommand to get extra information and parameters
+.TP
+create
+Create new emulator instance named 'name'
+.TP
+destroy
+Destroys an emulator instance named 'name'
+.TP
+run
+Run emulator instance named 'name'
+.TP
+snapshot
+Manipulates snapshots for emulator instance named 'name'
+
+.SH EXAMPLES
+To create an emulator instance named trusty
+.PP
+.nf
+.RS
+ubuntu-emulator create trusty
+.RE
+.fi
+.PP
+
+To revert a previously created emulator instance named trusty to it's 
+pristine state
+.PP
+.nf
+.RS
+ubuntu-emulator snapshot --revert-pristine trusty
+.RE
+.fi
+.PP
+
+.SH ENVIRONMENT
+.IP XDG_CACHE_HOME
+If set, downloads take place in XDG_CACHE_HOME/ubuntuimages
+
+.SH AUTHOR
+Sergio Schvezov <sergio.schvezov at canonical dot com>

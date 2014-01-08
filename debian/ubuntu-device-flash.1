@@ -1,0 +1,68 @@
+.TH UBUNTU-DEVICE-FLASH 1
+
+.SH NAME
+ubuntu-device-flash \- provision supported Nexus devices with Ubuntu
+
+.SH SYNOPSIS
+.B ubuntu-device-flash
+[OPTIONS]
+
+.SH DESCRIPTION
+.B ubuntu-device-flash
+Use this tool to flash a suported device with Ubuntu by either
+bootstrapping from fastboot or reflashing from an already
+supported device.
+
+.SH OPTIONS
+\fB\-bootstrap\fR=\fIfalse\fR: Bootstrap the system, do this from fastboot
+.HP
+\fB\-channel=\fR"stable": Select channel to flash
+.HP
+\fB\-device=\fR"": Select device to flash
+.HP
+\fB\-list\-channels\fR=\fIfalse\fR: List available channels
+.HP
+\fB\-revision\fR=\fI0\fR: Revision to flash, 0 is current, use explicit version number or negative relative ones to current
+.HP
+\fB\-serial=\fR"": Serial of the device to operate
+.HP
+\fB\-server=\fR"https://system\-image.ubuntu.com": Select image server
+.HP
+\fB\-wipe\fR=\fIfalse\fR: Clear all data after flashing
+
+.SH EXAMPLES
+To list the available channels on the server for the connected device
+.PP
+.nf
+.RS
+ubuntu-device-flash --list-channels
+.RE
+.fi
+.PP
+
+To flash a full image over an existing Ubuntu Touch install with a different
+channel
+.PP
+.nf
+.RS
+ubuntu-device-flash --channel [channel]
+.RE
+.fi
+.PP
+
+To flash a full image over a non Ubuntu Touch install with the default
+channel, do the following from fastboot
+.PP
+.nf
+.RS
+ubuntu-device-flash --bootstrap
+.RE
+.fi
+.PP
+
+.SH ENVIRONMENT
+.IP XDG_CACHE_HOME
+If set, downloads take place in XDG_CACHE_HOME/ubuntuimages
+
+.SH AUTHOR
+Sergio Schvezov <sergio.schvezov at canonical dot com>
