@@ -1,7 +1,8 @@
 Source: golang-goget-ubuntu-touch
 Section: devel
 Priority: extra
-Maintainer: Sergio Schvezov <sergio.schvezov@canonical.com>
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+XSBC-Original-Maintainer: Sergio Schvezov <sergio.schvezov@canonical.com>
 Build-Depends: debhelper (>= 9),
                dh-golang,
                golang-go,
