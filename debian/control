@@ -1,6 +1,6 @@
 Source: golang-goget-ubuntu-touch
 Section: devel
-Priority: extra
+Priority: optional
 Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
 XSBC-Original-Maintainer: Sergio Schvezov <sergio.schvezov@canonical.com>
 Build-Depends: debhelper (>= 9),
@@ -10,12 +10,18 @@ Build-Depends: debhelper (>= 9),
                golang-pb-dev,
 Standards-Version: 3.9.5
 Homepage: https://launchpad.net/goget-ubuntu-touch
+# if you don't have have commit access to this branch but would like to upload
+# directly to Ubuntu, don't worry: your changes will be merged back into the
+# upstream branch
 Vcs-Browser: http://bazaar.launchpad.net/~phablet-team/goget-ubuntu-touch/trunk/files
 Vcs-Bzr: lp:goget-ubuntu-touch
 
 Package: ubuntu-device-flash
 Architecture: any
-Depends: android-tools-adb, android-tools-fastboot, ${misc:Depends}, ${shlibs:Depends}
+Depends: android-tools-adb,
+         android-tools-fastboot,
+         ${misc:Depends},
+         ${shlibs:Depends},
 Description: Flash supported Nexus devices with Ubuntu
  Use this tool to flash a suported device with Ubuntu by either
  bootstrapping from fastboot or reflashing from an already
@@ -23,26 +29,32 @@ Description: Flash supported Nexus devices with Ubuntu
 
 Package: ubuntu-emulator
 Architecture: any
-Depends: ubuntu-emulator-runtime, xz-utils, ${misc:Depends}, ${shlibs:Depends}
-Recommends: android-tools-adb
+Depends: ubuntu-emulator-runtime,
+         xz-utils,
+         ${misc:Depends},
+         ${shlibs:Depends},
+Recommends: android-tools-adb,
 Description: Create and run emulator images of Ubuntu Touch
  Create and destroy Ubuntu Touch instances and run them with the emulator
 
 Package: golang-goget-ubuntu-touch-bootimg-dev
 Architecture: all
-Depends: ${misc:Depends}, ${shlibs:Depends}
+Depends: ${misc:Depends},
+         ${shlibs:Depends},
 Description: Go library for manipulating Android boot.img files
  Package reads and extracts Android boot.img files
 
 Package: golang-goget-ubuntu-touch-devices-dev
 Architecture: all
-Depends: ${misc:Depends}, ${shlibs:Depends}
+Depends: ${misc:Depends},
+         ${shlibs:Depends},
 Description: Go library for interfacing with adb and fastboot
  Provides facilities to interface with adb and fastboot
 
 Package: golang-goget-ubuntu-touch-ubuntuimage-dev
 Architecture: all
-Depends: ${misc:Depends}, ${shlibs:Depends}
+Depends: ${misc:Depends},
+         ${shlibs:Depends},
 Description: Go library for interfacing with an Ubuntu image server
  Provides facilities to interface with an Ubuntu image server to
  download OS image assets from different channels and for different
