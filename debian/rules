@@ -9,4 +9,6 @@ export DH_GOPKG := launchpad.net/goget-ubuntu-touch
 
 override_dh_auto_install:
 	dh_auto_install -O--buildsystem=golang
-	rm ${CURDIR}/debian/tmp/usr/bin/abootimg-extract
+	rm -rf ${CURDIR}/debian/tmp/usr/bin/abootimg-extract
+	rm -rf ${CURDIR}/debian/tmp/usr/share/gocode/src/launchpad.net/goget-ubuntu-touch/ubuntu-emulator
+	rm -rf ${CURDIR}/debian/tmp/usr/share/gocode/src/launchpad.net/goget-ubuntu-touch/ubuntu-device-flash
