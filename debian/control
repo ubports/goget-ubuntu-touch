@@ -1,4 +1,4 @@
-Source: golang-goget-ubuntu-touch
+Source: goget-ubuntu-touch
 Section: devel
 Priority: optional
 Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
