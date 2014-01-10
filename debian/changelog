@@ -1,6 +1,13 @@
-goget-ubuntu-touch (0.1-0ubuntu1) UNRELEASED; urgency=low
+goget-ubuntu-touch (0.1+14.04.20140110-0ubuntu1) trusty; urgency=low
 
+  [ Sergio Schvezov ]
   * Initial release.
   * Automatic snapshot from revision 6 (bootstrap)
 
- -- Sergio Schvezov <sergio.schvezov@canonical.com>  Wed, 08 Jan 2014 09:07:21 -0300
+  [ Robert Bruce Park ]
+  * Copyright fixes requested by didrocks.
+
+  [ Ubuntu daily release ]
+  * Automatic snapshot from revision 8
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Fri, 10 Jan 2014 18:57:54 +0000
