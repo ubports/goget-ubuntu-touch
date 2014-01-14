@@ -24,7 +24,7 @@ Description: Flash supported Nexus devices with Ubuntu
  supported device.
 
 Package: ubuntu-emulator
-Architecture: any
+Architecture: i386 amd64
 Depends: ubuntu-emulator-runtime,
          xz-utils,
          ${misc:Depends},
