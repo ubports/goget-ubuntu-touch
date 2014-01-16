@@ -131,6 +131,11 @@ func (createCmd *CreateCmd) Execute(args []string) error {
 			}
 		}
 	}
+
+	if err = sysutils.WriteStamp(dataDir, image); err != nil {
+		return err
+	}
+
 	fmt.Printf("Succesfully created emulator instance %s in %s\n", instanceName, dataDir)
 	return nil
 }

@@ -69,11 +69,14 @@ func instanceExists(path string) bool {
 	return false
 }
 
-func getInstanceDataDir(instanceName string) (dataDir string) {
-	dataDir = os.Getenv("XDG_DATA_HOME")
+func getDataDir() string {
+	dataDir := os.Getenv("XDG_DATA_HOME")
 	if dataDir == "" {
 		dataDir = "$HOME/.local/share"
 	}
-	dataDir = os.ExpandEnv(dataDir)
-	return filepath.Join(dataDir, filepath.Base(os.Args[0]), instanceName)
+	return filepath.Join(os.ExpandEnv(dataDir), filepath.Base(os.Args[0]))
+}
+
+func getInstanceDataDir(instanceName string) (dataDir string) {
+	return filepath.Join(getDataDir(), instanceName)
 }
