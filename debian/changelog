@@ -1,8 +1,15 @@
-goget-ubuntu-touch (0.2-0ubuntu1) UNRELEASED; urgency=medium
+goget-ubuntu-touch (0.2+14.04.20140117-0ubuntu1) trusty; urgency=medium
 
+  [ Sergio Schvezov ]
   * Adding the EDGE skin.
+  * Only provide ubuntu-emulator for i386 and amd64 as ubuntu-emulator-
+    runtime only works there.
+  * Adding a list command.
 
- -- Sergio Schvezov <sergio.schvezov@canonical.com>  Fri, 17 Jan 2014 12:33:53 -0300
+  [ Ubuntu daily release ]
+  * Automatic snapshot from revision 12
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Fri, 17 Jan 2014 19:26:51 +0000
 
 goget-ubuntu-touch (0.1+14.04.20140110-0ubuntu1) trusty; urgency=low
 
