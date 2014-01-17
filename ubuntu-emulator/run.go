@@ -37,10 +37,15 @@ var runCmd RunCmd
 
 const (
 	defaultMemory    = "512"
-	defaultSkin      = "WVGA800"
-	skinDir          = "/usr/share/android/emulator/development/tools/emulator/skins"
+	defaultSkin      = "EDGE"
 	emulatorCmd      = "/usr/share/android/emulator/out/host/linux-x86/bin/emulator"
 )
+
+var	skinDirs = []string {
+	"skins",
+	"/usr/share/ubuntu-emulator/skins",
+	"/usr/share/android/emulator/development/tools/emulator/skins",
+}
 
 func init() {
 	runCmd.Skin = defaultSkin
@@ -57,9 +62,13 @@ func (runCmd *RunCmd) Execute(args []string) error {
 	}
 	instanceName := args[0]
 	dataDir := getInstanceDataDir(instanceName)
-
 	if instanceExists(dataDir) != true {
 		return errors.New(fmt.Sprintf("This instance does not exist, use 'create %s' to create it", instanceName))
+	}
+
+	skinDir, err := getSkinDir(runCmd.Skin)
+	if err != nil {
+		return err
 	}
 
 	cmd := exec.Command(emulatorCmd,
@@ -86,3 +95,18 @@ func (runCmd *RunCmd) Execute(args []string) error {
 	}
 	return nil
 }
+
+func getSkinDir(skin string) (string, error) {
+	for _, skinDir := range skinDirs {
+		if dir, err := os.Stat(skinDir); err != nil || !dir.IsDir() {
+			continue
+		}
+		skinPath := filepath.Join(skinDir, skin)
+		if dir, err := os.Stat(skinPath); err != nil || !dir.IsDir() {
+			continue
+		}
+		return skinDir, nil
+	}
+	return "", errors.New(fmt.Sprintf("Cannot find skin %s in any directory from path %s", skin, skinDirs))
+}
+

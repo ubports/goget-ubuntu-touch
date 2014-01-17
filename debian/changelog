@@ -1,3 +1,9 @@
+goget-ubuntu-touch (0.2-0ubuntu1) UNRELEASED; urgency=medium
+
+  * Adding the EDGE skin.
+
+ -- Sergio Schvezov <sergio.schvezov@canonical.com>  Fri, 17 Jan 2014 12:33:53 -0300
+
 goget-ubuntu-touch (0.1+14.04.20140110-0ubuntu1) trusty; urgency=low
 
   [ Sergio Schvezov ]
