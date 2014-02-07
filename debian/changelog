@@ -1,3 +1,10 @@
+goget-ubuntu-touch (0.2+14.04.20140207-0ubuntu1) trusty; urgency=low
+
+  [ Sergio Schvezov ]
+  * Adding scale option
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Fri, 07 Feb 2014 15:46:52 +0000
+
 goget-ubuntu-touch (0.2+14.04.20140117-0ubuntu1) trusty; urgency=medium
 
   [ Sergio Schvezov ]
