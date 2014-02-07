@@ -31,12 +31,14 @@ type RunCmd struct {
 	Skin      string `long:"skin" description:"Select skin/emulator type"`
 	KernelCmd string `long:"kernel-cmdline" description:"Replace kernel cmdline"`
 	Memory    string `long:"memory" description:"Set the device memory"`
+	Scale	  string `long:"scale" description:"Scale the emulator size"`
 }
 
 var runCmd RunCmd
 
 const (
 	defaultMemory    = "512"
+	defaultScale     = "1.0"
 	defaultSkin      = "EDGE"
 	emulatorCmd      = "/usr/share/android/emulator/out/host/linux-x86/bin/emulator"
 )
@@ -49,6 +51,7 @@ var	skinDirs = []string {
 
 func init() {
 	runCmd.Skin = defaultSkin
+	runCmd.Scale = defaultScale
 	runCmd.Memory = defaultMemory
 	parser.AddCommand("run",
 		"Run emulator instance named 'name'",
@@ -82,6 +85,7 @@ func (runCmd *RunCmd) Execute(args []string) error {
 		"-cache", filepath.Join(dataDir, cacheImage),
 		"-force-32bit", "-no-snapstorage",
 		"-gpu", "on",
+		"-scale", runCmd.Scale,
 		"-shell", "-no-jni", "-show-kernel", "-verbose",
 		"-qemu",
 		"-cpu", cpu,
