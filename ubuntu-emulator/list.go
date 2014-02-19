@@ -41,7 +41,6 @@ func init() {
 
 func (listCmd *ListCmd) Execute(args []string) error {
 	dataDir := getDataDir()
-	fmt.Println(dataDir)
 	instanceList, err := ioutil.ReadDir(dataDir)
 	if err != nil {
 		return err
