@@ -21,31 +21,29 @@ package main
 // with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import (
-	"flag"
-	"log"
+	flags "github.com/jessevdk/go-flags"
 )
 
 type arguments struct {
-	revision                        *int
-	bootstrap, listChannels, wipe   *bool
-	channel, device, serial, server *string
+	Revision     int    `long:"revision" description:"revision to flash, absolute or relative allowed"`
+	Bootstrap    bool   `long:"bootstrap" description:"bootstrap the system, do this from the bootloader"`
+	ListChannels bool   `long:"list-channels" description:"List available channels"`
+	Wipe         bool   `long:"wipe" description:"Clear all data after flashing"`
+	Channel      string `long:"channel" description:"Specify an alternate channel"`
+	Device       string `long:"device" description:"Specify the device to flash"`
+	Serial       string `long:"serial" description:"Serial of the device to operate"`
+	Server       string `long:"server" description:"Use a different image server"`
 }
 
 var args arguments
+var parser = flags.NewParser(&args, flags.Default)
+
+const (
+	defaultChannel = "stable"
+	defaultServer  = "https://system-image.ubuntu.com"
+)
 
 func init() {
-	args.bootstrap = flag.Bool("bootstrap", false, "Bootstrap the system, do this from fastboot")
-	args.wipe = flag.Bool("wipe", false, "Clear all data after flashing")
-	args.revision = flag.Int("revision", 0, "Revision to flash, 0 is current, "+
-		"use explicit version number or negative relative ones to current")
-	args.channel = flag.String("channel", "stable", "Select channel to flash")
-	args.device = flag.String("device", "", "Select device to flash")
-	args.serial = flag.String("serial", "", "Serial of the device to operate")
-	args.server = flag.String("server", "https://system-image.ubuntu.com",
-		"Select image server")
-	args.listChannels = flag.Bool("list-channels", false, "List available channels")
-	flag.Parse()
-	if *args.bootstrap && *args.wipe {
-		log.Fatal("Cannot bootstrap and wipe at the same time")
-	}
+	args.Channel = defaultChannel
+	args.Server = defaultServer
 }
