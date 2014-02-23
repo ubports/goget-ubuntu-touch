@@ -41,7 +41,7 @@ type CreateCmd struct {
 var createCmd CreateCmd
 
 const (
-	device         = "goldfish"
+	device         = "generic"
 	defaultChannel = "devel-proposed"
 	defaultServer  = "https://system-image.ubuntu.com"
 )
