@@ -1,3 +1,11 @@
+goget-ubuntu-touch (0.2+14.04.20140224-0ubuntu1) trusty; urgency=low
+
+  [ Sergio Schvezov ]
+  * Removing the datadir printout when listing emulator instances
+  * Message hints for what is being waited on when flashing
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Mon, 24 Feb 2014 16:11:55 +0000
+
 goget-ubuntu-touch (0.2+14.04.20140207-0ubuntu1) trusty; urgency=low
 
   [ Sergio Schvezov ]
