@@ -102,6 +102,13 @@ func (adb UbuntuDebugBridge) Reboot() (err error) {
 	return err
 }
 
+// WaitForDevice waits for the device to be available
+func (adb UbuntuDebugBridge) WaitForDevice() (err error) {
+	cmd := append(adb.params, []string{"wait-for-device"}...)
+	err = exec.Command(adbCommand, cmd...).Run()
+	return err
+}
+
 // WaitForRecovery idles until the image has booted into recovery
 // for recovery
 func (adb UbuntuDebugBridge) WaitForRecovery() error {

@@ -48,8 +48,12 @@ func main() {
 	}
 	if *args.device == "" {
 		if *args.bootstrap {
+			log.Print("Expecting the device to be in the bootloader... waiting")
 			*args.device, err = fastboot.GetDevice()
 		} else {
+			log.Print("Expecting the device to expose an adb interface...")
+			// TODO needs to work from recovery as well
+			//adb.WaitForDevice()
 			*args.device, err = adb.GetDevice()
 		}
 		if err != nil {
