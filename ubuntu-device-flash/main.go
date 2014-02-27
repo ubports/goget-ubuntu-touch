@@ -36,36 +36,39 @@ import (
 )
 
 func main() {
+	if _, err := parser.Parse(); err != nil {
+		os.Exit(1)
+	}
 	cacheDir := ubuntuimage.GetCacheDir()
 	adb, err := devices.NewUbuntuDebugBridge()
 	var fastboot devices.Fastboot
 	if err != nil {
 		log.Fatal(err)
 	}
-	if *args.serial != "" {
-		adb.SetSerial(*args.serial)
-		fastboot.SetSerial(*args.serial)
+	if args.Serial != "" {
+		adb.SetSerial(args.Serial)
+		fastboot.SetSerial(args.Serial)
 	}
-	if *args.device == "" {
-		if *args.bootstrap {
+	if args.Device == "" {
+		if args.Bootstrap {
 			log.Print("Expecting the device to be in the bootloader... waiting")
-			*args.device, err = fastboot.GetDevice()
+			args.Device, err = fastboot.GetDevice()
 		} else {
 			log.Print("Expecting the device to expose an adb interface...")
 			// TODO needs to work from recovery as well
 			//adb.WaitForDevice()
-			*args.device, err = adb.GetDevice()
+			args.Device, err = adb.GetDevice()
 		}
 		if err != nil {
 			log.Fatal(err)
 		}
 	}
-	log.Printf("Device is |%s|", *args.device)
-	channels, err := ubuntuimage.NewChannels(*args.server)
+	log.Printf("Device is |%s|", args.Device)
+	channels, err := ubuntuimage.NewChannels(args.Server)
 	if err != nil {
 		log.Fatal(err)
 	}
-	if *args.listChannels {
+	if args.ListChannels {
 		for k, v := range channels {
 			if v.Alias != "" {
 				fmt.Printf("%s (alias to %s)\n", k, v.Alias)
@@ -76,23 +79,23 @@ func main() {
 		return
 	}
 	deviceChannel, err := channels.GetDeviceChannel(
-		*args.server, *args.channel, *args.device)
+		args.Server, args.Channel, args.Device)
 	if err != nil {
 		log.Fatal(err)
 	}
 	var image ubuntuimage.Image
-	if *args.revision == 0 {
+	if args.Revision == 0 {
 		image, err = deviceChannel.GetLatestImage()
 	} else {
-		image, err = deviceChannel.GetImage(*args.revision)
+		image, err = deviceChannel.GetImage(args.Revision)
 	}
 	if err != nil {
 		log.Fatal(err)
 	}
 	log.Printf("Flashing version %d from %s channel and server %s to device %s",
-		image.Version, *args.channel, *args.server, *args.device)
+		image.Version, args.Channel, args.Server, args.Device)
 	if deviceChannel.Alias != "" {
-		log.Printf("%s is a channel alias to %s", deviceChannel.Alias, *args.channel)
+		log.Printf("%s is a channel alias to %s", deviceChannel.Alias, args.Channel)
 	}
 
 	// TODO use closures
@@ -101,12 +104,12 @@ func main() {
 	files := make(chan Files, totalFiles)
 	done := make(chan bool, totalFiles)
 	for _, file := range image.Files {
-		go bitDownloader(file, files, *args.server, cacheDir)
+		go bitDownloader(file, files, args.Server, cacheDir)
 	}
 	for _, file := range signFiles {
-		go bitDownloader(file, files, *args.server, cacheDir)
+		go bitDownloader(file, files, args.Server, cacheDir)
 	}
-	if *args.bootstrap {
+	if args.Bootstrap {
 		var downloadedFiles []Files
 		for i := 0; i < totalFiles; i++ {
 			downloadedFiles = append(downloadedFiles, <-files)
@@ -144,13 +147,13 @@ func main() {
 		for _, file := range downloadedFiles {
 			files <- file
 		}
-		*args.wipe = true
+		args.Wipe = true
 	}
 	go bitPusher(adb, files, done)
 	for i := 0; i < totalFiles; i++ {
 		<-done
 	}
-	ubuntuCommands, err := ubuntuimage.GetUbuntuCommands(image.Files, cacheDir, *args.wipe)
+	ubuntuCommands, err := ubuntuimage.GetUbuntuCommands(image.Files, cacheDir, args.Wipe)
 	if err != nil {
 		log.Fatal("Cannot create commands file")
 	}
@@ -269,3 +272,4 @@ func xzReader(r io.Reader) io.ReadCloser {
 
 	return rpipe
 }
+
