@@ -1,3 +1,13 @@
+goget-ubuntu-touch (0.2+14.04.20140227.1-0ubuntu1) trusty; urgency=low
+
+  [ Sergio Schvezov ]
+  * Switching ubuntu-device-flash from the default flag package to
+    "github.com/jessevdk/go-flags" which is also used for ubuntu-
+    emulator. This would enable the hidden cdimage download in a future
+    code change.
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Thu, 27 Feb 2014 15:26:18 +0000
+
 goget-ubuntu-touch (0.2+14.04.20140224-0ubuntu1) trusty; urgency=low
 
   [ Sergio Schvezov ]
