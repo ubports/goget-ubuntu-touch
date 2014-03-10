@@ -6,6 +6,7 @@ Build-Depends: debhelper (>= 9),
                dh-golang,
                golang-go,
                golang-go-flags-dev,
+               golang-gocheck-dev,
                golang-pb-dev,
 Standards-Version: 3.9.5
 Homepage: https://launchpad.net/goget-ubuntu-touch
