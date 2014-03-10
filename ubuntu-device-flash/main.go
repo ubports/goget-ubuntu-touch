@@ -40,6 +40,13 @@ func main() {
 		os.Exit(1)
 	}
 	cacheDir := ubuntuimage.GetCacheDir()
+	if args.CleanCache {
+		log.Print("Cleaning prevously downloaded content")
+		if err := os.RemoveAll(cacheDir); err != nil {
+			log.Fatal(err)
+		}
+		return
+	}
 	adb, err := devices.NewUbuntuDebugBridge()
 	var fastboot devices.Fastboot
 	if err != nil {
@@ -272,4 +279,3 @@ func xzReader(r io.Reader) io.ReadCloser {
 
 	return rpipe
 }
-
