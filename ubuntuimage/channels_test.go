@@ -226,6 +226,10 @@ func (s *DeviceChannelsSuite) SetUpTest(c *C) {
 	}))
 }
 
+func (s *DeviceChannelsSuite) TearDownTest(c *C) {
+	s.ts.Close()
+}
+
 func (s *DeviceChannelsSuite) TestChannelNotFoundWithNoChannels(c *C) {
 	s.channels = make(map[string]Channel)
 	channel := "trusty"
@@ -353,6 +357,10 @@ func (s *ChannelsSuite) SetUpTest(c *C) {
 	s.ts = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintln(w, channels)
 	}))
+}
+
+func (s *ChannelsSuite) TearDownTest(c *C) {
+	s.ts.Close()
 }
 
 func (s *ChannelsSuite) TestGetChannelsFromServer(c *C) {
