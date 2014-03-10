@@ -230,7 +230,7 @@ func (s *DeviceChannelsSuite) TestChannelNotFoundWithNoChannels(c *C) {
 	s.channels = make(map[string]Channel)
 	channel := "trusty"
 	device := "mako"
-	expectedErr := errors.New(fmt.Sprintf("Channel %s not found on server %s", channel, s.ts.URL))
+	expectedErr := fmt.Errorf("Channel %s not found on server %s", channel, s.ts.URL)
 	_, err := s.channels.GetDeviceChannel(s.ts.URL, channel, device)
 	c.Assert(err, DeepEquals, expectedErr)
 }
@@ -238,8 +238,8 @@ func (s *DeviceChannelsSuite) TestChannelNotFoundWithNoChannels(c *C) {
 func (s *DeviceChannelsSuite) TestChannelDeviceNotFoundInChannel(c *C) {
 	device := "hammerhead"
 	channel := "trusty"
-	expectedErr := errors.New(fmt.Sprintf("Device %s not found on server %s channel %s",
-		device, s.ts.URL, channel))
+	expectedErr := fmt.Errorf("Device %s not found on server %s channel %s",
+		device, s.ts.URL, channel)
 	_, err := s.channels.GetDeviceChannel(s.ts.URL, channel, device)
 	c.Assert(err, DeepEquals, expectedErr)
 }
@@ -247,8 +247,8 @@ func (s *DeviceChannelsSuite) TestChannelDeviceNotFoundInChannel(c *C) {
 func (s *DeviceChannelsSuite) TestChannelDeviceNotFoundInChannelWithSlash(c *C) {
 	device := "hammerhead"
 	channel := "touch/trusty"
-	expectedErr := errors.New(fmt.Sprintf("Device %s not found on server %s channel %s",
-		device, s.ts.URL, channel))
+	expectedErr := fmt.Errorf("Device %s not found on server %s channel %s",
+		device, s.ts.URL, channel)
 	_, err := s.channels.GetDeviceChannel(s.ts.URL, channel, device)
 	c.Assert(err, DeepEquals, expectedErr)
 }
@@ -259,8 +259,8 @@ func (s *DeviceChannelsSuite) TestChannelInvalidDataForDevice(c *C) {
 	}))
 	device := "mako"
 	channel := "touch/trusty"
-	expectedErr := errors.New(fmt.Sprintf("Cannot parse channel information for device on %s",
-		s.ts.URL+"/"+channel+"/"+device+"/index.json"))
+	expectedErr := fmt.Errorf("Cannot parse channel information for device on %s",
+		s.ts.URL+"/"+channel+"/"+device+"/index.json")
 	_, err := s.channels.GetDeviceChannel(s.ts.URL, channel, device)
 	c.Assert(err, DeepEquals, expectedErr)
 }
@@ -338,7 +338,7 @@ func (s *DeviceChannelsSuite) TestFailGetSpecificImageForChannel(c *C) {
 	c.Assert(channelData.Alias, Equals, "touch/trusty")
 	c.Assert(channelData.Images, NotNil)
 	rev := 162
-	expectedErr := errors.New(fmt.Sprintf("Failed to locate image %d", rev))
+	expectedErr := fmt.Errorf("Failed to locate image %d", rev)
 	_, err = channelData.GetImage(rev)
 	c.Assert(err, DeepEquals, expectedErr)
 }
@@ -372,7 +372,7 @@ func (s *ChannelsSuite) TestInvalidDataWhenGetChannelsFromServer(c *C) {
 	s.ts = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintln(w, "Invalid data")
 	}))
-	expectedErr := errors.New(fmt.Sprintf("Unable to parse channel information from %s", s.ts.URL))
+	expectedErr := fmt.Errorf("Unable to parse channel information from %s", s.ts.URL)
 	_, err := NewChannels(s.ts.URL)
 	c.Assert(err, DeepEquals, expectedErr)
 }
