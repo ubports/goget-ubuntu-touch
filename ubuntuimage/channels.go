@@ -35,8 +35,10 @@ func NewChannels(server string) (channels Channels, err error) {
 	}
 	defer resp.Body.Close()
 	dec := json.NewDecoder(resp.Body)
-	err = dec.Decode(&channels)
-	return channels, err
+	if err := dec.Decode(&channels); err != nil {
+		return channels, errors.New(fmt.Sprintf("Unable to parse channel information from %s", server))
+	}
+	return channels, nil
 }
 
 func (channels Channels) GetDeviceChannel(server, channel, device string) (deviceChannel DeviceChannel, err error) {
@@ -57,6 +59,10 @@ func (channels Channels) GetDeviceChannel(server, channel, device string) (devic
 	defer resp.Body.Close()
 	dec := json.NewDecoder(resp.Body)
 	err = dec.Decode(&deviceChannel)
+	if err != nil {
+		return deviceChannel, errors.New(
+			fmt.Sprintf("Cannot parse channel information for device on %s", channelUri))
+	}
 	deviceChannel.Alias = channels[channel].Alias
 	return deviceChannel, err
 }
