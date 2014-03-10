@@ -1,3 +1,13 @@
+goget-ubuntu-touch (0.2+14.04.20140310-0ubuntu1) trusty; urgency=low
+
+  [ Sergio Schvezov ]
+  * Adding tests for channel management.
+
+  [ Ricardo Salveti de Araujo ]
+  * emulator: goldfish is now just generic
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Mon, 10 Mar 2014 18:05:37 +0000
+
 goget-ubuntu-touch (0.2+14.04.20140227.1-0ubuntu1) trusty; urgency=low
 
   [ Sergio Schvezov ]
