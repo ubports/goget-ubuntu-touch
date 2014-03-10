@@ -35,19 +35,18 @@ func NewChannels(server string) (channels Channels, err error) {
 	}
 	defer resp.Body.Close()
 	dec := json.NewDecoder(resp.Body)
-	err = dec.Decode(&channels)
-	return channels, err
+	if err := dec.Decode(&channels); err != nil {
+		return channels, fmt.Errorf("Unable to parse channel information from %s", server)
+	}
+	return channels, nil
 }
 
 func (channels Channels) GetDeviceChannel(server, channel, device string) (deviceChannel DeviceChannel, err error) {
 	if _, found := channels[channel]; !found {
-		return deviceChannel, errors.New(fmt.Sprintf(
-			"Channel %s not found on server %s",
-			channel, server))
+		return deviceChannel, fmt.Errorf("Channel %s not found on server %s", channel, server)
 	} else if _, found := channels[channel].Devices[device]; !found {
-		return deviceChannel, errors.New(
-			fmt.Sprintf("Device %s not found on server %s channel %s",
-				device, server, channel))
+		return deviceChannel, fmt.Errorf("Device %s not found on server %s channel %s",
+				device, server, channel)
 	}
 	channelUri := server + channels[channel].Devices[device].Index
 	resp, err := http.Get(channelUri)
@@ -57,6 +56,9 @@ func (channels Channels) GetDeviceChannel(server, channel, device string) (devic
 	defer resp.Body.Close()
 	dec := json.NewDecoder(resp.Body)
 	err = dec.Decode(&deviceChannel)
+	if err != nil {
+		return deviceChannel, fmt.Errorf("Cannot parse channel information for device on %s", channelUri)
+	}
 	deviceChannel.Alias = channels[channel].Alias
 	return deviceChannel, err
 }
@@ -69,7 +71,7 @@ func (deviceChannel *DeviceChannel) GetLatestImage() (image Image, err error) {
 		}
 	}
 	if latestImage.Version == 0 {
-		err = errors.New(fmt.Sprintf("Failed to locate latest image information"))
+		err = errors.New("Failed to locate latest image information")
 	}
 	return latestImage, err
 }
@@ -81,5 +83,5 @@ func (deviceChannel *DeviceChannel) GetImage(revision int) (image Image, err err
 		}
 	}
 	//If we reached this point, that means we haven't found the image we were looking for.
-	return image, errors.New(fmt.Sprintf("Failed to locate image %d", revision))
+	return image, fmt.Errorf("Failed to locate image %d", revision)
 }
