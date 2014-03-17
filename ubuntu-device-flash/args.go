@@ -33,6 +33,7 @@ type arguments struct {
 	Device       string `long:"device" description:"Specify the device to flash"`
 	Serial       string `long:"serial" description:"Serial of the device to operate"`
 	Server       string `long:"server" description:"Use a different image server"`
+	CleanCache   bool   `long:"clean-cache" description:"Cleans up cache with all downloaded bits"`
 }
 
 var args arguments
