@@ -1,3 +1,10 @@
+goget-ubuntu-touch (0.2+14.04.20140317-0ubuntu1) trusty; urgency=low
+
+  [ Sergio Schvezov ]
+  * Simple cleanup option for flashing. (LP: #1157710)
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Mon, 17 Mar 2014 21:37:05 +0000
+
 goget-ubuntu-touch (0.2+14.04.20140310-0ubuntu1) trusty; urgency=low
 
   [ Sergio Schvezov ]
