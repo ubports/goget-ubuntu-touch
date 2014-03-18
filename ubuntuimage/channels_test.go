@@ -348,6 +348,21 @@ func (s *DeviceChannelsSuite) TestGetSpecificRelativeImageForChannel(c *C) {
 	c.Check(len(image.Files), Equals, 3)
 }
 
+func (s *DeviceChannelsSuite) TestFailGetRelativeImageForChannel(c *C) {
+	device := "mako"
+	channel := "touch/devel"
+	channelData, err := s.channels.GetDeviceChannel(s.ts.URL, channel, device)
+	c.Assert(err, IsNil)
+	c.Assert(channelData, NotNil)
+	c.Assert(channelData.Alias, Equals, "touch/trusty")
+	c.Assert(channelData.Images, NotNil)
+	rev := -5
+	_, err = channelData.GetRelativeImage(rev)
+	expectedErr := fmt.Errorf("Failed to locate relative image to latest - %d", -rev)
+	_, err = channelData.GetRelativeImage(rev)
+	c.Assert(err, DeepEquals, expectedErr)
+}
+
 func (s *DeviceChannelsSuite) TestFailGetSpecificImageForChannel(c *C) {
 	device := "mako"
 	channel := "touch/devel"

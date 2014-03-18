@@ -95,7 +95,7 @@ func (deviceChannel *DeviceChannel) GetRelativeImage(revision int) (image Image,
 	if revision == 0 {
 		err = errors.New("Failed to locate latest image information")
 	} else {
-		err = fmt.Errorf("Failed to locate relative image %d", revision)
+		err = fmt.Errorf("Failed to locate relative image to latest - %d", revision)
 	}
 	return Image{}, err
 }
