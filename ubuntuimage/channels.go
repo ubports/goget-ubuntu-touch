@@ -26,7 +26,10 @@ import (
 	"net/http"
 )
 
-const channelsPath = "/channels.json"
+const (
+	channelsPath = "/channels.json"
+	FULL_IMAGE   = "full"
+)
 
 func NewChannels(server string) (channels Channels, err error) {
 	resp, err := http.Get(server + channelsPath)
@@ -69,7 +72,7 @@ func (channels Channels) GetDeviceChannel(server, channel, device string) (devic
 
 func (deviceChannel *DeviceChannel) GetImage(revision int) (image Image, err error) {
 	for _, image := range deviceChannel.Images {
-		if image.Type == "full" && image.Version == revision {
+		if image.Type == FULL_IMAGE && image.Version == revision {
 			return image, nil
 		}
 	}
@@ -83,7 +86,7 @@ func (deviceChannel *DeviceChannel) GetRelativeImage(revision int) (image Image,
 		revision = -revision
 	}
 	for _, image := range deviceChannel.Images {
-		if image.Type != "full" {
+		if image.Type != FULL_IMAGE {
 			continue
 		}
 		if steps == revision {

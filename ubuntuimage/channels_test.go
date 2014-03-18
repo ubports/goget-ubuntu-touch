@@ -298,7 +298,7 @@ func (s *DeviceChannelsSuite) TestGetLatestImageForChannel(c *C) {
 	image, err := channelData.GetRelativeImage(0)
 	c.Assert(err, IsNil)
 	c.Check(image.Version, Equals, 166)
-	c.Check(image.Type, Equals, "full")
+	c.Check(image.Type, Equals, FULL_IMAGE)
 	c.Check(len(image.Files), Equals, 3)
 }
 
@@ -329,7 +329,7 @@ func (s *DeviceChannelsSuite) TestGetSpecificImageForChannel(c *C) {
 	image, err := channelData.GetImage(166)
 	c.Assert(err, IsNil)
 	c.Check(image.Version, Equals, 166)
-	c.Check(image.Type, Equals, "full")
+	c.Check(image.Type, Equals, FULL_IMAGE)
 	c.Check(len(image.Files), Equals, 3)
 }
 
@@ -344,7 +344,7 @@ func (s *DeviceChannelsSuite) TestGetSpecificRelativeImageForChannel(c *C) {
 	image, err := channelData.GetRelativeImage(-1)
 	c.Assert(err, IsNil)
 	c.Check(image.Version, Equals, 150)
-	c.Check(image.Type, Equals, "full")
+	c.Check(image.Type, Equals, FULL_IMAGE)
 	c.Check(len(image.Files), Equals, 3)
 }
 
