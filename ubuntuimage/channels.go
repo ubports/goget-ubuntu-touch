@@ -26,7 +26,10 @@ import (
 	"net/http"
 )
 
-const channelsPath = "/channels.json"
+const (
+	channelsPath = "/channels.json"
+	FULL_IMAGE   = "full"
+)
 
 func NewChannels(server string) (channels Channels, err error) {
 	resp, err := http.Get(server + channelsPath)
@@ -46,7 +49,7 @@ func (channels Channels) GetDeviceChannel(server, channel, device string) (devic
 		return deviceChannel, fmt.Errorf("Channel %s not found on server %s", channel, server)
 	} else if _, found := channels[channel].Devices[device]; !found {
 		return deviceChannel, fmt.Errorf("Device %s not found on server %s channel %s",
-				device, server, channel)
+			device, server, channel)
 	}
 	channelUri := server + channels[channel].Devices[device].Index
 	resp, err := http.Get(channelUri)
@@ -60,28 +63,42 @@ func (channels Channels) GetDeviceChannel(server, channel, device string) (devic
 		return deviceChannel, fmt.Errorf("Cannot parse channel information for device on %s", channelUri)
 	}
 	deviceChannel.Alias = channels[channel].Alias
+	order := func(i1, i2 *Image) bool {
+		return i1.Version > i2.Version
+	}
+	ImageBy(order).ImageSort(deviceChannel.Images)
 	return deviceChannel, err
-}
-
-func (deviceChannel *DeviceChannel) GetLatestImage() (image Image, err error) {
-	var latestImage Image
-	for _, image := range deviceChannel.Images {
-		if image.Type == "full" && image.Version > latestImage.Version {
-			latestImage = image
-		}
-	}
-	if latestImage.Version == 0 {
-		err = errors.New("Failed to locate latest image information")
-	}
-	return latestImage, err
 }
 
 func (deviceChannel *DeviceChannel) GetImage(revision int) (image Image, err error) {
 	for _, image := range deviceChannel.Images {
-		if image.Type == "full" && image.Version == revision {
+		if image.Type == FULL_IMAGE && image.Version == revision {
 			return image, nil
 		}
 	}
 	//If we reached this point, that means we haven't found the image we were looking for.
 	return image, fmt.Errorf("Failed to locate image %d", revision)
+}
+
+func (deviceChannel *DeviceChannel) GetRelativeImage(revision int) (image Image, err error) {
+	var steps int
+	if revision < 0 {
+		revision = -revision
+	}
+	for _, image := range deviceChannel.Images {
+		if image.Type != FULL_IMAGE {
+			continue
+		}
+		if steps == revision {
+			return image, nil
+		}
+		steps++
+	}
+	//If we reached this point, that means we haven't found the image we were looking for.
+	if revision == 0 {
+		err = errors.New("Failed to locate latest image information")
+	} else {
+		err = fmt.Errorf("Failed to locate relative image to latest - %d", revision)
+	}
+	return Image{}, err
 }

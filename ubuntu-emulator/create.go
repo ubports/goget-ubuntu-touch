@@ -83,8 +83,8 @@ func (createCmd *CreateCmd) Execute(args []string) error {
 		return err
 	}
 	var image ubuntuimage.Image
-	if createCmd.Revision == 0 {
-		image, err = deviceChannel.GetLatestImage()
+	if createCmd.Revision <= 0 {
+		image, err = deviceChannel.GetRelativeImage(createCmd.Revision)
 	} else {
 		image, err = deviceChannel.GetImage(createCmd.Revision)
 	}
