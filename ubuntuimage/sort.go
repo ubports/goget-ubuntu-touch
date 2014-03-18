@@ -55,3 +55,36 @@ func (s *fileSorter) Swap(i, j int) {
 func (s *fileSorter) Less(i, j int) bool {
 	return s.by(&s.files[i], &s.files[j])
 }
+
+// By is the type of a "less" function that defines the ordering of its File arguments.
+type ImageBy func(p1, p2 *Image) bool
+
+// Sort is a method on the function type, By, that sorts the argument slice according to the function.
+func (by ImageBy) ImageSort(images []Image) {
+	is := &imageSorter{
+		images: images,
+		by:     by,
+	}
+	sort.Sort(is)
+}
+
+// fileSorter joins a By function and a slice of File to be sorted.
+type imageSorter struct {
+	images []Image
+	by     func(p1, p2 *Image) bool // Closure used in the Less method.
+}
+
+// Len is part of sort.Interface.
+func (s *imageSorter) Len() int {
+	return len(s.images)
+}
+
+// Swap is part of sort.Interface.
+func (s *imageSorter) Swap(i, j int) {
+	s.images[i], s.images[j] = s.images[j], s.images[i]
+}
+
+// Less is part of sort.Interface. It is implemented by calling the "by" closure in the sorter.
+func (s *imageSorter) Less(i, j int) bool {
+	return s.by(&s.images[i], &s.images[j])
+}

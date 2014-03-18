@@ -91,8 +91,8 @@ func main() {
 		log.Fatal(err)
 	}
 	var image ubuntuimage.Image
-	if args.Revision == 0 {
-		image, err = deviceChannel.GetLatestImage()
+	if args.Revision <= 0 {
+		image, err = deviceChannel.GetRelativeImage(args.Revision)
 	} else {
 		image, err = deviceChannel.GetImage(args.Revision)
 	}

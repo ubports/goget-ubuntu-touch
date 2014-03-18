@@ -295,7 +295,7 @@ func (s *DeviceChannelsSuite) TestGetLatestImageForChannel(c *C) {
 	c.Assert(channelData, NotNil)
 	c.Assert(channelData.Alias, Equals, "touch/trusty")
 	c.Assert(channelData.Images, NotNil)
-	image, err := channelData.GetLatestImage()
+	image, err := channelData.GetRelativeImage(0)
 	c.Assert(err, IsNil)
 	c.Check(image.Version, Equals, 166)
 	c.Check(image.Type, Equals, "full")
@@ -314,7 +314,7 @@ func (s *DeviceChannelsSuite) TestFailsGetLatestImageForChannelWithOnlyDeltas(c 
 	c.Assert(channelData.Alias, Equals, "touch/trusty")
 	c.Assert(channelData.Images, NotNil)
 	expectedErr := errors.New("Failed to locate latest image information")
-	_, err = channelData.GetLatestImage()
+	_, err = channelData.GetRelativeImage(0)
 	c.Assert(err, DeepEquals, expectedErr)
 }
 
@@ -329,6 +329,21 @@ func (s *DeviceChannelsSuite) TestGetSpecificImageForChannel(c *C) {
 	image, err := channelData.GetImage(166)
 	c.Assert(err, IsNil)
 	c.Check(image.Version, Equals, 166)
+	c.Check(image.Type, Equals, "full")
+	c.Check(len(image.Files), Equals, 3)
+}
+
+func (s *DeviceChannelsSuite) TestGetSpecificRelativeImageForChannel(c *C) {
+	device := "mako"
+	channel := "touch/devel"
+	channelData, err := s.channels.GetDeviceChannel(s.ts.URL, channel, device)
+	c.Assert(err, IsNil)
+	c.Assert(channelData, NotNil)
+	c.Assert(channelData.Alias, Equals, "touch/trusty")
+	c.Assert(channelData.Images, NotNil)
+	image, err := channelData.GetRelativeImage(-1)
+	c.Assert(err, IsNil)
+	c.Check(image.Version, Equals, 150)
 	c.Check(image.Type, Equals, "full")
 	c.Check(len(image.Files), Equals, 3)
 }
