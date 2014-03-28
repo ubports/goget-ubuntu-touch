@@ -1,3 +1,10 @@
+goget-ubuntu-touch (0.2+14.04.20140328-0ubuntu1) trusty; urgency=low
+
+  [ Ricardo Salveti de Araujo ]
+  * Don't need to override powerd anymore.
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Fri, 28 Mar 2014 17:20:39 +0000
+
 goget-ubuntu-touch (0.2+14.04.20140318-0ubuntu1) trusty; urgency=low
 
   [ Sergio Schvezov ]
