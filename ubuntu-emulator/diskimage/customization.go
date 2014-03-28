@@ -33,7 +33,6 @@ var overrides = []string{"etc/init/ofono.conf",
 	"usr/share/upstart/sessions/ofono-setup.conf",
 	"usr/share/upstart/sessions/mediascanner.conf",
 	"etc/init/bluetooth.conf",
-	"etc/init/powerd.conf",
 	"etc/init/network-manager.conf",
 }
 
