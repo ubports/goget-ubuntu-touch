@@ -99,7 +99,7 @@ func getLockFd(file string) (fileLock *os.File, err error) {
 	return fileLock, nil
 }
 
-func (file File) Download(server, downloadDir string) (err error) {
+func (file File) Download(downloadDir string) (err error) {
 	//TODO Verify downloaded gpg agains image
 	path := filepath.Join(downloadDir, file.Path)
 	// Create file lock to avoid multiple processes downloading the same file
@@ -120,7 +120,7 @@ func (file File) Download(server, downloadDir string) (err error) {
 		return nil
 	}
 	for _, f := range []string{file.Signature, file.Path} {
-		uri := server + f
+		uri := file.Server + f
 		path := filepath.Join(downloadDir, f)
 		err := os.MkdirAll(filepath.Dir(path), 0700)
 		if err != nil {

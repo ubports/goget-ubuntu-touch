@@ -26,13 +26,15 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"launchpad.net/goget-ubuntu-touch/devices"
-	"launchpad.net/goget-ubuntu-touch/ubuntuimage"
 	"log"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"launchpad.net/goget-ubuntu-touch/devices"
+	"launchpad.net/goget-ubuntu-touch/ubuntuimage"
 )
 
 func main() {
@@ -187,7 +189,17 @@ type Files struct{ FilePath, SigPath string }
 
 // bitDownloader downloads
 func bitDownloader(file ubuntuimage.File, files chan<- Files, server, downloadDir string) {
-	err := file.Download(server, downloadDir)
+	file.Server = server
+	u, err := url.Parse(file.Path)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if u.IsAbs() {
+		file.Server = u.Scheme + "://" + u.Host
+		file.Path = u.Path
+		file.Signature = file.Path + ".asc"
+	}
+	err = file.Download(downloadDir)
 	if err != nil {
 		log.Fatal(err)
 	}
