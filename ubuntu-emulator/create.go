@@ -197,6 +197,7 @@ func download(image ubuntuimage.Image) (files []string, err error) {
 
 // bitDownloader downloads
 func bitDownloader(file ubuntuimage.File, done chan<- string, server, downloadDir string) {
+	file.Server = server
 	// hack to circumvent https://code.google.com/p/go/issues/detail?id=1435
 	runtime.GOMAXPROCS(1)
 	runtime.LockOSThread()
@@ -205,7 +206,7 @@ func bitDownloader(file ubuntuimage.File, done chan<- string, server, downloadDi
 		os.Exit(1)
 	}
 
-	err := file.Download(server, downloadDir)
+	err := file.Download(downloadDir)
 	if err != nil {
 		fmt.Print(fmt.Sprintf("Cannot download %s", file))
 		os.Exit(1)
