@@ -20,6 +20,7 @@ package ubuntuimage
 // with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import (
+	_ "crypto/sha512"
 	"encoding/json"
 	"errors"
 	"fmt"
