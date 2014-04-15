@@ -31,6 +31,7 @@ type Channel struct {
 type Channels map[string]Channel
 
 type File struct {
+	Server                    string
 	Checksum, Path, Signature string
 	Size, Order               int
 }
