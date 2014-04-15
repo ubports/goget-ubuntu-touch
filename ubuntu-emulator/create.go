@@ -42,7 +42,7 @@ var createCmd CreateCmd
 
 const (
 	device         = "generic"
-	defaultChannel = "devel-proposed"
+	defaultChannel = "devel"
 	defaultServer  = "https://system-image.ubuntu.com"
 )
 
