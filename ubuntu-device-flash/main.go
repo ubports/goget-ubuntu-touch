@@ -43,6 +43,20 @@ func main() {
 	if args.TLSSkipVerify {
 		ubuntuimage.TLSSkipVerify()
 	}
+	channels, err := ubuntuimage.NewChannels(args.Server)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if args.ListChannels {
+		for k, v := range channels {
+			if v.Alias != "" {
+				fmt.Printf("%s (alias to %s)\n", k, v.Alias)
+			} else {
+				fmt.Println(k)
+			}
+		}
+		return
+	}
 	cacheDir := ubuntuimage.GetCacheDir()
 	if args.CleanCache {
 		log.Print("Cleaning prevously downloaded content")
@@ -75,20 +89,6 @@ func main() {
 		}
 	}
 	log.Printf("Device is |%s|", args.Device)
-	channels, err := ubuntuimage.NewChannels(args.Server)
-	if err != nil {
-		log.Fatal(err)
-	}
-	if args.ListChannels {
-		for k, v := range channels {
-			if v.Alias != "" {
-				fmt.Printf("%s (alias to %s)\n", k, v.Alias)
-			} else {
-				fmt.Println(k)
-			}
-		}
-		return
-	}
 	deviceChannel, err := channels.GetDeviceChannel(
 		args.Server, args.Channel, args.Device)
 	if err != nil {
