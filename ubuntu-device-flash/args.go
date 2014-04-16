@@ -25,15 +25,16 @@ import (
 )
 
 type arguments struct {
-	Revision     int    `long:"revision" description:"revision to flash, absolute or relative allowed"`
-	Bootstrap    bool   `long:"bootstrap" description:"bootstrap the system, do this from the bootloader"`
-	ListChannels bool   `long:"list-channels" description:"List available channels"`
-	Wipe         bool   `long:"wipe" description:"Clear all data after flashing"`
-	Channel      string `long:"channel" description:"Specify an alternate channel"`
-	Device       string `long:"device" description:"Specify the device to flash"`
-	Serial       string `long:"serial" description:"Serial of the device to operate"`
-	Server       string `long:"server" description:"Use a different image server"`
-	CleanCache   bool   `long:"clean-cache" description:"Cleans up cache with all downloaded bits"`
+	Revision      int    `long:"revision" description:"revision to flash, absolute or relative allowed"`
+	Bootstrap     bool   `long:"bootstrap" description:"bootstrap the system, do this from the bootloader"`
+	ListChannels  bool   `long:"list-channels" description:"List available channels"`
+	Wipe          bool   `long:"wipe" description:"Clear all data after flashing"`
+	Channel       string `long:"channel" description:"Specify an alternate channel"`
+	Device        string `long:"device" description:"Specify the device to flash"`
+	Serial        string `long:"serial" description:"Serial of the device to operate"`
+	Server        string `long:"server" description:"Use a different image server"`
+	CleanCache    bool   `long:"clean-cache" description:"Cleans up cache with all downloaded bits"`
+	TLSSkipVerify bool   `long:"tls-skip-verify" description:"Skip TLS certificate validation"`
 }
 
 var args arguments

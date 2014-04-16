@@ -40,6 +40,9 @@ func main() {
 	if _, err := parser.Parse(); err != nil {
 		os.Exit(1)
 	}
+	if args.TLSSkipVerify {
+		ubuntuimage.TLSSkipVerify()
+	}
 	cacheDir := ubuntuimage.GetCacheDir()
 	if args.CleanCache {
 		log.Print("Cleaning prevously downloaded content")
