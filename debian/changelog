@@ -1,3 +1,21 @@
+goget-ubuntu-touch (0.2+14.04.20140416.2-0ubuntu1) trusty; urgency=low
+
+  [ Sergio Schvezov ]
+  * ubuntu-device-flash: remove previous failed flashing artifacts and
+    if still not enough space, fail with an error message with the
+    amount of available space on the target (LP: #1301303)
+  * ubuntu-emulator: providing a better error message on download
+    failures (LP: #1284732)
+  * ubuntu-emulator & ubuntu-device-flash: use the new channel names by
+    default
+
+  [ Jani Monoses ]
+  * ubuntu-device-flash: allow doing a --list-channels without adb
+    connected.
+  * ubuntuimage: allow disabling the verification of TLS certificates.
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Wed, 16 Apr 2014 19:11:24 +0000
+
 goget-ubuntu-touch (0.2+14.04.20140416-0ubuntu1) trusty; urgency=low
 
   [ Sergio Schvezov ]
