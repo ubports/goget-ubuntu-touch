@@ -27,7 +27,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -163,7 +162,7 @@ func (file File) Download(downloadDir string) (err error) {
 }
 
 func download(uri string, writer io.Writer) (err error) {
-	resp, err := http.Get(uri)
+	resp, err := client.Get(uri)
 	if err != nil {
 		return err
 	}

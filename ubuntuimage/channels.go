@@ -21,6 +21,7 @@ package ubuntuimage
 
 import (
 	_ "crypto/sha512"
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -32,8 +33,17 @@ const (
 	FULL_IMAGE   = "full"
 )
 
+var client = &http.Client{}
+
+func TLSSkipVerify() {
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	client = &http.Client{Transport: tr}
+}
+
 func NewChannels(server string) (channels Channels, err error) {
-	resp, err := http.Get(server + channelsPath)
+	resp, err := client.Get(server + channelsPath)
 	if err != nil {
 		return channels, err
 	}
@@ -53,7 +63,7 @@ func (channels Channels) GetDeviceChannel(server, channel, device string) (devic
 			device, server, channel)
 	}
 	channelUri := server + channels[channel].Devices[device].Index
-	resp, err := http.Get(channelUri)
+	resp, err := client.Get(channelUri)
 	if err != nil {
 		return deviceChannel, err
 	}
