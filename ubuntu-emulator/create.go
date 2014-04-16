@@ -22,13 +22,14 @@ package main
 import (
 	"errors"
 	"fmt"
-	"launchpad.net/goget-ubuntu-touch/ubuntu-emulator/diskimage"
-	"launchpad.net/goget-ubuntu-touch/ubuntu-emulator/sysutils"
-	"launchpad.net/goget-ubuntu-touch/ubuntuimage"
 	"os"
 	"path/filepath"
 	"runtime"
 	"syscall"
+
+	"launchpad.net/goget-ubuntu-touch/ubuntu-emulator/diskimage"
+	"launchpad.net/goget-ubuntu-touch/ubuntu-emulator/sysutils"
+	"launchpad.net/goget-ubuntu-touch/ubuntuimage"
 )
 
 type CreateCmd struct {
@@ -197,6 +198,11 @@ func download(image ubuntuimage.Image) (files []string, err error) {
 
 // bitDownloader downloads
 func bitDownloader(file ubuntuimage.File, done chan<- string, server, downloadDir string) {
+	err := file.MakeRelativeToServer(server)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 	// hack to circumvent https://code.google.com/p/go/issues/detail?id=1435
 	runtime.GOMAXPROCS(1)
 	runtime.LockOSThread()
@@ -205,7 +211,7 @@ func bitDownloader(file ubuntuimage.File, done chan<- string, server, downloadDi
 		os.Exit(1)
 	}
 
-	err := file.Download(server, downloadDir)
+	err = file.Download(downloadDir)
 	if err != nil {
 		fmt.Print(fmt.Sprintf("Cannot download %s", file))
 		os.Exit(1)
