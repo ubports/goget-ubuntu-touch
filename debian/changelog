@@ -1,3 +1,15 @@
+goget-ubuntu-touch (0.2+14.04.20140416-0ubuntu1) trusty; urgency=low
+
+  [ Sergio Schvezov ]
+  * ubuntu-emulator: the default channel for emulators is now devel.
+
+  [ Jani Monoses ]
+  * ubuntuimage: support absolute URLs in the index.json in ubuntu-
+    device-flash and ubuntu-emulator.
+  * ubuntuimage: ink against crypto/sha512 to work with more SSL certs.
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Wed, 16 Apr 2014 11:46:29 +0000
+
 goget-ubuntu-touch (0.2+14.04.20140328-0ubuntu1) trusty; urgency=low
 
   [ Ricardo Salveti de Araujo ]
