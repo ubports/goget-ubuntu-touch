@@ -41,7 +41,7 @@ var args arguments
 var parser = flags.NewParser(&args, flags.Default)
 
 const (
-	defaultChannel = "stable"
+	defaultChannel = "ubuntu-touch/stable"
 	defaultServer  = "https://system-image.ubuntu.com"
 )
 

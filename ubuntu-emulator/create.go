@@ -43,7 +43,7 @@ var createCmd CreateCmd
 
 const (
 	device         = "generic"
-	defaultChannel = "devel"
+	defaultChannel = "ubuntu-touch/devel"
 	defaultServer  = "https://system-image.ubuntu.com"
 )
 
