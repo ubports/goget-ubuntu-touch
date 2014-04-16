@@ -213,7 +213,7 @@ func bitDownloader(file ubuntuimage.File, done chan<- string, server, downloadDi
 
 	err = file.Download(downloadDir)
 	if err != nil {
-		fmt.Print(fmt.Sprintf("Cannot download %s", file))
+		fmt.Printf("Cannot download %s%s: %s\n", file.Server, file.Path, err)
 		os.Exit(1)
 	}
 	filePath := filepath.Join(downloadDir, file.Path)
