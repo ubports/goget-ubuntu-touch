@@ -49,6 +49,17 @@ func (adb *AndroidDebugBridge) SetSerial(serial string) {
 	adb.params = append(adb.params, []string{"-s", serial}...)
 }
 
+// Shell runs a specific command on the target device
+func (adb *AndroidDebugBridge) Shell(command ...string) (string, error) {
+	cmd := append(adb.params, "shell")
+	cmd = append(cmd, command...)
+	out, err := exec.Command(adbCommand, cmd...).Output()
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(string(out)), nil
+}
+
 // GetDevice parses the android property system to determine the device being used
 func (adb *AndroidDebugBridge) GetDevice() (deviceName string, err error) {
 	cmd := append(adb.params, []string{"shell", "getprop", "ro.product.device"}...)
