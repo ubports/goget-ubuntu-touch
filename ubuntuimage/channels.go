@@ -35,6 +35,8 @@ const (
 
 var client = &http.Client{}
 
+// TLSSkipVerify turns off validation of server TLS certificates. It allows connecting
+// to HTTPS servers that use self-signed certificates.
 func TLSSkipVerify() {
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
