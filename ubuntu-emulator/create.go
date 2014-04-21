@@ -133,6 +133,11 @@ func (createCmd *CreateCmd) Execute(args []string) error {
 	if err = extractBoot(dataDir); err != nil {
 		return err
 	}
+
+	if err := extractBuildProperties(systemImage, dataDir); err != nil {
+		return err
+	}
+
 	if createCmd.RawDisk != true {
 		fmt.Println("Creating snapshots for disks...")
 		for _, img := range []*diskimage.DiskImage{systemImage, sdcardImage} {
@@ -151,6 +156,13 @@ func (createCmd *CreateCmd) Execute(args []string) error {
 
 	fmt.Printf("Succesfully created emulator instance %s in %s\n", instanceName, dataDir)
 	return nil
+}
+
+func extractBuildProperties(systemImage *diskimage.DiskImage, dataDir string) error {
+	// hack to circumvent https://code.google.com/p/go/issues/detail?id=1435
+	runtime.GOMAXPROCS(1)
+	runtime.LockOSThread()
+	return systemImage.ExtractFile("build.prop", dataDir)
 }
 
 func createSystem(ubuntuImage, sdcardImage *diskimage.DiskImage, files []string) (err error) {

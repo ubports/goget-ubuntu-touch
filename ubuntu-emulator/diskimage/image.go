@@ -186,3 +186,50 @@ func (img DiskImage) unpackSystem() error {
 	}
 	return nil
 }
+
+//ExtractFile extracts a filePath relative to it's mountpoint and copies it to dataDir.
+//This function takes care of mounting and unmounting the img
+func (img DiskImage) ExtractFile(filePath string, dataDir string) error {
+	if err := sysutils.EscalatePrivs(); err != nil {
+		return err
+	}
+	if err := img.Mount(); err != nil {
+		return err
+	}
+	if err := sysutils.DropPrivs(); err != nil {
+		return err
+	}
+	defer func() (err error) {
+		if err := sysutils.EscalatePrivs(); err != nil {
+			return err
+		}
+		if err := img.Unmount(); err != nil {
+			return err
+		}
+		return sysutils.DropPrivs()
+	}()
+	dstFile, err := os.Create(filepath.Join(dataDir, filePath))
+	if err != nil {
+		return err
+	}
+	defer dstFile.Close()
+
+	srcFile, err := os.Open(filepath.Join(img.Mountpoint, filePath))
+	if err != nil {
+		return err
+	}
+	defer srcFile.Close()
+
+	reader := bufio.NewReader(srcFile)
+	writer := bufio.NewWriter(dstFile)
+	defer func() {
+		if err != nil {
+			writer.Flush()
+		}
+	}()
+	if _, err = io.Copy(writer, reader); err != nil {
+		return err
+	}
+	writer.Flush()
+	return nil
+}
