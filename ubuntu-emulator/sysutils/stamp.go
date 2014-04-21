@@ -23,9 +23,24 @@ import (
 	"bufio"
 	"encoding/json"
 	"launchpad.net/goget-ubuntu-touch/ubuntuimage"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 )
+
+func WriteDeviceStamp(dataDir, device string) (err error) {
+	path := filepath.Join(dataDir, ".device")
+	return ioutil.WriteFile(path, []byte(device), 0600)
+}
+
+func ReadDeviceStamp(dataDir string) (string, error) {
+	path := filepath.Join(dataDir, ".device")
+	device, err := ioutil.ReadFile(path)
+	if err != nil {
+		return "", err
+	}
+	return string(device), nil
+}
 
 func WriteStamp(dataDir string, image ubuntuimage.Image) (err error) {
 	path := filepath.Join(dataDir, ".stamp")

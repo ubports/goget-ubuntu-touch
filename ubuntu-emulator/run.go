@@ -22,6 +22,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"launchpad.net/goget-ubuntu-touch/ubuntu-emulator/sysutils"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -52,7 +53,6 @@ var	skinDirs = []string {
 func init() {
 	runCmd.Skin = defaultSkin
 	runCmd.Scale = defaultScale
-	runCmd.Memory = defaultMemory
 	parser.AddCommand("run",
 		"Run emulator instance named 'name'",
 		"Runs a new emulator instance name 'name' which was previously created",
@@ -74,7 +74,22 @@ func (runCmd *RunCmd) Execute(args []string) error {
 		return err
 	}
 
-	cmd := exec.Command(emulatorCmd,
+	device, err := sysutils.ReadDeviceStamp(dataDir)
+	if err != nil {
+		return err
+	}
+	var deviceInfo map[string]string
+	if d, ok := devices[device]; ok {
+		deviceInfo = d
+	} else {
+		return errors.New("Cannot run specified emulator environment")
+	}
+
+	if runCmd.Memory == "" {
+		runCmd.Memory = deviceInfo["memory"]
+	}
+
+	cmdOpts := []string{
 		"-memory", runCmd.Memory,
 		"-skindir", skinDir, "-skin", runCmd.Skin,
 		"-sysdir", dataDir,
@@ -88,8 +103,16 @@ func (runCmd *RunCmd) Execute(args []string) error {
 		"-scale", runCmd.Scale,
 		"-shell", "-no-jni", "-show-kernel", "-verbose",
 		"-qemu",
-		"-cpu", cpu,
-		"-append", runCmd.KernelCmd)
+	}
+	
+	if cpu, ok := deviceInfo["cpu"]; ok {
+		cmdOpts = append(cmdOpts, []string{"-cpu", cpu}...)
+	}
+	if runCmd.KernelCmd != "" {
+		cmdOpts = append(cmdOpts, []string{"-append", runCmd.KernelCmd}...)
+	}
+
+	cmd := exec.Command(emulatorCmd, cmdOpts...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
