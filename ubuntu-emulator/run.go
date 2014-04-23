@@ -41,6 +41,7 @@ const (
 	defaultMemory    = "512"
 	defaultScale     = "1.0"
 	defaultSkin      = "EDGE"
+	emulatorCmd      = "/usr/share/android/emulator/out/host/linux-x86/bin/emulator"
 )
 
 var	skinDirs = []string {
@@ -108,7 +109,13 @@ func (runCmd *RunCmd) Execute(args []string) error {
 		cmdOpts = append(cmdOpts, []string{"-append", runCmd.KernelCmd}...)
 	}
 
-	cmd := exec.Command(deviceInfo["cmd"], cmdOpts...)
+	//we need to export ANDROID_PRODUCT_OUT so the emulator command can create the
+	//correct hardware-qemu.ini
+	if err := os.Setenv("ANDROID_PRODUCT_OUT", dataDir); err != nil {
+		return err
+	}
+
+	cmd := exec.Command(emulatorCmd, cmdOpts...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
