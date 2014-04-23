@@ -22,8 +22,8 @@ package sysutils
 import (
 	"bufio"
 	"encoding/json"
-	"launchpad.net/goget-ubuntu-touch/ubuntuimage"
 	"io/ioutil"
+	"launchpad.net/goget-ubuntu-touch/ubuntuimage"
 	"os"
 	"path/filepath"
 )

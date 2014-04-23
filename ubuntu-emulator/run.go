@@ -32,19 +32,19 @@ type RunCmd struct {
 	Skin      string `long:"skin" description:"Select skin/emulator type"`
 	KernelCmd string `long:"kernel-cmdline" description:"Replace kernel cmdline"`
 	Memory    string `long:"memory" description:"Set the device memory"`
-	Scale	  string `long:"scale" description:"Scale the emulator size"`
+	Scale     string `long:"scale" description:"Scale the emulator size"`
 }
 
 var runCmd RunCmd
 
 const (
-	defaultMemory    = "512"
-	defaultScale     = "1.0"
-	defaultSkin      = "EDGE"
-	emulatorCmd      = "/usr/share/android/emulator/out/host/linux-x86/bin/emulator"
+	defaultMemory = "512"
+	defaultScale  = "1.0"
+	defaultSkin   = "EDGE"
+	emulatorCmd   = "/usr/share/android/emulator/out/host/linux-x86/bin/emulator"
 )
 
-var	skinDirs = []string {
+var skinDirs = []string{
 	"skins",
 	"/usr/share/ubuntu-emulator/skins",
 	"/usr/share/android/emulator/development/tools/emulator/skins",
@@ -101,7 +101,7 @@ func (runCmd *RunCmd) Execute(args []string) error {
 		"-shell", "-no-jni", "-show-kernel", "-verbose",
 		"-qemu",
 	}
-	
+
 	if cpu, ok := deviceInfo["cpu"]; ok {
 		cmdOpts = append(cmdOpts, []string{"-cpu", cpu}...)
 	}
@@ -139,4 +139,3 @@ func getSkinDir(skin string) (string, error) {
 	}
 	return "", errors.New(fmt.Sprintf("Cannot find skin %s in any directory from path %s", skin, skinDirs))
 }
-

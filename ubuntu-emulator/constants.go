@@ -37,8 +37,7 @@ func init() {
 		},
 		"armhf": {
 			"name": "generic",
-			"cpu": "cortex-a9",
+			"cpu":  "cortex-a9",
 		},
 	}
 }
-
