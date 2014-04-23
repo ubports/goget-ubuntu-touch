@@ -52,6 +52,7 @@ var	skinDirs = []string {
 func init() {
 	runCmd.Skin = defaultSkin
 	runCmd.Scale = defaultScale
+	runCmd.Memory = defaultMemory
 	parser.AddCommand("run",
 		"Run emulator instance named 'name'",
 		"Runs a new emulator instance name 'name' which was previously created",
@@ -82,10 +83,6 @@ func (runCmd *RunCmd) Execute(args []string) error {
 		deviceInfo = d
 	} else {
 		return errors.New("Cannot run specified emulator environment")
-	}
-
-	if runCmd.Memory == "" {
-		runCmd.Memory = deviceInfo["memory"]
 	}
 
 	cmdOpts := []string{

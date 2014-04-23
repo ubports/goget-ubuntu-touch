@@ -34,12 +34,10 @@ func init() {
 	devices = map[string]map[string]string{
 		"i386": {
 			"name": "generic_x86",
-			"memory": "2048",
 			"cmd": "/usr/share/android/emulator/out/host/linux-x86/bin/emulator-x86",
 		},
 		"armhf": {
 			"name": "generic",
-			"memory": "512",
 			"cpu": "cortex-a9",
 			"cmd": "/usr/share/android/emulator/out/host/linux-x86/bin/emulator-arm",
 		},
