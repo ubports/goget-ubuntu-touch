@@ -37,7 +37,7 @@ type CreateCmd struct {
 	Server   string `long:"server" description:"Select image server"`
 	Revision int    `long:"revision" description:"Select revision"`
 	RawDisk  bool   `long:"use-raw-disk" description:"Use raw disks instead of qcow2"`
-	Device   string `long:"device" description:"Device architecture to use (i386 or armhf)"`
+	Arch     string `long:"arch" description:"Device architecture to use (i386 or armhf)"`
 }
 
 var createCmd CreateCmd
@@ -45,11 +45,11 @@ var createCmd CreateCmd
 const (
 	defaultChannel = "ubuntu-touch/devel"
 	defaultServer  = "https://system-image.ubuntu.com"
-	defaultDevice  = "armhf"
+	defaultArch    = "armhf"
 )
 
 func init() {
-	createCmd.Device = defaultDevice
+	createCmd.Arch = defaultArch
 	createCmd.Channel = defaultChannel
 	createCmd.Server = defaultServer
 	parser.AddCommand("create",
@@ -66,7 +66,7 @@ func (createCmd *CreateCmd) Execute(args []string) error {
 	instanceName := args[0]
 
 	var device string
-	if d, ok := devices[createCmd.Device]; ok {
+	if d, ok := devices[createCmd.Arch]; ok {
 		device = d["name"]
 	} else {
 		return errors.New("Selected device not supported on this channel")
@@ -150,7 +150,7 @@ func (createCmd *CreateCmd) Execute(args []string) error {
 	if err = sysutils.WriteStamp(dataDir, image); err != nil {
 		return err
 	}
-	if err = sysutils.WriteDeviceStamp(dataDir, createCmd.Device); err != nil {
+	if err = sysutils.WriteDeviceStamp(dataDir, createCmd.Arch); err != nil {
 		return err
 	}
 
