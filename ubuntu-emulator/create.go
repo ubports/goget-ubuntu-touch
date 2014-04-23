@@ -162,7 +162,7 @@ func extractBuildProperties(systemImage *diskimage.DiskImage, dataDir string) er
 	// hack to circumvent https://code.google.com/p/go/issues/detail?id=1435
 	runtime.GOMAXPROCS(1)
 	runtime.LockOSThread()
-	return systemImage.ExtractFile("build.prop", dataDir)
+	return systemImage.ExtractFile("build.prop", filepath.Join(dataDir, "system"))
 }
 
 func createSystem(ubuntuImage, sdcardImage *diskimage.DiskImage, files []string) (err error) {

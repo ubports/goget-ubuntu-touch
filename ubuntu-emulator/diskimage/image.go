@@ -187,9 +187,9 @@ func (img DiskImage) unpackSystem() error {
 	return nil
 }
 
-//ExtractFile extracts a filePath relative to it's mountpoint and copies it to dataDir.
+//ExtractFile extracts a filePath relative to it's mountpoint and copies it to dir.
 //This function takes care of mounting and unmounting the img
-func (img DiskImage) ExtractFile(filePath string, dataDir string) error {
+func (img DiskImage) ExtractFile(filePath string, dir string) error {
 	if err := sysutils.EscalatePrivs(); err != nil {
 		return err
 	}
@@ -208,7 +208,14 @@ func (img DiskImage) ExtractFile(filePath string, dataDir string) error {
 		}
 		return sysutils.DropPrivs()
 	}()
-	dstFile, err := os.Create(filepath.Join(dataDir, filePath))
+	if fi, err := os.Stat(dir); err != nil {
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			return err
+		}
+	} else if !fi.IsDir() {
+		return fmt.Errorf("extract dir %s is not a directory")
+	}
+	dstFile, err := os.Create(filepath.Join(dir, filePath))
 	if err != nil {
 		return err
 	}
