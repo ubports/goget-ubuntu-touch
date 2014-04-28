@@ -206,7 +206,7 @@ func bitDownloader(file ubuntuimage.File, files chan<- Files, server, downloadDi
 // bitPusher
 func bitPusher(adb devices.UbuntuDebugBridge, files <-chan Files, done chan<- bool) {
 	if _, err := adb.Shell("rm -rf /cache/recovery/*.xz /cache/recovery/*.xz.asc"); err != nil {
-		log.Fatal("Cannot cleanup tree to ensure clean deployment", err)
+		log.Fatal("Cannot cleanup /cache/recovery/ to ensure clean deployment", err)
 	}
 	freeSpace := "unknown"
 	dfCacheCmd := "df -h | grep /dev/disk/by-partlabel/cache"
