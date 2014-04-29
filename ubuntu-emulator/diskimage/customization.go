@@ -48,18 +48,9 @@ iface eth0 inet static
     dns-nameservers 10.0.2.3
 `
 
-const qemuConsole string = `# ttyS2 - getty
-
-start on stopped rc RUNLEVEL=[2345] and not-container
-stop on runlevel [!2345]
-
-respawn
-exec /sbin/getty -8 38400 ttyS2
-`
-
 type setupFile struct{ path, content string }
 
-var setupFiles = []setupFile{{"etc/init/ttyS2.conf", qemuConsole},
+var setupFiles = []setupFile{
 	{"etc/network/interfaces", networkConfig},
 	{"etc/profile.d/hud-service.sh", "export HUD_DISABLE_VOICE=1"},
 }
