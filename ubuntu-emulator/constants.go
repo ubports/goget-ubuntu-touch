@@ -26,5 +26,18 @@ const (
 	sdcardImage = "sdcard.img"
 	systemImage = "system.img"
 	cacheImage  = "cache.img"
-	cpu         = "cortex-a9"
 )
+
+var devices map[string]map[string]string
+
+func init() {
+	devices = map[string]map[string]string{
+		"i386": {
+			"name": "generic_x86",
+		},
+		"armhf": {
+			"name": "generic",
+			"cpu":  "cortex-a9",
+		},
+	}
+}

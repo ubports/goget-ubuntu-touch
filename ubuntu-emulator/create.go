@@ -37,17 +37,19 @@ type CreateCmd struct {
 	Server   string `long:"server" description:"Select image server"`
 	Revision int    `long:"revision" description:"Select revision"`
 	RawDisk  bool   `long:"use-raw-disk" description:"Use raw disks instead of qcow2"`
+	Arch     string `long:"arch" description:"Device architecture to use (i386 or armhf)"`
 }
 
 var createCmd CreateCmd
 
 const (
-	device         = "generic"
 	defaultChannel = "ubuntu-touch/devel"
 	defaultServer  = "https://system-image.ubuntu.com"
+	defaultArch    = "armhf"
 )
 
 func init() {
+	createCmd.Arch = defaultArch
 	createCmd.Channel = defaultChannel
 	createCmd.Server = defaultServer
 	parser.AddCommand("create",
@@ -62,6 +64,13 @@ func (createCmd *CreateCmd) Execute(args []string) error {
 		return errors.New("Instance name 'name' is required")
 	}
 	instanceName := args[0]
+
+	var device string
+	if d, ok := devices[createCmd.Arch]; ok {
+		device = d["name"]
+	} else {
+		return errors.New("Selected device not supported on this channel")
+	}
 
 	if syscall.Getuid() != 0 {
 		return errors.New("Creation requires sudo (root)")
@@ -124,6 +133,11 @@ func (createCmd *CreateCmd) Execute(args []string) error {
 	if err = extractBoot(dataDir); err != nil {
 		return err
 	}
+
+	if err := extractBuildProperties(systemImage, dataDir); err != nil {
+		return err
+	}
+
 	if createCmd.RawDisk != true {
 		fmt.Println("Creating snapshots for disks...")
 		for _, img := range []*diskimage.DiskImage{systemImage, sdcardImage} {
@@ -136,9 +150,19 @@ func (createCmd *CreateCmd) Execute(args []string) error {
 	if err = sysutils.WriteStamp(dataDir, image); err != nil {
 		return err
 	}
+	if err = sysutils.WriteDeviceStamp(dataDir, createCmd.Arch); err != nil {
+		return err
+	}
 
 	fmt.Printf("Succesfully created emulator instance %s in %s\n", instanceName, dataDir)
 	return nil
+}
+
+func extractBuildProperties(systemImage *diskimage.DiskImage, dataDir string) error {
+	// hack to circumvent https://code.google.com/p/go/issues/detail?id=1435
+	runtime.GOMAXPROCS(1)
+	runtime.LockOSThread()
+	return systemImage.ExtractFile("build.prop", filepath.Join(dataDir, "system"))
 }
 
 func createSystem(ubuntuImage, sdcardImage *diskimage.DiskImage, files []string) (err error) {

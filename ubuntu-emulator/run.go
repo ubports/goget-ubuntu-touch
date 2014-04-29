@@ -22,6 +22,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"launchpad.net/goget-ubuntu-touch/ubuntu-emulator/sysutils"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -31,19 +32,19 @@ type RunCmd struct {
 	Skin      string `long:"skin" description:"Select skin/emulator type"`
 	KernelCmd string `long:"kernel-cmdline" description:"Replace kernel cmdline"`
 	Memory    string `long:"memory" description:"Set the device memory"`
-	Scale	  string `long:"scale" description:"Scale the emulator size"`
+	Scale     string `long:"scale" description:"Scale the emulator size"`
 }
 
 var runCmd RunCmd
 
 const (
-	defaultMemory    = "512"
-	defaultScale     = "1.0"
-	defaultSkin      = "EDGE"
-	emulatorCmd      = "/usr/share/android/emulator/out/host/linux-x86/bin/emulator"
+	defaultMemory = "512"
+	defaultScale  = "1.0"
+	defaultSkin   = "EDGE"
+	emulatorCmd   = "/usr/share/android/emulator/out/host/linux-x86/bin/emulator"
 )
 
-var	skinDirs = []string {
+var skinDirs = []string{
 	"skins",
 	"/usr/share/ubuntu-emulator/skins",
 	"/usr/share/android/emulator/development/tools/emulator/skins",
@@ -74,7 +75,18 @@ func (runCmd *RunCmd) Execute(args []string) error {
 		return err
 	}
 
-	cmd := exec.Command(emulatorCmd,
+	device, err := sysutils.ReadDeviceStamp(dataDir)
+	if err != nil {
+		return err
+	}
+	var deviceInfo map[string]string
+	if d, ok := devices[device]; ok {
+		deviceInfo = d
+	} else {
+		return errors.New("Cannot run specified emulator environment")
+	}
+
+	cmdOpts := []string{
 		"-memory", runCmd.Memory,
 		"-skindir", skinDir, "-skin", runCmd.Skin,
 		"-sysdir", dataDir,
@@ -88,8 +100,22 @@ func (runCmd *RunCmd) Execute(args []string) error {
 		"-scale", runCmd.Scale,
 		"-shell", "-no-jni", "-show-kernel", "-verbose",
 		"-qemu",
-		"-cpu", cpu,
-		"-append", runCmd.KernelCmd)
+	}
+
+	if cpu, ok := deviceInfo["cpu"]; ok {
+		cmdOpts = append(cmdOpts, []string{"-cpu", cpu}...)
+	}
+	if runCmd.KernelCmd != "" {
+		cmdOpts = append(cmdOpts, []string{"-append", runCmd.KernelCmd}...)
+	}
+
+	//we need to export ANDROID_PRODUCT_OUT so the emulator command can create the
+	//correct hardware-qemu.ini
+	if err := os.Setenv("ANDROID_PRODUCT_OUT", dataDir); err != nil {
+		return err
+	}
+
+	cmd := exec.Command(emulatorCmd, cmdOpts...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
@@ -113,4 +139,3 @@ func getSkinDir(skin string) (string, error) {
 	}
 	return "", errors.New(fmt.Sprintf("Cannot find skin %s in any directory from path %s", skin, skinDirs))
 }
-
