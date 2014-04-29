@@ -1,3 +1,12 @@
+goget-ubuntu-touch (0.2+14.10.20140429.1-0ubuntu1) utopic; urgency=low
+
+  [ Sergio Schvezov ]
+  * ubuntu-emulator: allow creation and running of x86 instances
+  * ubuntu-emulator: removing obsolete customizations (overrides and tty
+    setup) and adding fake location customization
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Tue, 29 Apr 2014 19:08:00 +0000
+
 goget-ubuntu-touch (0.2+14.04.20140416.2-0ubuntu1) trusty; urgency=low
 
   [ Sergio Schvezov ]
