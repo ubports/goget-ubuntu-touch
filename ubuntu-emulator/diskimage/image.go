@@ -25,10 +25,11 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"launchpad.net/goget-ubuntu-touch/ubuntu-emulator/sysutils"
 	"os"
 	"os/exec"
 	"path/filepath"
+
+	"launchpad.net/goget-ubuntu-touch/ubuntu-emulator/sysutils"
 )
 
 type DiskImage struct {
@@ -136,11 +137,6 @@ func (img *DiskImage) Provision(tarList []string) error {
 	}
 	if err := img.unpackSystem(); err != nil {
 		return err
-	}
-	for _, job := range overrides {
-		if err := img.overrideJob(job); err != nil {
-			return err
-		}
 	}
 	for _, file := range setupFiles {
 		if err := img.writeFile(file); err != nil {

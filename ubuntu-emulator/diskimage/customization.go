@@ -20,21 +20,9 @@ package diskimage
 // with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import (
-	"errors"
-	"fmt"
 	"io/ioutil"
 	"path/filepath"
-	"strings"
 )
-
-var overrides = []string{"etc/init/ofono.conf",
-	"etc/init/ubuntu-location-service.conf",
-	"etc/init/whoopsie.conf",
-	"usr/share/upstart/sessions/ofono-setup.conf",
-	"usr/share/upstart/sessions/mediascanner.conf",
-	"etc/init/bluetooth.conf",
-	"etc/init/network-manager.conf",
-}
 
 const networkConfig string = `# interfaces(5) file used by ifup(8) and ifdown(8)
 auto lo
@@ -53,21 +41,6 @@ type setupFile struct{ path, content string }
 var setupFiles = []setupFile{
 	{"etc/network/interfaces", networkConfig},
 	{"etc/profile.d/hud-service.sh", "export HUD_DISABLE_VOICE=1"},
-}
-
-//overrideJob creates all the hacks to make the emulator work
-//these should eventually be dropped or made optional
-func (img DiskImage) overrideJob(jobPath string) error {
-	if !strings.HasSuffix(jobPath, ".conf") {
-		return errors.New(fmt.Sprintf("%s is not an upstart job", jobPath))
-	} else {
-	}
-
-	jobPath = jobPath[:strings.LastIndex(jobPath, "conf")] + "override"
-	if err := ioutil.WriteFile(filepath.Join(img.Mountpoint, jobPath), []byte("manual\n"), 0644); err != nil {
-		return err
-	}
-	return nil
 }
 
 //setupFile writes a setup to a target file
