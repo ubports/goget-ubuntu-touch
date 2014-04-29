@@ -20,7 +20,9 @@ package diskimage
 // with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import (
+	"fmt"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 )
 
@@ -39,6 +41,7 @@ iface eth0 inet static
 type setupFile struct{ path, content string }
 
 var setupFiles = []setupFile{
+	{"custom/custom.prop", "custom.location.fake=true"},
 	{"etc/network/interfaces", networkConfig},
 	{"etc/profile.d/hud-service.sh", "export HUD_DISABLE_VOICE=1"},
 }
@@ -46,6 +49,14 @@ var setupFiles = []setupFile{
 //setupFile writes a setup to a target file
 func (img DiskImage) writeFile(file setupFile) error {
 	profilePath := filepath.Join(img.Mountpoint, file.path)
+	dirPath := filepath.Dir(profilePath)
+	if fi, err := os.Stat(dirPath); err != nil {
+		if err := os.MkdirAll(dirPath, 0755); err != nil {
+			fmt.Println(err)
+		}
+	} else if !fi.IsDir() {
+		return fmt.Errorf("%s is not a directory, customization failed", profilePath)
+	}
 	if err := ioutil.WriteFile(profilePath, []byte(file.content), 0644); err != nil {
 		return err
 	}
