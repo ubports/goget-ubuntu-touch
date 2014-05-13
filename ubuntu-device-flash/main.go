@@ -179,11 +179,32 @@ func main() {
 			}
 		}
 	}()
-	log.Print("Rebooting into recovery to flash")
-	adb.RebootRecovery()
-	err = adb.WaitForRecovery()
-	if err != nil {
-		log.Fatal(err)
+
+	// either customize the flashing process by running a user provided script
+	// or reboot into recovery to let the standard upgrade script to run
+	if script := args.RunScript; script != "" {
+		log.Printf("Preparing to run %s to finish the flashing process\n", script)
+		fi, err := os.Lstat(script)
+		if err != nil {
+			log.Fatal(err)
+		}
+		if fi.Mode()&0100 == 0 {
+			log.Fatalf("%s not executable", script)
+		}
+		cmd := exec.Command(script)
+		cmd.Stdout = os.Stdout
+		err = cmd.Run()
+		if err != nil {
+			log.Fatal(err)
+		}
+
+	} else {
+		log.Print("Rebooting into recovery to flash")
+		adb.RebootRecovery()
+		err = adb.WaitForRecovery()
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 }
 

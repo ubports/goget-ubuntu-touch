@@ -35,6 +35,7 @@ type arguments struct {
 	Server        string `long:"server" description:"Use a different image server"`
 	CleanCache    bool   `long:"clean-cache" description:"Cleans up cache with all downloaded bits"`
 	TLSSkipVerify bool   `long:"tls-skip-verify" description:"Skip TLS certificate validation"`
+	RunScript     string `long:"run-script" description:"Run a script given by path to finish the flashing process, instead of rebooting to recovery"`
 }
 
 var args arguments
