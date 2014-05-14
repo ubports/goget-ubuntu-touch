@@ -73,7 +73,7 @@ func (createCmd *CreateCmd) Execute(args []string) error {
 	}
 
 	if syscall.Getuid() != 0 {
-		return errors.New("Creation requires sudo (root)")
+		return errors.New("Creation requires sudo/pkexec (root)")
 	}
 
 	// hack to circumvent https://code.google.com/p/go/issues/detail?id=1435

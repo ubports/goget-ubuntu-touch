@@ -46,7 +46,7 @@ func CreateEmptyFile(path string, size int64) (err error) {
 }
 
 func DropPrivs() error {
-	uid, gid := GetSudoEnvInt()
+	uid, gid := GetUserEnvInt()
 	if err := syscall.Setregid(-1, gid); err != nil {
 		return errors.New(fmt.Sprintf("Can't drop gid: %s", err))
 	}
@@ -61,21 +61,28 @@ func EscalatePrivs() error {
 	return err
 }
 
-func GetSudoEnv() (uid, gid string) {
-	uid = os.Getenv("SUDO_UID")
-	gid = os.Getenv("SUDO_GID")
-	if uid == "" {
+// GetUserEnv checks if the process can drop priviledges by checking if either
+// SUDO_UID and SUDO_GID or PKEXEC_UID are set, it returns the corresponding
+// uid and gid set in these or 0 otherwise.
+func GetUserEnv() (uid, gid string) {
+	if v := os.Getenv("SUDO_UID"); v != "" {
+		uid = v
+	} else if v := os.Getenv("PKEXEC_UID"); v != "" {
+		uid = v
+	} else {
 		uid = "0"
 	}
 
-	if gid == "" {
+	if v := os.Getenv("SUDO_GID"); v != "" {
+		gid = v
+	} else {
 		gid = "0"
 	}
 	return uid, gid
 }
 
-func GetSudoEnvInt() (uid, gid int) {
-	uidString, gidString := GetSudoEnv()
+func GetUserEnvInt() (uid, gid int) {
+	uidString, gidString := GetUserEnv()
 	uid, _ = strconv.Atoi(uidString)
 	gid, _ = strconv.Atoi(gidString)
 	return uid, gid
