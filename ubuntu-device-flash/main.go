@@ -45,6 +45,12 @@ func main() {
 	}
 	script := args.RunScript
 	if script != "" {
+		if p, err := filepath.Abs(script); err != nil {
+			log.Fatal("Run script not found:", err)
+		} else {
+			script = p
+		}
+
 		fi, err := os.Lstat(script)
 		if err != nil {
 			log.Fatal(err)
