@@ -19,6 +19,7 @@ Depends: android-tools-adb,
          android-tools-fastboot,
          ${misc:Depends},
          ${shlibs:Depends},
+Built-Using: ${misc:Built-Using}
 Description: Flash supported Nexus devices with Ubuntu
  Use this tool to flash a suported device with Ubuntu by either
  bootstrapping from fastboot or reflashing from an already
@@ -31,6 +32,7 @@ Depends: ubuntu-emulator-runtime,
          ${misc:Depends},
          ${shlibs:Depends},
 Recommends: android-tools-adb,
+Built-Using: ${misc:Built-Using}
 Description: Create and run emulator images of Ubuntu Touch
  Create and destroy Ubuntu Touch instances and run them with the emulator
 
@@ -38,6 +40,7 @@ Package: golang-goget-ubuntu-touch-bootimg-dev
 Architecture: all
 Depends: ${misc:Depends},
          ${shlibs:Depends},
+Built-Using: ${misc:Built-Using}
 Description: Go library for manipulating Android boot.img files
  Package reads and extracts Android boot.img files
 
@@ -45,6 +48,7 @@ Package: golang-goget-ubuntu-touch-devices-dev
 Architecture: all
 Depends: ${misc:Depends},
          ${shlibs:Depends},
+Built-Using: ${misc:Built-Using}
 Description: Go library for interfacing with adb and fastboot
  Provides facilities to interface with adb and fastboot
 
@@ -52,6 +56,7 @@ Package: golang-goget-ubuntu-touch-ubuntuimage-dev
 Architecture: all
 Depends: ${misc:Depends},
          ${shlibs:Depends},
+Built-Using: ${misc:Built-Using}
 Description: Go library for interfacing with an Ubuntu image server
  Provides facilities to interface with an Ubuntu image server to
  download OS image assets from different channels and for different
