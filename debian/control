@@ -40,7 +40,6 @@ Package: golang-goget-ubuntu-touch-bootimg-dev
 Architecture: all
 Depends: ${misc:Depends},
          ${shlibs:Depends},
-Built-Using: ${misc:Built-Using}
 Description: Go library for manipulating Android boot.img files
  Package reads and extracts Android boot.img files
 
@@ -48,7 +47,6 @@ Package: golang-goget-ubuntu-touch-devices-dev
 Architecture: all
 Depends: ${misc:Depends},
          ${shlibs:Depends},
-Built-Using: ${misc:Built-Using}
 Description: Go library for interfacing with adb and fastboot
  Provides facilities to interface with adb and fastboot
 
@@ -56,7 +54,6 @@ Package: golang-goget-ubuntu-touch-ubuntuimage-dev
 Architecture: all
 Depends: ${misc:Depends},
          ${shlibs:Depends},
-Built-Using: ${misc:Built-Using}
 Description: Go library for interfacing with an Ubuntu image server
  Provides facilities to interface with an Ubuntu image server to
  download OS image assets from different channels and for different
