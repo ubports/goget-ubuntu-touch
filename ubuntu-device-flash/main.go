@@ -38,7 +38,7 @@ import (
 
 func main() {
 	if _, err := parser.Parse(); err != nil {
-		os.Exit(1)
+		log.Fatal(err)
 	}
 	if args.TLSSkipVerify {
 		ubuntuimage.TLSSkipVerify()
