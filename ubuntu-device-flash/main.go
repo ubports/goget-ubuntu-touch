@@ -43,6 +43,22 @@ func main() {
 	if args.TLSSkipVerify {
 		ubuntuimage.TLSSkipVerify()
 	}
+	script := args.RunScript
+	if script != "" {
+		if p, err := filepath.Abs(script); err != nil {
+			log.Fatal("Run script not found:", err)
+		} else {
+			script = p
+		}
+
+		fi, err := os.Lstat(script)
+		if err != nil {
+			log.Fatal(err)
+		}
+		if fi.Mode()&0100 == 0 {
+			log.Fatalf("The script %s passed via --run-script is not executable", script)
+		}
+	}
 	channels, err := ubuntuimage.NewChannels(args.Server)
 	if err != nil {
 		log.Fatal(err)
@@ -179,11 +195,25 @@ func main() {
 			}
 		}
 	}()
-	log.Print("Rebooting into recovery to flash")
-	adb.RebootRecovery()
-	err = adb.WaitForRecovery()
-	if err != nil {
-		log.Fatal(err)
+
+	// either customize the flashing process by running a user provided script
+	// or reboot into recovery to let the standard upgrade script to run
+	if script != "" {
+		log.Printf("Preparing to run %s to finish the flashing process\n", script)
+		cmd := exec.Command(script)
+		cmd.Stdout = os.Stdout
+		err = cmd.Run()
+		if err != nil {
+			log.Fatal(err)
+		}
+
+	} else {
+		log.Print("Rebooting into recovery to flash")
+		adb.RebootRecovery()
+		err = adb.WaitForRecovery()
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 }
 
@@ -206,7 +236,7 @@ func bitDownloader(file ubuntuimage.File, files chan<- Files, server, downloadDi
 // bitPusher
 func bitPusher(adb devices.UbuntuDebugBridge, files <-chan Files, done chan<- bool) {
 	if _, err := adb.Shell("rm -rf /cache/recovery/*.xz /cache/recovery/*.xz.asc"); err != nil {
-		log.Fatal("Cannot cleanup tree to ensure clean deployment", err)
+		log.Fatal("Cannot cleanup /cache/recovery/ to ensure clean deployment", err)
 	}
 	freeSpace := "unknown"
 	dfCacheCmd := "df -h | grep /dev/disk/by-partlabel/cache"

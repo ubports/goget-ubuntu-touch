@@ -1,3 +1,15 @@
+goget-ubuntu-touch (0.2+14.10.20140527-0ubuntu1) utopic; urgency=low
+
+  [ Sergio Schvezov ]
+  * ubuntu-emulator: proper permissions on creation when using pkexec.
+
+  [ Jani Monoses ]
+  * ubuntu-device-flash: make error message clearer.
+  * ubuntu-device-flash: Allow customizing the flashing by running a
+    user provided script
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Tue, 27 May 2014 19:02:51 +0000
+
 goget-ubuntu-touch (0.2+14.10.20140429.1-0ubuntu1) utopic; urgency=low
 
   [ Sergio Schvezov ]
