@@ -56,7 +56,7 @@ load_keyring image-signing.tar.xz image-signing.tar.xz.asc
 mount system
 `
 
-func GetUbuntuCommands(files []File, downloadDir string, wipe bool) (commandsFile string, err error) {
+func GetUbuntuCommands(files []File, downloadDir string, wipe bool, enable []string) (commandsFile string, err error) {
 	tmpFile, err := ioutil.TempFile(downloadDir, "ubuntu_commands")
 	if err != nil {
 		return commandsFile, err
@@ -70,16 +70,23 @@ func GetUbuntuCommands(files []File, downloadDir string, wipe bool) (commandsFil
 	if wipe {
 		writer.WriteString("format data\n")
 	}
-	writer.WriteString(commandsStart)
-	order := func(f1, f2 *File) bool {
-		return f1.Order < f2.Order
+	if files != nil {
+		writer.WriteString(commandsStart)
+		order := func(f1, f2 *File) bool {
+			return f1.Order < f2.Order
+		}
+		By(order).Sort(files)
+		for _, file := range files {
+			writer.WriteString(
+				fmt.Sprintf("update %s %s\n", filepath.Base(file.Path), filepath.Base(file.Signature)))
+		}
+		writer.WriteString("unmount system\n")
 	}
-	By(order).Sort(files)
-	for _, file := range files {
-		writer.WriteString(
-			fmt.Sprintf("update %s %s\n", filepath.Base(file.Path), filepath.Base(file.Signature)))
+
+	//we cannot enable "things" outside of userdata
+	for i := range enable {
+		writer.WriteString(fmt.Sprintf("enable %s\n", enable[i]))
 	}
-	writer.WriteString("unmount system\n")
 	return tmpFile.Name(), err
 }
 
