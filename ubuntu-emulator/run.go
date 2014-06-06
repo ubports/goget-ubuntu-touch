@@ -33,6 +33,7 @@ type RunCmd struct {
 	KernelCmd string `long:"kernel-cmdline" description:"Replace kernel cmdline"`
 	Memory    string `long:"memory" description:"Set the device memory"`
 	Scale     string `long:"scale" description:"Scale the emulator size"`
+	Recovery  bool   `long:"recovery" description:"Boot into recovery"`
 }
 
 var runCmd RunCmd
@@ -86,11 +87,16 @@ func (runCmd *RunCmd) Execute(args []string) error {
 		return errors.New("Cannot run specified emulator environment")
 	}
 
+	ramdisk := bootRamdisk
+	if (runCmd.Recovery) {
+		ramdisk = recoveryRamdisk
+	}
 	cmdOpts := []string{
 		"-memory", runCmd.Memory,
 		"-skindir", skinDir, "-skin", runCmd.Skin,
 		"-sysdir", dataDir,
 		"-kernel", filepath.Join(dataDir, kernelName),
+		"-ramdisk", filepath.Join(dataDir, ramdisk),
 		"-data", filepath.Join(dataDir, dataImage),
 		"-system", filepath.Join(dataDir, systemImage),
 		"-sdcard", filepath.Join(dataDir, sdcardImage),

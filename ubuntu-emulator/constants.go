@@ -26,6 +26,10 @@ const (
 	sdcardImage = "sdcard.img"
 	systemImage = "system.img"
 	cacheImage  = "cache.img"
+	bootImage   = "boot.img"
+	bootRamdisk = "ramdisk.img"
+	recoveryImage = "recovery.img"
+	recoveryRamdisk = "recovery-ramdisk.img"
 )
 
 var devices map[string]map[string]string
