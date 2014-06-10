@@ -1,3 +1,10 @@
+goget-ubuntu-touch (0.2+14.10.20140610-0ubuntu1) utopic; urgency=low
+
+  [ Dimitri John Ledkov ]
+  * Unpack recovery & offer to launch it.
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Tue, 10 Jun 2014 16:12:34 +0000
+
 goget-ubuntu-touch (0.2+14.10.20140527-0ubuntu1) utopic; urgency=low
 
   [ Sergio Schvezov ]
