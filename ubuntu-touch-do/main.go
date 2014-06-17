@@ -1,5 +1,5 @@
 //
-// ubuntu-emu - Tool to download and run Ubuntu Touch emulator instances
+// ubuntu-device-do - Tool to send commands to an Ubuntu device
 //
 // Copyright (c) 2013 Canonical Ltd.
 //
