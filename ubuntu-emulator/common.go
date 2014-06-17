@@ -38,8 +38,8 @@ func getDeviceTar(files []string) (string, error) {
 	return "", errors.New("Could not find device specific tar")
 }
 
-func extractBoot(dataDir string) error {
-	bootPath := filepath.Join(dataDir, "boot.img")
+func extractBoot(dataDir string, bootName string, ramdiskName string) error {
+	bootPath := filepath.Join(dataDir, bootName)
 	imgBytes, err := ioutil.ReadFile(bootPath)
 	if err != nil {
 		return errors.New(fmt.Sprintf("Cannot read %s", bootPath))
@@ -48,13 +48,15 @@ func extractBoot(dataDir string) error {
 	if err != nil {
 		return err
 	}
-	ramdiskPath := filepath.Join(dataDir, "ramdisk.img")
-	kernelPath := filepath.Join(dataDir, kernelName)
+	ramdiskPath := filepath.Join(dataDir, ramdiskName)
 	if err := boot.WriteRamdisk(ramdiskPath); err != nil {
 		return err
 	}
-	if boot.WriteKernel(kernelPath); err != nil {
-		return err
+	if (ramdiskName == bootRamdisk) {
+		kernelPath := filepath.Join(dataDir, kernelName)
+		if boot.WriteKernel(kernelPath); err != nil {
+			return err
+		}
 	}
 	return nil
 }

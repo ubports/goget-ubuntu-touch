@@ -1,9 +1,16 @@
-goget-ubuntu-touch (0.2+14.10.20140530-0ubuntu1) UNRELEASED; urgency=medium
+goget-ubuntu-touch (0.3-0ubuntu1) UNRELEASED; urgency=medium
 
-  * ubuntu-touch-do: new tool to interact with touch devices.
+  * ubuntu-touch-do: new tool to interact with ubuntu devices.
   * ubuntu-device-flash: option to flash with developer mode enabled.
 
  -- Sergio Schvezov <sergio.schvezov@canonical.com>  Fri, 30 May 2014 09:28:52 -0300
+
+goget-ubuntu-touch (0.2+14.10.20140610-0ubuntu1) utopic; urgency=low
+
+  [ Dimitri John Ledkov ]
+  * Unpack recovery & offer to launch it.
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Tue, 10 Jun 2014 16:12:34 +0000
 
 goget-ubuntu-touch (0.2+14.10.20140527-0ubuntu1) utopic; urgency=low
 

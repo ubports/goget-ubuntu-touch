@@ -129,8 +129,13 @@ func (createCmd *CreateCmd) Execute(args []string) error {
 		return err
 	}
 
-	// boot.img must be in dataDir
-	if err = extractBoot(dataDir); err != nil {
+	// boot.img must be in dataDir (Normal Boot Ramdisk)
+	if err = extractBoot(dataDir, bootImage, bootRamdisk); err != nil {
+		return err
+	}
+
+	// recovery.img must be in dataDir (Recovery Ramdisk)
+	if err = extractBoot(dataDir, recoveryImage, recoveryRamdisk); err != nil {
 		return err
 	}
 
