@@ -24,7 +24,7 @@ Description: Flash supported Nexus devices with Ubuntu
  bootstrapping from fastboot or reflashing from an already
  supported device.
 
-Package: ubuntu-touch-do
+Package: ubuntu-device-do
 Architecture: any
 Depends: android-tools-adb,
          ${misc:Depends},
