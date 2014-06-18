@@ -29,6 +29,7 @@ Architecture: any
 Depends: android-tools-adb,
          ${misc:Depends},
          ${shlibs:Depends},
+Built-Using: ${misc:Built-Using}
 Description: Tool to interact with Ubuntu Touch devices
  Use this tool to interact with your Ubuntu Touch device
 
