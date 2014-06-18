@@ -4,6 +4,7 @@ Priority: optional
 Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
 Build-Depends: debhelper (>= 9),
                dh-golang,
+               bash-completion,
                golang-go,
                golang-go-flags-dev,
                golang-gocheck-dev,

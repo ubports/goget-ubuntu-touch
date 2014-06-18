@@ -1,0 +1,21 @@
+_foo()  
+{
+    local cur prev opts
+    COMPREPLY=()
+    cur="${COMP_WORDS[COMP_CWORD]}"
+    prev="${COMP_WORDS[COMP_CWORD-1]}"
+    opts="create list run destroy snapshot"
+    runopts="$(ubuntu-emulator list | cut -f1)"
+
+    case $prev in
+        run)
+	    COMPREPLY=( $(compgen -W "$runopts" -- $cur) )
+	    return 0
+	    ;;
+    esac	
+
+    COMPREPLY=( $(compgen -W "$opts" -- $cur) )
+    return 0
+}
+complete -F _foo ubuntu-emulator
+
