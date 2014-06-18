@@ -180,7 +180,12 @@ func main() {
 	for i := 0; i < totalFiles; i++ {
 		<-done
 	}
-	ubuntuCommands, err := ubuntuimage.GetUbuntuCommands(image.Files, cacheDir, args.Wipe)
+
+	var enableList []string
+	if args.DeveloperMode {
+		enableList = append(enableList, "developer_mode")
+	}
+	ubuntuCommands, err := ubuntuimage.GetUbuntuCommands(image.Files, cacheDir, args.Wipe, enableList)
 	if err != nil {
 		log.Fatal("Cannot create commands file")
 	}

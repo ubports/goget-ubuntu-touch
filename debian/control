@@ -24,6 +24,14 @@ Description: Flash supported Nexus devices with Ubuntu
  bootstrapping from fastboot or reflashing from an already
  supported device.
 
+Package: ubuntu-device-do
+Architecture: any
+Depends: android-tools-adb,
+         ${misc:Depends},
+         ${shlibs:Depends},
+Description: Tool to interact with Ubuntu Touch devices
+ Use this tool to interact with your Ubuntu Touch device
+
 Package: ubuntu-emulator
 Architecture: i386 amd64
 Depends: ubuntu-emulator-runtime,
