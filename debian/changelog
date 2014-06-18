@@ -1,9 +1,21 @@
-goget-ubuntu-touch (0.3-0ubuntu1) UNRELEASED; urgency=medium
+goget-ubuntu-touch (0.3+14.10.20140618.1-0ubuntu1) utopic; urgency=medium
 
+  [ Sergio Schvezov ]
   * ubuntu-touch-do: new tool to interact with ubuntu devices.
   * ubuntu-device-flash: option to flash with developer mode enabled.
+  * debian/control: add Built-Using for ubuntu-device-do
 
- -- Sergio Schvezov <sergio.schvezov@canonical.com>  Fri, 30 May 2014 09:28:52 -0300
+  [ Chris Wayne ]
+  * ubuntu-emulator: bash completion for running emulators
+
+  [ Loïc Minier ]
+  * debian/control: add Built-Using field to binary packages to track
+    golang dependencies this was built against.
+
+  [ Jani Monoses ]
+  * ubuntu-device-flash: Print error when parsing of cmdline args fails.
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Wed, 18 Jun 2014 20:57:32 +0000
 
 goget-ubuntu-touch (0.2+14.10.20140610-0ubuntu1) utopic; urgency=low
 
