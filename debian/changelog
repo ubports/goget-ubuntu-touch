@@ -1,3 +1,11 @@
+goget-ubuntu-touch (0.3+14.10.20140619-0ubuntu1) utopic; urgency=low
+
+  [ Ricardo Salveti de Araujo ]
+  * ubuntu-emulator: disable the remaining ethernet interfaces (don't
+    let them be managed by network manager)
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Thu, 19 Jun 2014 14:36:56 +0000
+
 goget-ubuntu-touch (0.3+14.10.20140618.1-0ubuntu1) utopic; urgency=medium
 
   [ Sergio Schvezov ]
