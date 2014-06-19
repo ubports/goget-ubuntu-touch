@@ -36,6 +36,12 @@ iface eth0 inet static
     netmask 255.255.255.0
     gateway 10.0.2.2
     dns-nameservers 10.0.2.3
+
+iface eth1 inet manual
+iface eth2 inet manual
+iface eth3 inet manual
+iface eth4 inet manual
+iface eth5 inet manual
 `
 
 type setupFile struct{ path, content string }
