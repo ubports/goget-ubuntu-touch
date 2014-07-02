@@ -37,6 +37,7 @@ type CreateCmd struct {
 	Server   string `long:"server" description:"Select image server"`
 	Revision int    `long:"revision" description:"Select revision"`
 	RawDisk  bool   `long:"use-raw-disk" description:"Use raw disks instead of qcow2"`
+	SDCard   bool   `long:"with-sdcard" description:"Create an external vfat sdcard"`
 	Arch     string `long:"arch" description:"Device architecture to use (i386 or armhf)"`
 }
 
@@ -152,6 +153,14 @@ func (createCmd *CreateCmd) Execute(args []string) error {
 		}
 	}
 
+	if createCmd.SDCard {
+		fmt.Println("Creating vfat sdcard...")
+		sdcard := diskimage.New(filepath.Join(dataDir, "sdcardprime.img"), "SDCARD", 2)
+		if err := sdcard.CreateVFat(); err != nil {
+			return err
+		}
+	}
+
 	if err = sysutils.WriteStamp(dataDir, image); err != nil {
 		return err
 	}
@@ -172,7 +181,7 @@ func extractBuildProperties(systemImage *diskimage.DiskImage, dataDir string) er
 
 func createSystem(ubuntuImage, sdcardImage *diskimage.DiskImage, files []string) (err error) {
 	for _, img := range []*diskimage.DiskImage{ubuntuImage, sdcardImage} {
-		if err := img.Create(); err != nil {
+		if err := img.CreateExt4(); err != nil {
 			return err
 		}
 	}

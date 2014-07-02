@@ -147,15 +147,19 @@ func (img *DiskImage) Provision(tarList []string) error {
 }
 
 //Create returns a ext4 partition for a given file
-func (img DiskImage) Create() error {
+func (img DiskImage) CreateExt4() error {
 	if err := sysutils.CreateEmptyFile(img.path, img.size); err != nil {
 		return err
 	}
-	if err := exec.Command("mkfs.ext4", "-F", "-L",
-		img.label, img.path).Run(); err != nil {
+	return exec.Command("mkfs.ext4", "-F", "-L", img.label, img.path).Run()
+}
+
+//Create returns a vfat partition for a given file
+func (img DiskImage) CreateVFat() error {
+	if err := sysutils.CreateEmptyFile(img.path, img.size); err != nil {
 		return err
 	}
-	return nil
+	return exec.Command("mkfs.vfat", "-n", img.label, img.path).Run()
 }
 
 //unpackSystem moves the system partition up one level
