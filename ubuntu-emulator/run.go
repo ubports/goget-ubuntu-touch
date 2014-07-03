@@ -54,13 +54,18 @@ var skinDirs = []string{
 	"/usr/share/android/emulator/development/tools/emulator/skins",
 }
 
+var extendedRunHelp string = "Runs a new emulator instance name 'name' which " +
+	"was previously created. If the ANDROID_BUILD_TOP envionment variable is " +
+	"found, which used during Android side development, the emulator runtime " +
+	"will be executed from there if possible."
+
 func init() {
 	runCmd.Skin = defaultSkin
 	runCmd.Scale = defaultScale
 	runCmd.Memory = defaultMemory
 	parser.AddCommand("run",
 		"Run emulator instance named 'name'",
-		"Runs a new emulator instance name 'name' which was previously created",
+		extendedRunHelp,
 		&runCmd)
 }
 
