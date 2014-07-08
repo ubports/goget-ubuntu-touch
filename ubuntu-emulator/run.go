@@ -56,8 +56,9 @@ var skinDirs = []string{
 
 var extendedRunHelp string = "Runs a new emulator instance name 'name' which " +
 	"was previously created. If the ANDROID_BUILD_TOP envionment variable is " +
-	"found, which used during Android side development, the emulator runtime " +
-	"will be executed from there if possible."
+	"found, used during Android side development, the emulator runtime will " +
+	"be executed from there if possible. ANDROID_BUILT_TOP is set after an " +
+	"android 'lunch' target is selected."
 
 func init() {
 	runCmd.Skin = defaultSkin
