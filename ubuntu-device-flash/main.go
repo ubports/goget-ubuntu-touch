@@ -31,6 +31,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"syscall"
 
 	"launchpad.net/goget-ubuntu-touch/devices"
 	"launchpad.net/goget-ubuntu-touch/ubuntuimage"
@@ -55,8 +56,24 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		if fi.Mode()&0100 == 0 {
+		if fi.Mode()&0100 == 0 || !fi.Mode().IsRegular() {
 			log.Fatalf("The script %s passed via --run-script is not executable", script)
+		}
+	}
+
+	tarballPath := args.DeviceTarball
+	if tarballPath != "" {
+		if p, err := filepath.Abs(tarballPath); err != nil {
+			log.Fatal("Device tarball not found", err)
+		} else {
+			tarballPath = p
+		}
+		fi, err := os.Lstat(tarballPath)
+		if err != nil {
+			log.Fatal(err)
+		}
+		if !fi.Mode().IsRegular() {
+			log.Fatalf("The file %s passed via --device-tarball is not a regular file\n", tarballPath)
 		}
 	}
 	channels, err := ubuntuimage.NewChannels(args.Server)
@@ -130,8 +147,15 @@ func main() {
 	totalFiles := len(image.Files) + len(signFiles)
 	files := make(chan Files, totalFiles)
 	done := make(chan bool, totalFiles)
-	for _, file := range image.Files {
-		go bitDownloader(file, files, args.Server, cacheDir)
+	for i, file := range image.Files {
+		if tarballPath != "" && strings.HasPrefix(file.Path, "/pool/device") {
+			//change the file paths so they are correctly picked up by bitPusher later on
+			image.Files[i].Path = tarballPath
+			image.Files[i].Signature = tarballPath + ".asc"
+			useLocalTarball(image.Files[i], files)
+		} else {
+			go bitDownloader(file, files, args.Server, cacheDir)
+		}
 	}
 	for _, file := range signFiles {
 		go bitDownloader(file, files, args.Server, cacheDir)
@@ -222,7 +246,22 @@ func main() {
 	}
 }
 
+// ensureExists touches a file. It can be used to create a dummy .asc file if none exists
+func ensureExists(path string) {
+	f, err := os.OpenFile(path, syscall.O_WRONLY|syscall.O_CREAT, 0666)
+	if err != nil {
+		log.Fatal("Cannot touch %s : %s", path, err)
+	}
+	f.Close()
+}
+
 type Files struct{ FilePath, SigPath string }
+
+// useLocalTarball adds a local file to the ones to be pushed
+func useLocalTarball(file ubuntuimage.File, files chan<- Files) {
+	ensureExists(file.Signature)
+	files <- Files{FilePath: file.Path, SigPath: file.Signature}
+}
 
 // bitDownloader downloads
 func bitDownloader(file ubuntuimage.File, files chan<- Files, server, downloadDir string) {
