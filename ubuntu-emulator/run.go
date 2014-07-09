@@ -22,10 +22,12 @@ package main
 import (
 	"errors"
 	"fmt"
-	"launchpad.net/goget-ubuntu-touch/ubuntu-emulator/sysutils"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
+
+	"launchpad.net/goget-ubuntu-touch/ubuntu-emulator/sysutils"
 )
 
 type RunCmd struct {
@@ -39,10 +41,11 @@ type RunCmd struct {
 var runCmd RunCmd
 
 const (
-	defaultMemory = "512"
-	defaultScale  = "1.0"
-	defaultSkin   = "EDGE"
-	emulatorCmd   = "/usr/share/android/emulator/out/host/linux-x86/bin/emulator"
+	defaultMemory      = "512"
+	defaultScale       = "1.0"
+	defaultSkin        = "EDGE"
+	installPath        = "/usr/share/android/emulator"
+	subpathEmulatorCmd = "out/host/linux-x86/bin/emulator"
 )
 
 var skinDirs = []string{
@@ -51,13 +54,19 @@ var skinDirs = []string{
 	"/usr/share/android/emulator/development/tools/emulator/skins",
 }
 
+var extendedRunHelp string = "Runs a new emulator instance name 'name' which " +
+	"was previously created. If the ANDROID_BUILD_TOP envionment variable is " +
+	"found, used during Android side development, the emulator runtime will " +
+	"be executed from there if possible. ANDROID_BUILT_TOP is set after an " +
+	"android 'lunch' target is selected."
+
 func init() {
 	runCmd.Skin = defaultSkin
 	runCmd.Scale = defaultScale
 	runCmd.Memory = defaultMemory
 	parser.AddCommand("run",
 		"Run emulator instance named 'name'",
-		"Runs a new emulator instance name 'name' which was previously created",
+		extendedRunHelp,
 		&runCmd)
 }
 
@@ -88,7 +97,7 @@ func (runCmd *RunCmd) Execute(args []string) error {
 	}
 
 	ramdisk := bootRamdisk
-	if (runCmd.Recovery) {
+	if runCmd.Recovery {
 		ramdisk = recoveryRamdisk
 	}
 	cmdOpts := []string{
@@ -121,6 +130,8 @@ func (runCmd *RunCmd) Execute(args []string) error {
 		return err
 	}
 
+	emulatorCmd := getEmulatorCmd()
+
 	cmd := exec.Command(emulatorCmd, cmdOpts...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -130,6 +141,16 @@ func (runCmd *RunCmd) Execute(args []string) error {
 		return err
 	}
 	return nil
+}
+
+func getEmulatorCmd() string {
+	androidTree := os.Getenv("ANDROID_BUILD_TOP")
+	cmd := path.Join(androidTree, subpathEmulatorCmd)
+	if fInfo, err := os.Stat(cmd); err == nil && fInfo.Mode()&0111 != 0 {
+		fmt.Println("Using", cmd, "for the emulator runtime")
+		return cmd
+	}
+	return path.Join(installPath, subpathEmulatorCmd)
 }
 
 func getSkinDir(skin string) (string, error) {
