@@ -283,7 +283,7 @@ func bitPusher(adb devices.UbuntuDebugBridge, files <-chan Files, done chan<- bo
 		log.Fatal("Cannot cleanup /cache/recovery/ to ensure clean deployment", err)
 	}
 	freeSpace := "unknown"
-	dfCacheCmd := "df -h | grep /dev/disk/by-partlabel/cache"
+	dfCacheCmd := "df -h | grep /android/cache"
 	if free, err := adb.Shell(dfCacheCmd); err != nil {
 		log.Fatal("Unable to retrieve free space on target")
 	} else {
