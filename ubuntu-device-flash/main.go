@@ -160,6 +160,13 @@ func main() {
 	for _, file := range signFiles {
 		go bitDownloader(file, files, args.Server, cacheDir)
 	}
+	if args.DownloadOnly {
+		for i := 0; i < totalFiles; i++ {
+			<-files
+		}
+		log.Printf("Downloaded files for version %d, channel %s, exiting without flashing as requested.\n", image.Version, args.Channel)
+		os.Exit(0)
+	}
 	if args.Bootstrap {
 		var downloadedFiles []Files
 		for i := 0; i < totalFiles; i++ {
