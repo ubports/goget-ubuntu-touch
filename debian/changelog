@@ -1,3 +1,18 @@
+goget-ubuntu-touch (0.3+14.10.20140807-0ubuntu1) utopic; urgency=low
+
+  [ Paul Larson ]
+  * Fix checking for free space in cache when it's mounted in a
+    different location
+
+  [ Jani Monoses ]
+  * ubuntu-device-flash: Add --download-only flag. (LP: #1295148)
+
+  [ Sergio Schvezov ]
+  * Unhooking stdin from the emulator and removing -shell switch as it's
+    not needed anymore (LP: #1329374)
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Thu, 07 Aug 2014 03:57:01 +0000
+
 goget-ubuntu-touch (0.3+14.10.20140709-0ubuntu1) utopic; urgency=low
 
   [ Ubuntu daily release ]
