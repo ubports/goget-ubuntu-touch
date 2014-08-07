@@ -113,7 +113,7 @@ func (runCmd *RunCmd) Execute(args []string) error {
 		"-force-32bit", "-no-snapstorage",
 		"-gpu", "on",
 		"-scale", runCmd.Scale,
-		"-shell", "-no-jni", "-show-kernel", "-verbose",
+		"-no-jni", "-show-kernel", "-verbose",
 		"-qemu",
 	}
 
@@ -135,7 +135,6 @@ func (runCmd *RunCmd) Execute(args []string) error {
 	cmd := exec.Command(emulatorCmd, cmdOpts...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	cmd.Stdin = os.Stdin
 
 	if err := cmd.Run(); err != nil {
 		return err
