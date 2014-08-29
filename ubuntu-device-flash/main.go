@@ -136,6 +136,14 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	if args.ShowImage {
+		fmt.Printf("Image %s at version %d in channel %s\n", image.Description, image.Version, args.Channel)
+		for _, f := range image.Files {
+			f.MakeRelativeToServer(args.Server)
+			fmt.Printf("%d %s%s %d %s\n", f.Order, f.Server, f.Path, f.Size, f.Checksum)
+		}
+		return
+	}
 	log.Printf("Flashing version %d from %s channel and server %s to device %s",
 		image.Version, args.Channel, args.Server, args.Device)
 	if deviceChannel.Alias != "" {
