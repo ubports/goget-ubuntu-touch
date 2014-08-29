@@ -80,13 +80,14 @@ func GetUbuntuCommands(files []File, downloadDir string, wipe bool, enable []str
 			writer.WriteString(
 				fmt.Sprintf("update %s %s\n", filepath.Base(file.Path), filepath.Base(file.Signature)))
 		}
-		writer.WriteString("unmount system\n")
 	}
 
 	//we cannot enable "things" outside of userdata
 	for i := range enable {
 		writer.WriteString(fmt.Sprintf("enable %s\n", enable[i]))
 	}
+
+	writer.WriteString("unmount system\n")
 	return tmpFile.Name(), err
 }
 
