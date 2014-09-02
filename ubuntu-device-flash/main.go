@@ -213,7 +213,6 @@ func main() {
 		for _, file := range downloadedFiles {
 			files <- file
 		}
-		args.Wipe = true
 	}
 	go bitPusher(adb, files, done)
 	for i := 0; i < totalFiles; i++ {
