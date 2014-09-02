@@ -61,6 +61,14 @@ func main() {
 		}
 	}
 
+	if args.Bootstrap {
+		args.Wipe = true
+	}
+
+	if args.Password != "" && !args.Wipe && !args.DeveloperMode {
+		log.Fatal("Default password setup requires --developer-mode, and --wipe or --bootstrap")
+	}
+
 	tarballPath := args.DeviceTarball
 	if tarballPath != "" {
 		if p, err := filepath.Abs(tarballPath); err != nil {
@@ -205,7 +213,6 @@ func main() {
 		for _, file := range downloadedFiles {
 			files <- file
 		}
-		args.Wipe = true
 	}
 	go bitPusher(adb, files, done)
 	for i := 0; i < totalFiles; i++ {
@@ -216,6 +223,10 @@ func main() {
 	if args.DeveloperMode {
 		enableList = append(enableList, "developer_mode")
 	}
+	if args.Password != "" {
+		enableList = append(enableList, "default_password "+args.Password)
+	}
+
 	ubuntuCommands, err := ubuntuimage.GetUbuntuCommands(image.Files, cacheDir, args.Wipe, enableList)
 	if err != nil {
 		log.Fatal("Cannot create commands file")

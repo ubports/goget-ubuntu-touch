@@ -39,6 +39,7 @@ type arguments struct {
 	TLSSkipVerify bool   `long:"tls-skip-verify" description:"Skip TLS certificate validation"`
 	DeveloperMode bool   `long:"developer-mode" description:"Enables developer mode after the factory reset"`
 	RunScript     string `long:"run-script" description:"Run a script given by path to finish the flashing process, instead of rebooting to recovery (mostly used during development to work around quirky or incomplete recovery images)"`
+	Password      string `long:"password" description:"This sets up the default password for the phablet user. This option is meant for CI and not general use"`
 }
 
 var args arguments

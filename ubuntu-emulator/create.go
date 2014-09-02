@@ -46,7 +46,7 @@ var createCmd CreateCmd
 const (
 	defaultChannel = "ubuntu-touch/devel"
 	defaultServer  = "https://system-image.ubuntu.com"
-	defaultArch    = "armhf"
+	defaultArch    = "i386"
 )
 
 func init() {
