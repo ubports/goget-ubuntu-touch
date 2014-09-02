@@ -61,8 +61,12 @@ func main() {
 		}
 	}
 
+	if args.Bootstrap {
+		args.Wipe = true
+	}
+
 	if args.Password != "" && !args.Wipe && !args.DeveloperMode {
-		log.Fatal("Default password setup requires developer mode and a clean install")
+		log.Fatal("Default password setup requires --developer-mode, and --wipe or --bootstrap")
 	}
 
 	tarballPath := args.DeviceTarball
