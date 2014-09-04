@@ -145,7 +145,7 @@ func main() {
 		log.Fatal(err)
 	}
 	if args.ShowImage {
-		fmt.Printf("Image %s at version %d in channel %s\n", image.Description, image.Version, args.Channel)
+		fmt.Printf("Description: %s\nVersion: %d\nChannel: %s\n", image.Description, image.Version, args.Channel)
 		for _, f := range image.Files {
 			f.MakeRelativeToServer(args.Server)
 			fmt.Printf("%d %s%s %d %s\n", f.Order, f.Server, f.Path, f.Size, f.Checksum)
