@@ -30,6 +30,7 @@ type arguments struct {
 	ListChannels  bool   `long:"list-channels" description:"List available channels"`
 	Wipe          bool   `long:"wipe" description:"Clear all data after flashing"`
 	Channel       string `long:"channel" description:"Specify an alternate channel"`
+	ShowImage     bool   `long:"show-image" description:"Show information for an image in the given channel"`
 	Device        string `long:"device" description:"Specify the device to flash"`
 	DeviceTarball string `long:"device-tarball" description:"Specify a local device tarball to override the one from the server (using official Ubuntu images with custom device tarballs)"`
 	DownloadOnly  bool   `long:"download-only" description:"Only download tarballs, do not push to the device."`
