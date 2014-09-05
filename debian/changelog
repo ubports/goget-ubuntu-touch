@@ -1,3 +1,10 @@
+goget-ubuntu-touch (0.4+14.10.20140905-0ubuntu1) utopic; urgency=low
+
+  [ Jani Monoses ]
+  * ubuntu-device-flash: Add --show-image flag.
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Fri, 05 Sep 2014 00:51:01 +0000
+
 goget-ubuntu-touch (0.4+14.10.20140902.1-0ubuntu1) utopic; urgency=low
 
   [ Sergio Schvezov ]
