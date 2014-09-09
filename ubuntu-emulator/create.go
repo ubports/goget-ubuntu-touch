@@ -205,7 +205,7 @@ func createSystem(ubuntuImage, sdcardImage *diskimage.DiskImage, files []string)
 		}
 		return err
 	}
-	fmt.Println("Setting up a defaul password for phablet to: '0000'")
+	fmt.Println("Setting up a default password for phablet to: '0000'")
 	if err := ubuntuImage.SetPassword("phablet", "0000"); err != nil {
 		if err := ubuntuImage.Unmount(); err != nil {
 			fmt.Println("Unmount error :", err)
