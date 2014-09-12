@@ -20,9 +20,11 @@ package diskimage
 // with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"path/filepath"
 )
 
@@ -74,6 +76,17 @@ func (img DiskImage) Writable() error {
 	writeFlag := filepath.Join(img.Mountpoint, ".writable_image")
 	if err := ioutil.WriteFile(writeFlag, []byte(""), 0644); err != nil {
 		return err
+	}
+	return nil
+}
+
+//SetPassword is an ugly hack to set the password
+func (img DiskImage) SetPassword(user, password string) error {
+	// Run something that would look like this
+	// PATH=$path chroot "$SYSTEM_MOUNTPOINT" /bin/sh -c "echo -n "$user:$password" | chpasswd"
+	chrootCmd := fmt.Sprintf("echo -n '%s:%s' | chpasswd", user, password)
+	if out, err := exec.Command("chroot", img.Mountpoint, "/bin/sh", "-c", chrootCmd).CombinedOutput(); err != nil {
+		return errors.New(string(out))
 	}
 	return nil
 }
