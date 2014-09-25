@@ -126,7 +126,7 @@ func main() {
 			args.Device, err = adb.GetDevice()
 		}
 		if err != nil {
-			log.Fatal(err)
+			log.Fatalln("Cannot determine the device name:", err)
 		}
 	}
 	log.Printf("Device is |%s|", args.Device)
@@ -202,21 +202,21 @@ func main() {
 		if recovery == "" {
 			log.Fatal("Recovery image not found, cannot continue with bootstrap")
 		}
-		err = fastboot.Flash("recovery", recovery)
-		if err != nil {
+		if err := fastboot.Flash("recovery", recovery); err != nil {
 			log.Fatal("Can't flash recovery image")
 		}
-		err = fastboot.Format("cache")
-		if err != nil {
+		if err := fastboot.Format("cache"); err != nil {
 			log.Print("Cache formatting was not successful, flashing may fail, " +
 				"check your partitions on device")
 		}
-		err = fastboot.BootImage(recovery)
-		if err != nil {
+
+		if err := fastboot.BootImage(recovery); err != nil {
 			log.Fatal("Can't boot recovery image")
 		}
 		os.Remove(recovery)
-		adb.WaitForRecovery()
+		if err := adb.WaitForRecovery(); err != nil {
+			log.Fatal(err)
+		}
 		// Resend all the files
 		for _, file := range downloadedFiles {
 			files <- file
@@ -305,6 +305,9 @@ func bitDownloader(file ubuntuimage.File, files chan<- Files, server, downloadDi
 
 // bitPusher
 func bitPusher(adb devices.UbuntuDebugBridge, files <-chan Files, done chan<- bool) {
+	if err := adb.Ping(); err != nil {
+		log.Fatal("Target device cannot be reached over adb")
+	}
 	if _, err := adb.Shell("rm -rf /cache/recovery/*.xz /cache/recovery/*.xz.asc"); err != nil {
 		log.Fatal("Cannot cleanup /cache/recovery/ to ensure clean deployment", err)
 	}
