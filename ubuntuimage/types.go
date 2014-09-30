@@ -30,6 +30,12 @@ type Channel struct {
 
 type Channels map[string]Channel
 
+type ImageVersion struct {
+	Description               string
+}
+
+type ImageVersions map[int]ImageVersion
+
 type File struct {
 	Server                    string
 	Checksum, Path, Signature string
@@ -43,6 +49,7 @@ type Image struct {
 }
 
 type DeviceChannel struct {
+	Url    string
 	Alias  string
 	Images []Image
 }

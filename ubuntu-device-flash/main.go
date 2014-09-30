@@ -98,6 +98,25 @@ func main() {
 		}
 		return
 	}
+
+	if args.ListImages && args.Device == "" {
+		log.Fatal("You must specify a device type")
+	}
+
+	deviceChannel, err := channels.GetDeviceChannel(
+		args.Server, args.Channel, args.Device)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if args.ListImages {
+		err := deviceChannel.ListImageVersions()
+		if err != nil {
+			log.Fatal(err)
+		}
+		return
+	}
+
 	cacheDir := ubuntuimage.GetCacheDir()
 	if args.CleanCache {
 		log.Print("Cleaning prevously downloaded content")
@@ -130,11 +149,6 @@ func main() {
 		}
 	}
 	log.Printf("Device is |%s|", args.Device)
-	deviceChannel, err := channels.GetDeviceChannel(
-		args.Server, args.Channel, args.Device)
-	if err != nil {
-		log.Fatal(err)
-	}
 	var image ubuntuimage.Image
 	if args.Revision <= 0 {
 		image, err = deviceChannel.GetRelativeImage(args.Revision)
