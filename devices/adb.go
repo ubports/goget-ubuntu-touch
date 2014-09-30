@@ -76,16 +76,14 @@ func (adb *AndroidDebugBridge) GetDevice() (deviceName string, err error) {
 func (adb AndroidDebugBridge) Push(src, dst string) (err error) {
 	// TODO add file path verification
 	cmd := append(adb.params, []string{"push", src, dst}...)
-	err = exec.Command(adbCommand, cmd...).Run()
-	return err
+	return exec.Command(adbCommand, cmd...).Run()
 }
 
 // Pull copies a file from src to dst over the adb server
 func (adb AndroidDebugBridge) Pull(src, dst string) (err error) {
 	// TODO add file path verification
 	cmd := append(adb.params, []string{"pull", src, dst}...)
-	err = exec.Command(adbCommand, cmd...).Run()
-	return err
+	return exec.Command(adbCommand, cmd...).Run()
 }
 
 // RebootBooloader restarts the system into the bootloader
@@ -101,16 +99,14 @@ func (adb AndroidDebugBridge) RebootRecovery() (err error) {
 // reboot restarts into the desired target
 func (adb AndroidDebugBridge) reboot(mode string) (err error) {
 	cmd := append(adb.params, []string{"reboot", mode}...)
-	err = exec.Command(adbCommand, cmd...).Run()
-	return err
+	return exec.Command(adbCommand, cmd...).Run()
 }
 
 // Reboot restarts the system from the shell. This is different than
 // calling adb reboot directly.
 func (adb UbuntuDebugBridge) Reboot() (err error) {
 	cmd := append(adb.params, []string{"shell", "reboot"}...)
-	err = exec.Command(adbCommand, cmd...).Run()
-	return err
+	return exec.Command(adbCommand, cmd...).Run()
 }
 
 // WaitForDevice waits for the device to be available
@@ -144,4 +140,10 @@ func (adb UbuntuDebugBridge) WaitForRecovery() error {
 			return errors.New(fmt.Sprint("Failed to enter Recovery"))
 		}
 	}
+}
+
+// Ping pings the device to know it's there
+func (adb UbuntuDebugBridge) Ping() (err error) {
+	cmd := append(adb.params, []string{"shell", "ls"}...)
+	return exec.Command(adbCommand, cmd...).Run()
 }
