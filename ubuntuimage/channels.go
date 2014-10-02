@@ -101,8 +101,6 @@ func (deviceChannel *DeviceChannel) ListImageVersions() (err error) {
 
 	jsonData := map[string]interface{}{}
 
-	//url := server + "/" + channel + "/" + device + "/" + indexName
-
 	resp, err := client.Get(deviceChannel.Url)
 	if err != nil {
 		return err
