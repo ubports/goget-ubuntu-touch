@@ -28,6 +28,7 @@ type arguments struct {
 	Revision      int    `long:"revision" description:"revision to flash, absolute or relative allowed"`
 	Bootstrap     bool   `long:"bootstrap" description:"bootstrap the system, do this from the bootloader"`
 	ListChannels  bool   `long:"list-channels" description:"List available channels"`
+	ListImages    bool   `long:"list-images" description:"List available images for a channel"`
 	Wipe          bool   `long:"wipe" description:"Clear all data after flashing"`
 	Channel       string `long:"channel" description:"Specify an alternate channel"`
 	ShowImage     bool   `long:"show-image" description:"Show information for an image in the given channel"`

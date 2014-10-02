@@ -26,10 +26,12 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"io/ioutil"
 )
 
 const (
 	channelsPath = "/channels.json"
+	indexName    = "index.json"
 	FULL_IMAGE   = "full"
 )
 
@@ -80,6 +82,8 @@ func (channels Channels) GetDeviceChannel(server, channel, device string) (devic
 		return i1.Version > i2.Version
 	}
 	ImageBy(order).ImageSort(deviceChannel.Images)
+
+	deviceChannel.Url = channelUri
 	return deviceChannel, err
 }
 
@@ -91,6 +95,53 @@ func (deviceChannel *DeviceChannel) GetImage(revision int) (image Image, err err
 	}
 	//If we reached this point, that means we haven't found the image we were looking for.
 	return image, fmt.Errorf("Failed to locate image %d", revision)
+}
+
+func (deviceChannel *DeviceChannel) ListImageVersions() (err error) {
+
+	jsonData := map[string]interface{}{}
+
+	resp, err := client.Get(deviceChannel.Url)
+	if err != nil {
+		return err
+	}
+
+	if (resp.StatusCode != 200) {
+		statusErr := errors.New(fmt.Sprintf("Invalid HTTP response: %d", resp.StatusCode))
+		return statusErr
+	}
+
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	err = json.Unmarshal(body, &jsonData)
+	if err != nil {
+		return err
+	}
+
+	images := jsonData["images"].([]interface{})
+
+	for i := range images {
+		entry := images[i].(map[string]interface{})
+
+		imageType := entry["type"]
+
+		if imageType != FULL_IMAGE {
+			// ignore delta images as they cannot be used to
+			// perform an initial device flash
+			continue
+		}
+
+		fmt.Printf("%d: description='%s'\n",
+			int(entry["version"].(float64)),
+			entry["description"])
+	}
+
+	return nil
 }
 
 func (deviceChannel *DeviceChannel) GetRelativeImage(revision int) (image Image, err error) {
