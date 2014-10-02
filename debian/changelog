@@ -1,3 +1,11 @@
+goget-ubuntu-touch (0.4+14.10.20141002-0ubuntu1) utopic; urgency=low
+
+  [ James Hunt ]
+  * ubuntu-device-flash: add '--list-images' option to display brief
+    image details, one per line.
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Thu, 02 Oct 2014 18:32:17 +0000
+
 goget-ubuntu-touch (0.4+14.10.20140929-0ubuntu1) utopic; urgency=low
 
   [ Sergio Schvezov ]
