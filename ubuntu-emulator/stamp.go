@@ -5,7 +5,7 @@
 //
 // Written by Sergio Schvezov <sergio.schvezov@canonical.com>
 //
-package sysutils
+package main
 
 // This program is free software: you can redistribute it and/or modify it
 // under the terms of the GNU General Public License version 3, as published
@@ -23,17 +23,18 @@ import (
 	"bufio"
 	"encoding/json"
 	"io/ioutil"
-	"launchpad.net/goget-ubuntu-touch/ubuntuimage"
 	"os"
 	"path/filepath"
+
+	"launchpad.net/goget-ubuntu-touch/ubuntuimage"
 )
 
-func WriteDeviceStamp(dataDir, device string) (err error) {
+func writeDeviceStamp(dataDir, device string) (err error) {
 	path := filepath.Join(dataDir, ".device")
 	return ioutil.WriteFile(path, []byte(device), 0600)
 }
 
-func ReadDeviceStamp(dataDir string) (string, error) {
+func readDeviceStamp(dataDir string) (string, error) {
 	path := filepath.Join(dataDir, ".device")
 	device, err := ioutil.ReadFile(path)
 	if err != nil {
@@ -42,7 +43,7 @@ func ReadDeviceStamp(dataDir string) (string, error) {
 	return string(device), nil
 }
 
-func WriteStamp(dataDir string, image ubuntuimage.Image) (err error) {
+func writeStamp(dataDir string, image ubuntuimage.Image) (err error) {
 	path := filepath.Join(dataDir, ".stamp")
 	file, err := os.Create(path)
 	if err != nil {
@@ -64,7 +65,7 @@ func WriteStamp(dataDir string, image ubuntuimage.Image) (err error) {
 	return nil
 }
 
-func ReadStamp(dataDir string) (image ubuntuimage.Image, err error) {
+func readStamp(dataDir string) (image ubuntuimage.Image, err error) {
 	path := filepath.Join(dataDir, ".stamp")
 	file, err := os.Open(path)
 	if err != nil {

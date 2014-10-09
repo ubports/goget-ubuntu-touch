@@ -22,7 +22,6 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
-	"launchpad.net/goget-ubuntu-touch/ubuntu-emulator/sysutils"
 	"path/filepath"
 )
 
@@ -49,7 +48,7 @@ func (listCmd *ListCmd) Execute(args []string) error {
 		if !entry.IsDir() {
 			continue
 		}
-		if image, err := sysutils.ReadStamp(filepath.Join(dataDir, entry.Name())); err == nil {
+		if image, err := readStamp(filepath.Join(dataDir, entry.Name())); err == nil {
 			fmt.Printf("%s\t%s\n", entry.Name(), image.Description)
 		} else {
 			fmt.Println(entry.Name())

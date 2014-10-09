@@ -22,8 +22,9 @@ package main
 import (
 	"errors"
 	"fmt"
-	"launchpad.net/goget-ubuntu-touch/ubuntu-emulator/diskimage"
 	"path/filepath"
+
+	"launchpad.net/goget-ubuntu-touch/diskimage"
 )
 
 type SnapshotCmd struct {
