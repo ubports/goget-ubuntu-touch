@@ -27,20 +27,39 @@ import (
 	"launchpad.net/goget-ubuntu-touch/ubuntuimage"
 )
 
+import flags "github.com/jessevdk/go-flags"
+
+type arguments struct {
+	Revision      int    `long:"revision" description:"revision to use, absolute or relative allowed"`
+	DownloadOnly  bool   `long:"download-only" description:"Only download."`
+	Server        string `long:"server" description:"Use a different image server" default:"https://system-image.ubuntu.com"`
+	CleanCache    bool   `long:"clean-cache" description:"Cleans up cache with all downloaded bits"`
+	TLSSkipVerify bool   `long:"tls-skip-verify" description:"Skip TLS certificate validation"`
+}
+
+var globalArgs arguments
+var parser = flags.NewParser(&globalArgs, flags.Default)
 var cacheDir = ubuntuimage.GetCacheDir()
 
 func main() {
 	args := os.Args
 
 	parser.SubcommandsOptional = true
-	if _, err := parser.ParseArgs(args); err != nil {
+	if _, err := parser.ParseArgs(args); err != nil && parser.Active == nil {
+		fmt.Println("DEPRECATED: Implicit 'touch' subcommand assumed")
+		args = append(args[:1], append([]string{"touch"}, args[1:]...)...)
+		if _, err := parser.ParseArgs(args); err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+	} else if err != nil {
 		os.Exit(1)
 	}
 
+	// no args ubuntu-device-flash handling (backwards compatibility
 	if parser.Active == nil {
 		fmt.Println("DEPRECATED: Implicit 'touch' subcommand assumed")
-		touchCmd.Channel = globalArgs.Channel
-		if err := touchCmd.Execute(args); err != nil {
+		if err := touchCmd.Execute([]string{""}); err != nil {
 			fmt.Println(err)
 			os.Exit(1)
 		}
