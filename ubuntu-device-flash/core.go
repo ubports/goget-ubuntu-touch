@@ -176,6 +176,10 @@ func (coreCmd *CoreCmd) setup(img *diskimage.DiskImage, filePathChan <-chan stri
 		if err := coreCmd.setupKeyboardLayout(systemPath); err != nil {
 			return err
 		}
+
+		if err := coreCmd.setupSecureShellKeys(systemPath); err != nil {
+			return err
+		}
 	}
 
 	{
@@ -192,6 +196,21 @@ func (coreCmd *CoreCmd) setup(img *diskimage.DiskImage, filePathChan <-chan stri
 		}
 	}
 
+	return nil
+}
+
+// setupSecureShellKeys creates the ssh keys on behalf of the target device since:
+//  - the device may not have much entropy leading to weak keys
+//  - generating the key may take a long time in which sshd is not available
+//
+// This means of course, that a generated image file can never be "cloned"
+func (coreCmd *CoreCmd) setupSecureShellKeys(systemPath string) error {
+	for _, key := range []string{"rsa", "dsa", "ecdsa", "ed25519"} {
+		keyFilePath := filepath.Join(systemPath, "etc", "ssh", fmt.Sprintf("ssh_host_%s_key", key))
+		if out, err := exec.Command("ssh-keygen", "-q", "-f", keyFilePath, "-t", key, "-N", "").CombinedOutput(); err != nil {
+			return fmt.Errorf("issues while creating key on %s: %s", keyFilePath, out)
+		}
+	}
 	return nil
 }
 
