@@ -11,10 +11,12 @@ package main
 import (
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"syscall"
 	"time"
 
@@ -43,10 +45,11 @@ func init() {
 }
 
 type CoreCmd struct {
-	Channel string `long:"channel" description:"Specify the channel to use" default:"ubuntu-core/utopic"`
-	Device  string `long:"device" description:"Specify the device to use" default:"generic_amd64"`
-	Output  string `long:"output" short:"o" description:"Name of the image file to create" required:"true"`
-	Size    int64  `long:"size" short:"s" description:"Size of image file to create in GB (min 6)" default:"20"`
+	Channel  string `long:"channel" description:"Specify the channel to use" default:"ubuntu-core/utopic"`
+	Device   string `long:"device" description:"Specify the device to use" default:"generic_amd64"`
+	Keyboard string `long:"keyboard-layout" description:"Specify the keyboard layout" default:"us"`
+	Output   string `long:"output" short:"o" description:"Name of the image file to create" required:"true"`
+	Size     int64  `long:"size" short:"s" description:"Size of image file to create in GB (min 6)" default:"20"`
 }
 
 var coreCmd CoreCmd
@@ -169,6 +172,10 @@ func (coreCmd *CoreCmd) setup(img *diskimage.DiskImage, filePathChan <-chan stri
 		if err := coreCmd.setupBootloader(systemPath); err != nil {
 			return err
 		}
+
+		if err := coreCmd.setupKeyboardLayout(systemPath); err != nil {
+			return err
+		}
 	}
 
 	{
@@ -186,6 +193,20 @@ func (coreCmd *CoreCmd) setup(img *diskimage.DiskImage, filePathChan <-chan stri
 	}
 
 	return nil
+}
+
+func (coreCmd *CoreCmd) setupKeyboardLayout(systemPath string) error {
+	kbFilePath := filepath.Join(systemPath, "etc", "default", "keyboard")
+
+	kbFileContents, err := ioutil.ReadFile(kbFilePath)
+	if err != nil {
+		return err
+	}
+
+	r := strings.NewReplacer("XKBLAYOUT=\"us\"", fmt.Sprintf("XKBLAYOUT=\"%s\"", coreCmd.Keyboard))
+	kbFileContents = []byte(r.Replace(string(kbFileContents)))
+
+	return ioutil.WriteFile(kbFilePath, kbFileContents, 0644)
 }
 
 func (coreCmd *CoreCmd) setupBootloader(systemPath string) error {
