@@ -44,15 +44,7 @@ var cacheDir = ubuntuimage.GetCacheDir()
 func main() {
 	args := os.Args
 
-	parser.SubcommandsOptional = true
-	if _, err := parser.ParseArgs(args); err != nil && parser.Active == nil {
-		fmt.Println("DEPRECATED: Implicit 'touch' subcommand assumed")
-		args = append(args[:1], append([]string{"touch"}, args[1:]...)...)
-		if _, err := parser.ParseArgs(args); err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
-	} else if err != nil {
+	if _, err := parser.ParseArgs(args); err != nil {
 		os.Exit(1)
 	}
 
