@@ -1,6 +1,6 @@
 //
-// udbflash - Tool to download and flash devices with an Ubuntu Image based
-//            system
+// ubuntu-device-flash - Tool to download and flash devices with an Ubuntu Image
+//                       based system
 //
 // Copyright (c) 2013 Canonical Ltd.
 //
