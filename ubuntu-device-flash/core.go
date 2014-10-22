@@ -117,7 +117,8 @@ func (coreCmd *CoreCmd) Execute(args []string) error {
 		}
 	}()
 
-	{
+	// Execute the following code with escalated privs and drop them when done
+	err = func() error {
 		if err := sysutils.EscalatePrivs(); err != nil {
 			return err
 		}
@@ -130,6 +131,11 @@ func (coreCmd *CoreCmd) Execute(args []string) error {
 		if err := coreCmd.setup(img, filePathChan); err != nil {
 			return err
 		}
+
+		return nil
+	}()
+	if err != nil {
+		return err
 	}
 
 	fmt.Println("New image complete, launch by running: kvm", coreCmd.Output)
