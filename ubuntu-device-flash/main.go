@@ -44,16 +44,19 @@ var cacheDir = ubuntuimage.GetCacheDir()
 func main() {
 	args := os.Args
 
-	if _, err := parser.ParseArgs(args); err != nil {
-		os.Exit(1)
-	}
+	if _, err := parser.ParseArgs(args); err != nil && parser.Active == nil {
+		if e, ok := err.(*flags.Error); ok {
+			if e.Type == flags.ErrHelp {
+				os.Exit(0)
+			}
+		}
 
-	// no args ubuntu-device-flash handling (backwards compatibility
-	if parser.Active == nil {
 		fmt.Println("DEPRECATED: Implicit 'touch' subcommand assumed")
-		if err := touchCmd.Execute([]string{""}); err != nil {
-			fmt.Println(err)
+		args = append(args[:1], append([]string{"touch"}, args[1:]...)...)
+		if _, err := parser.ParseArgs(args); err != nil {
 			os.Exit(1)
 		}
+	} else if err != nil {
+		os.Exit(1)
 	}
 }
