@@ -222,6 +222,9 @@ func createSystem(ubuntuImage, sdcardImage *diskimage.DiskImage, files []string)
 	if err = sdcardImage.Writable(); err != nil {
 		return err
 	}
+	if err = sdcardImage.OverrideAdbInhibit(); err != nil {
+		return err
+	}
 	if err := ubuntuImage.Move(filepath.Join(sdcardImage.Mountpoint, "system.img")); err != nil {
 		return err
 	}
