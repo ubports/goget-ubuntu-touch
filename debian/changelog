@@ -1,3 +1,17 @@
+goget-ubuntu-touch (0.4+15.04.20141104.1-0ubuntu1) vivid; urgency=low
+
+  [ Sergio Schvezov ]
+  * ubuntu-device-flash: positional commands for query and flashing
+    touch and support for lvm partitions.
+  * ubuntu-device-flash: Adding core command
+  * ubuntu-device-flash: adding cloud-init logic and using the devl
+    channel by default
+  * ubuntu-device-flash: --developer-mode extended to now also inhibit
+    adb disabling when the screen is locked
+  * ubuntu-emulator: creation with flag to always have adb enabled.
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Tue, 04 Nov 2014 18:41:55 +0000
+
 goget-ubuntu-touch (0.4+14.10.20141002-0ubuntu1) utopic; urgency=low
 
   [ James Hunt ]
