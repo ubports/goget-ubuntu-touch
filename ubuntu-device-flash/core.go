@@ -45,7 +45,7 @@ func init() {
 }
 
 type CoreCmd struct {
-	Channel  string `long:"channel" description:"Specify the channel to use" default:"ubuntu-core/utopic"`
+	Channel  string `long:"channel" description:"Specify the channel to use" default:"ubuntu-core/devel"`
 	Device   string `long:"device" description:"Specify the device to use" default:"generic_amd64"`
 	Keyboard string `long:"keyboard-layout" description:"Specify the keyboard layout" default:"us"`
 	Output   string `long:"output" short:"o" description:"Name of the image file to create" required:"true"`
@@ -53,6 +53,13 @@ type CoreCmd struct {
 }
 
 var coreCmd CoreCmd
+
+const cloudInitMetaData = `instance-id: nocloud-static`
+const cloudInitUserData = `#cloud-config
+password: passw0rd
+chpasswd: { expire: False }
+ssh_pwauth: True
+`
 
 func (coreCmd *CoreCmd) Execute(args []string) error {
 	if syscall.Getuid() != 0 {
@@ -169,33 +176,58 @@ func (coreCmd *CoreCmd) setup(img *diskimage.DiskImage, filePathChan <-chan stri
 		}
 	}
 
-	{
-		systemPath, err := img.System()
-		if err != nil {
-			return err
-		}
+	systemPath, err := img.System()
+	if err != nil {
+		return err
+	}
 
-		if err := coreCmd.setupBootloader(systemPath); err != nil {
-			return err
-		}
+	if err := coreCmd.setupBootloader(systemPath); err != nil {
+		return err
+	}
 
-		if err := coreCmd.setupKeyboardLayout(systemPath); err != nil {
+	if err := coreCmd.setupKeyboardLayout(systemPath); err != nil {
+		return err
+	}
+
+	userPath, err := img.User()
+	if err != nil {
+		return err
+	}
+
+	for _, dir := range []string{"system-data", "user-data", "cache"} {
+		dirPath := filepath.Join(userPath, dir)
+		if err := os.Mkdir(dirPath, 0755); err != nil {
 			return err
 		}
 	}
 
-	{
-		userPath, err := img.User()
-		if err != nil {
-			return err
-		}
+	if err := coreCmd.setupCloudInit(systemPath, filepath.Join(userPath, "system-data")); err != nil {
+		return err
+	}
 
-		for _, dir := range []string{"system-data", "user-data", "cache"} {
-			dirPath := filepath.Join(userPath, dir)
-			if err := os.Mkdir(dirPath, 0755); err != nil {
-				return err
-			}
-		}
+	return nil
+}
+
+func (coreCmd *CoreCmd) setupCloudInit(systemPath, systemData string) error {
+	cloudBaseDir := filepath.Join("var", "lib", "cloud")
+	if err := os.MkdirAll(filepath.Join(systemPath, cloudBaseDir), 0755); err != nil {
+		return err
+	}
+
+	// create a basic cloud-init seed
+	cloudDir := filepath.Join(systemData, cloudBaseDir, "seed", "nocloud-net")
+	if err := os.MkdirAll(cloudDir, 0755); err != nil {
+		return err
+	}
+
+	metaDataPath := filepath.Join(cloudDir, "meta-data")
+	if err := ioutil.WriteFile(metaDataPath, []byte(cloudInitMetaData), 0600); err != nil {
+		return err
+	}
+
+	userDataPath := filepath.Join(cloudDir, "user-data")
+	if err := ioutil.WriteFile(userDataPath, []byte(cloudInitUserData), 0600); err != nil {
+		return err
 	}
 
 	return nil
