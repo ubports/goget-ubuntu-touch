@@ -49,7 +49,7 @@ type TouchCmd struct {
 var touchCmd TouchCmd
 
 func (touchCmd *TouchCmd) Execute(args []string) error {
-	if touchCmd.Password || touchCmd.DeveloperMode {
+	if touchCmd.Password != "" || touchCmd.DeveloperMode {
 		fmt.Println("WARNING --developer-mode and --pasword are dangerous as they remove security features from your device")
 	}
 
