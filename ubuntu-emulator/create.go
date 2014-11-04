@@ -27,8 +27,8 @@ import (
 	"runtime"
 	"syscall"
 
-	"launchpad.net/goget-ubuntu-touch/ubuntu-emulator/diskimage"
-	"launchpad.net/goget-ubuntu-touch/ubuntu-emulator/sysutils"
+	"launchpad.net/goget-ubuntu-touch/diskimage"
+	"launchpad.net/goget-ubuntu-touch/sysutils"
 	"launchpad.net/goget-ubuntu-touch/ubuntuimage"
 )
 
@@ -161,10 +161,10 @@ func (createCmd *CreateCmd) Execute(args []string) error {
 		}
 	}
 
-	if err = sysutils.WriteStamp(dataDir, image); err != nil {
+	if err = writeStamp(dataDir, image); err != nil {
 		return err
 	}
-	if err = sysutils.WriteDeviceStamp(dataDir, createCmd.Arch); err != nil {
+	if err = writeDeviceStamp(dataDir, createCmd.Arch); err != nil {
 		return err
 	}
 

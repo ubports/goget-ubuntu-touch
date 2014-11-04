@@ -26,8 +26,6 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
-
-	"launchpad.net/goget-ubuntu-touch/ubuntu-emulator/sysutils"
 )
 
 type RunCmd struct {
@@ -85,7 +83,7 @@ func (runCmd *RunCmd) Execute(args []string) error {
 		return err
 	}
 
-	device, err := sysutils.ReadDeviceStamp(dataDir)
+	device, err := readDeviceStamp(dataDir)
 	if err != nil {
 		return err
 	}
