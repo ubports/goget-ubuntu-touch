@@ -50,7 +50,7 @@ var touchCmd TouchCmd
 
 func (touchCmd *TouchCmd) Execute(args []string) error {
 	if touchCmd.Password != "" || touchCmd.DeveloperMode {
-		fmt.Println("WARNING --developer-mode and --pasword are dangerous as they remove security features from your device")
+		fmt.Println("WARNING --developer-mode and --password are dangerous as they remove security features from your device")
 	}
 
 	if globalArgs.TLSSkipVerify {
