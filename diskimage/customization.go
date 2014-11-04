@@ -80,6 +80,12 @@ func (img DiskImage) Writable() error {
 	return nil
 }
 
+//OverrideAdbInhibit will inhibit abd from shutting down when the screen is locked
+func (img DiskImage) OverrideAdbInhibit() error {
+	writeFlag := filepath.Join(img.Mountpoint, ".adb_onlock")
+	return ioutil.WriteFile(writeFlag, []byte(""), 0644)
+}
+
 //SetPassword is an ugly hack to set the password
 func (img DiskImage) SetPassword(user, password string) error {
 	// Run something that would look like this
