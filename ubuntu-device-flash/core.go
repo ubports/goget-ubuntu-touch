@@ -238,8 +238,8 @@ func (coreCmd *CoreCmd) setupKeyboardLayout(systemPath string) error {
 
 	// do not error if the image has no keyboard
 	_, err := os.Stat(kbFilePath)
-	if err!= nil && os.IsNotExist(err) {
-		return nil;
+	if err != nil && os.IsNotExist(err) {
+		return nil
 	}
 
 	kbFileContents, err := ioutil.ReadFile(kbFilePath)
