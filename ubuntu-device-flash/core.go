@@ -236,6 +236,11 @@ func (coreCmd *CoreCmd) setupCloudInit(systemPath, systemData string) error {
 func (coreCmd *CoreCmd) setupKeyboardLayout(systemPath string) error {
 	kbFilePath := filepath.Join(systemPath, "etc", "default", "keyboard")
 
+	_, err := os.Stat(kbFilePath)
+	if os.IsNotExist(err) {
+		return nil;
+	}
+
 	kbFileContents, err := ioutil.ReadFile(kbFilePath)
 	if err != nil {
 		return err
