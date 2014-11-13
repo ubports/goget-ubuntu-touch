@@ -1,3 +1,11 @@
+goget-ubuntu-touch (0.4+15.04.20141113-0ubuntu1) vivid; urgency=low
+
+  [ Michael Vogt ]
+  * ubuntu-device-flash: trivial branch to fix crash if no
+    /etc/default/keyboard file is available
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Thu, 13 Nov 2014 15:06:36 +0000
+
 goget-ubuntu-touch (0.4+15.04.20141104.1-0ubuntu1) vivid; urgency=low
 
   [ Sergio Schvezov ]
