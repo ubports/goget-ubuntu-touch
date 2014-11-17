@@ -194,7 +194,7 @@ func (coreCmd *CoreCmd) setup(img *diskimage.DiskImage, filePathChan <-chan stri
 		return err
 	}
 
-	for _, dir := range []string{"system-data", "user-data", "cache"} {
+	for _, dir := range []string{"system-data", "cache"} {
 		dirPath := filepath.Join(userPath, dir)
 		if err := os.Mkdir(dirPath, 0755); err != nil {
 			return err
