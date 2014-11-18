@@ -1,3 +1,14 @@
+goget-ubuntu-touch (0.4+15.04.20141118.1-0ubuntu1) vivid; urgency=low
+
+  [ Sergio Schvezov ]
+  * debian/control: explicitly depending on kpartx for ubuntu-device-
+    flash
+
+  [ Michael Vogt ]
+  * ubuntu-device-flash: don't create user-data for core images.
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Tue, 18 Nov 2014 16:50:22 +0000
+
 goget-ubuntu-touch (0.4+15.04.20141113-0ubuntu1) vivid; urgency=low
 
   [ Michael Vogt ]
