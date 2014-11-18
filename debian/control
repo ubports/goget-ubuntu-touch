@@ -18,10 +18,11 @@ Package: ubuntu-device-flash
 Architecture: any
 Depends: android-tools-adb,
          android-tools-fastboot,
+         kpartx,
          ${misc:Depends},
          ${shlibs:Depends},
 Built-Using: ${misc:Built-Using}
-Description: Flash supported Nexus devices with Ubuntu
+Description: Flash supported devices with Ubuntu
  Use this tool to flash a suported device with Ubuntu by either
  bootstrapping from fastboot or reflashing from an already
  supported device.
