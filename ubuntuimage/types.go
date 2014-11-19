@@ -24,14 +24,15 @@ type Device struct {
 }
 
 type Channel struct {
-	Devices map[string]Device
-	Alias   string
+	Devices map[string]Device `json:"devices"`
+	Alias   string            `json:"alias"`
+	Hidden  bool              `json:"hidden,omitempty"`
 }
 
 type Channels map[string]Channel
 
 type ImageVersion struct {
-	Description               string
+	Description string
 }
 
 type ImageVersions map[int]ImageVersion
