@@ -141,6 +141,9 @@ func (coreCmd *CoreCmd) Execute(args []string) error {
 
 	// Execute the following code with escalated privs and drop them when done
 	err = func() error {
+		// hack to circumvent https://code.google.com/p/go/issues/detail?id=1435
+		runtime.GOMAXPROCS(1)
+		runtime.LockOSThread()
 		if err := sysutils.EscalatePrivs(); err != nil {
 			return err
 		}
