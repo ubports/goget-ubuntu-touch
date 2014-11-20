@@ -1,3 +1,14 @@
+goget-ubuntu-touch (0.4+15.04.20141120-0ubuntu1) vivid; urgency=low
+
+  [ Sergio Schvezov ]
+  * ubuntu-device-flash: don't display hidden channels (LP: #1394257)
+  * ubuntu-device-flash: error message improvements and best effort to
+    block sigterm in some cases
+  * ubuntu-device-flash: add a --developer-mode that for now copies ssh
+    keys into the image
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Thu, 20 Nov 2014 01:46:02 +0000
+
 goget-ubuntu-touch (0.4+15.04.20141118.1-0ubuntu1) vivid; urgency=low
 
   [ Sergio Schvezov ]
