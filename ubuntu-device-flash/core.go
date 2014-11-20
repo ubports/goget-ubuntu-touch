@@ -14,6 +14,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -124,6 +125,16 @@ func (coreCmd *CoreCmd) Execute(args []string) error {
 		}
 	}()
 
+	// Handle SIGINT and SIGTERM.
+	go func() {
+		ch := make(chan os.Signal)
+		signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM)
+
+		for sig := range ch {
+			fmt.Println("Received", sig, "... ignoring")
+		}
+	}()
+
 	// Execute the following code with escalated privs and drop them when done
 	err = func() error {
 		if err := sysutils.EscalatePrivs(); err != nil {
@@ -152,7 +163,7 @@ func (coreCmd *CoreCmd) Execute(args []string) error {
 
 func (coreCmd *CoreCmd) partition(img *diskimage.DiskImage) error {
 	if err := img.MapPartitions(); err != nil {
-		return err
+		return fmt.Errorf("issue while mapping partitions: %s", err)
 	}
 	defer img.UnMapPartitions()
 

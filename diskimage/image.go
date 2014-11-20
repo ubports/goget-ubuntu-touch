@@ -166,7 +166,7 @@ func (img *DiskImage) coreMount() (err error) {
 			return err
 		}
 		if out, err := exec.Command("mount", filepath.Join("/dev/mapper", part.loop), mountpoint).CombinedOutput(); err != nil {
-			return fmt.Errorf("unable to dir to create system image: %s", out)
+			return fmt.Errorf("unable to mount dir to create system image: %s", out)
 		}
 	}
 	return nil
@@ -208,7 +208,7 @@ func (img *DiskImage) coreUnmount() (err error) {
 	for _, part := range img.parts {
 		mountpoint := filepath.Join(img.Mountpoint, string(part.dir))
 		if out, err := exec.Command("umount", mountpoint).CombinedOutput(); err != nil {
-			return fmt.Errorf("unable to dir to create system image: %s", out)
+			return fmt.Errorf("unable to unmount dir for image: %s", out)
 		}
 		if err := os.Remove(mountpoint); err != nil {
 			return err
@@ -329,8 +329,8 @@ func (img DiskImage) CreateExt4() error {
 
 	for _, part := range img.parts {
 		dev := filepath.Join("/dev/mapper", part.loop)
-		if err := exec.Command("mkfs.ext4", "-F", "-L", string(part.label), dev).Run(); err != nil {
-			return err
+		if out, err := exec.Command("mkfs.ext4", "-F", "-L", string(part.label), dev).CombinedOutput(); err != nil {
+			return fmt.Errorf("unable to create filesystem: %s", out)
 		}
 	}
 
