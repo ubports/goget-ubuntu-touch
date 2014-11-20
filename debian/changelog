@@ -1,3 +1,12 @@
+goget-ubuntu-touch (0.4+15.04.20141120.1-0ubuntu1) vivid; urgency=low
+
+  [ Michael Vogt ]
+  * ubuntu-device-flash: adding /etc/default/grub.d/50-system-image.cfg
+    for core to fix grub issues, the oustanding one being
+    GRUB_RECORDFAIL_TIMEOUT=0.
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Thu, 20 Nov 2014 10:53:28 +0000
+
 goget-ubuntu-touch (0.4+15.04.20141120-0ubuntu1) vivid; urgency=low
 
   [ Sergio Schvezov ]
