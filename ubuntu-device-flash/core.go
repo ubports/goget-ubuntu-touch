@@ -66,6 +66,13 @@ chpasswd: { expire: False }
 ssh_pwauth: True
 `
 
+const grubCfgContent = `# console only, no graphics/vga
+GRUB_CMDLINE_LINUX_DEFAULT="console=tty1 console=ttyS0"
+GRUB_TERMINAL=console
+# LP: #1035279
+GRUB_RECORDFAIL_TIMEOUT=0
+`
+
 func (coreCmd *CoreCmd) Execute(args []string) error {
 	if syscall.Getuid() != 0 {
 		return errors.New("command requires sudo/pkexec (root)")
@@ -160,7 +167,7 @@ func (coreCmd *CoreCmd) Execute(args []string) error {
 		return err
 	}
 
-	fmt.Println("New image complete, launch by running: kvm", coreCmd.Output)
+	fmt.Println("New image complete, launch by running: kvm -m 768", coreCmd.Output)
 
 	return nil
 }
@@ -332,6 +339,20 @@ func (coreCmd *CoreCmd) setupBootloader(systemPath string) error {
 		return fmt.Errorf("unable to install grub: %s", out)
 	} else {
 		fmt.Println(string(out))
+	}
+
+	// ensure we run not into recordfail issue
+	grubDir := filepath.Join(systemPath, "etc", "default", "grub.d")
+	if err := os.MkdirAll(grubDir, 0755); err != nil {
+		return fmt.Errorf("unable to create %s dir: %s", grubDir, err)
+	}
+	grubFile, err := os.Create(filepath.Join(grubDir, "50-system-image.cfg"))
+	if err != nil {
+		return fmt.Errorf("unable to create %s file: %s", grubFile, err)
+	}
+	defer grubFile.Close()
+	if _, err := io.WriteString(grubFile, grubCfgContent); err != nil {
+		return err
 	}
 
 	// I don't know why this is needed, I just picked it up from the original implementation

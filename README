@@ -1,0 +1,5 @@
+To build run:
+$ sudo apt-get build-dep goget-ubuntu-touch
+
+?!?! there is surely a better way 
+$ debian/rules clean build
