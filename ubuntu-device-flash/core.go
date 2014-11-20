@@ -11,6 +11,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -46,16 +47,19 @@ func init() {
 }
 
 type CoreCmd struct {
-	Channel  string `long:"channel" description:"Specify the channel to use" default:"ubuntu-core/devel"`
-	Device   string `long:"device" description:"Specify the device to use" default:"generic_amd64"`
-	Keyboard string `long:"keyboard-layout" description:"Specify the keyboard layout" default:"us"`
-	Output   string `long:"output" short:"o" description:"Name of the image file to create" required:"true"`
-	Size     int64  `long:"size" short:"s" description:"Size of image file to create in GB (min 6)" default:"20"`
+	Channel       string `long:"channel" description:"Specify the channel to use" default:"ubuntu-core/devel"`
+	Device        string `long:"device" description:"Specify the device to use" default:"generic_amd64"`
+	Keyboard      string `long:"keyboard-layout" description:"Specify the keyboard layout" default:"us"`
+	Output        string `long:"output" short:"o" description:"Name of the image file to create" required:"true"`
+	Size          int64  `long:"size" short:"s" description:"Size of image file to create in GB (min 6)" default:"20"`
+	DeveloperMode bool   `long:"developer-mode" description:"Finds the latest public key in your ~/.ssh and sets it up"`
 }
 
 var coreCmd CoreCmd
 
-const cloudInitMetaData = `instance-id: nocloud-static`
+const cloudInitMetaData = `instance-id: nocloud-static
+`
+
 const cloudInitUserData = `#cloud-config
 password: passw0rd
 chpasswd: { expire: False }
@@ -231,13 +235,39 @@ func (coreCmd *CoreCmd) setupCloudInit(systemPath, systemData string) error {
 		return err
 	}
 
-	metaDataPath := filepath.Join(cloudDir, "meta-data")
-	if err := ioutil.WriteFile(metaDataPath, []byte(cloudInitMetaData), 0600); err != nil {
+	metaDataFile, err := os.Create(filepath.Join(cloudDir, "meta-data"))
+	if err != nil {
+		return err
+	}
+	defer metaDataFile.Close()
+
+	if _, err := io.WriteString(metaDataFile, cloudInitMetaData); err != nil {
 		return err
 	}
 
-	userDataPath := filepath.Join(cloudDir, "user-data")
-	if err := ioutil.WriteFile(userDataPath, []byte(cloudInitUserData), 0600); err != nil {
+	if coreCmd.DeveloperMode {
+		authorizedKey, err := getAuthorizedSshKey()
+		if err != nil {
+			return fmt.Errorf("failed to obtain a public key for developer mode: %s", err)
+		}
+
+		if _, err := io.WriteString(metaDataFile, "public-keys:\n"); err != nil {
+			return err
+		}
+
+		if _, err := io.WriteString(metaDataFile, fmt.Sprintf("  - %s\n", authorizedKey)); err != nil {
+			return err
+		}
+
+	}
+
+	userDataFile, err := os.Create(filepath.Join(cloudDir, "user-data"))
+	if err != nil {
+		return err
+	}
+	defer userDataFile.Close()
+
+	if _, err := io.WriteString(userDataFile, cloudInitUserData); err != nil {
 		return err
 	}
 
@@ -330,4 +360,35 @@ func unmount(dst string) error {
 	}
 
 	return nil
+}
+
+func getAuthorizedSshKey() (string, error) {
+	sshDir := os.ExpandEnv("$HOME/.ssh")
+
+	fis, err := ioutil.ReadDir(sshDir)
+	if err != nil {
+		return "", fmt.Errorf("%s: no pub ssh key found, run ssh-keygen first", err)
+	}
+
+	var preferredPubKey string
+	var latestModTime time.Time
+	for i := range fis {
+		file := fis[i].Name()
+		if strings.HasSuffix(file, ".pub") && !strings.HasSuffix(file, "cert.pub") {
+			fileMod := fis[i].ModTime()
+
+			if fileMod.After(latestModTime) {
+				latestModTime = fileMod
+				preferredPubKey = file
+			}
+		}
+	}
+
+	if preferredPubKey == "" {
+		return "", errors.New("no pub ssh key found, run ssh-keygen first")
+	}
+
+	pubKey, err := ioutil.ReadFile(filepath.Join(sshDir, preferredPubKey))
+
+	return string(pubKey), err
 }
