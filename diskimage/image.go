@@ -44,7 +44,7 @@ const (
 
 const (
 	systemDataDir  directory = "system"
-	systemDataDir2 directory = "system"
+	systemDataDir2 directory = "system-2"
 	userDataDir    directory = "user-data"
 )
 

@@ -210,6 +210,15 @@ func (coreCmd *CoreCmd) setup(img *diskimage.DiskImage, filePathChan <-chan stri
 		return err
 	}
 
+	if coreCmd.Dual {
+		src := fmt.Sprintf("%s/system/.", img.Mountpoint)
+		dst := fmt.Sprintf("%s/system-2", img.Mountpoint)
+		cmd := exec.Command("cp", "-r", "--preserve=all", src, dst)
+		if out, err := cmd.CombinedOutput(); err != nil {
+			return fmt.Errorf("failed to replicate image contents: %s", out)
+		}
+	}
+
 	for _, dir := range []string{"system-data", "cache"} {
 		dirPath := filepath.Join(userPath, dir)
 		if err := os.Mkdir(dirPath, 0755); err != nil {
