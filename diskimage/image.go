@@ -262,13 +262,15 @@ func (img *DiskImage) Partition(dual bool) error {
 	}
 
 	stdin.Write([]byte("mklabel msdos\n"))
-	stdin.Write([]byte("mkpart primary ext4 2048s 2G\n"))
+	stdin.Write([]byte("mkpart primary ext4 2048s 3905535s\n"))
 	if dual {
-		stdin.Write([]byte("mkpart primary ext4 2G 4G\n"))
+		stdin.Write([]byte("mkpart primary ext4 3905536s 7809023s\n"))
+		stdin.Write([]byte("mkpart primary ext4 7809024s -1s\n"))
+	} else {
+		stdin.Write([]byte("mkpart primary ext4 3905536s -1s\n"))
 	}
-	stdin.Write([]byte("mkpart primary ext4 4G -1s\n"))
 	stdin.Write([]byte("set 1 boot on\n"))
-	stdin.Write([]byte("print\n"))
+	stdin.Write([]byte("unit s print\n"))
 	stdin.Write([]byte("quit\n"))
 
 	stdout, err := partedCmd.StdoutPipe()
