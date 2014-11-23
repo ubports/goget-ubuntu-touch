@@ -1,3 +1,10 @@
+goget-ubuntu-touch (0.4+15.04.20141121-0ubuntu1) vivid; urgency=low
+
+  [ Sergio Schvezov ]
+  * ubuntu-device-flash: better priv escalation handling
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Fri, 21 Nov 2014 11:33:00 +0000
+
 goget-ubuntu-touch (0.4+15.04.20141120.1-0ubuntu1) vivid; urgency=low
 
   [ Michael Vogt ]
