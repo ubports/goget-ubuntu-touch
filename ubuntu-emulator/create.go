@@ -23,6 +23,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"syscall"
@@ -50,6 +51,11 @@ const (
 	defaultArch    = "i386"
 )
 
+const (
+	binQemuArmStatic  = "/usr/bin/qemu-arm-static"
+	pkgQemuUserStatic = "qemu-user-static"
+)
+
 func init() {
 	createCmd.Arch = defaultArch
 	createCmd.Channel = defaultChannel
@@ -66,6 +72,10 @@ func (createCmd *CreateCmd) Execute(args []string) error {
 		return errors.New("Instance name 'name' is required")
 	}
 	instanceName := args[0]
+
+	if err := createCmd.verifyDependencies(); err != nil {
+		return err
+	}
 
 	var device string
 	if d, ok := devices[createCmd.Arch]; ok {
@@ -180,6 +190,17 @@ func extractBuildProperties(systemImage *diskimage.DiskImage, dataDir string) er
 	return systemImage.ExtractFile("build.prop", filepath.Join(dataDir, "system"))
 }
 
+func (createCmd *CreateCmd) verifyDependencies() error {
+	switch createCmd.Arch {
+	case "armhf":
+		if _, err := os.Stat(binQemuArmStatic); err != nil {
+			return fmt.Errorf("missing dependency %s (apt install %s)", binQemuArmStatic, pkgQemuUserStatic)
+		}
+	}
+
+	return nil
+}
+
 func (createCmd *CreateCmd) createSystem(ubuntuImage, sdcardImage *diskimage.DiskImage, files []string) (err error) {
 	for _, img := range []*diskimage.DiskImage{ubuntuImage, sdcardImage} {
 		if err := img.CreateExt4(); err != nil {
@@ -206,13 +227,15 @@ func (createCmd *CreateCmd) createSystem(ubuntuImage, sdcardImage *diskimage.Dis
 		}
 		return err
 	}
+
 	fmt.Printf("Setting up a default password for phablet to: '%s'\n", createCmd.Password)
-	if err := ubuntuImage.SetPassword("phablet", createCmd.Password); err != nil {
+	if err := createCmd.setPassword(ubuntuImage.Mountpoint); err != nil {
 		if err := ubuntuImage.Unmount(); err != nil {
 			fmt.Println("Unmount error :", err)
 		}
 		return err
 	}
+
 	if err := ubuntuImage.Unmount(); err != nil {
 		return err
 	}
@@ -228,6 +251,25 @@ func (createCmd *CreateCmd) createSystem(ubuntuImage, sdcardImage *diskimage.Dis
 	}
 	if err := ubuntuImage.Move(filepath.Join(sdcardImage.Mountpoint, "system.img")); err != nil {
 		return err
+	}
+	return nil
+}
+
+// setPassword is an ugly hack to set the password
+func (createCmd *CreateCmd) setPassword(chroot string) error {
+	if createCmd.Arch == "armhf" {
+		dst := filepath.Join(chroot, binQemuArmStatic)
+		if out, err := exec.Command("cp", binQemuArmStatic, dst).CombinedOutput(); err != nil {
+			return fmt.Errorf("issues while setting up password: %s", out)
+		}
+		defer os.Remove(dst)
+	}
+
+	// Run something that would look like this
+	// PATH=$path chroot "$SYSTEM_MOUNTPOINT" /bin/sh -c "echo -n "$user:$password" | chpasswd"
+	chrootCmd := fmt.Sprintf("echo -n '%s:%s' | chpasswd", "phablet", createCmd.Password)
+	if out, err := exec.Command("chroot", chroot, "/bin/sh", "-c", chrootCmd).CombinedOutput(); err != nil {
+		return errors.New(string(out))
 	}
 	return nil
 }

@@ -43,6 +43,7 @@ Depends: ubuntu-emulator-runtime,
          ${misc:Depends},
          ${shlibs:Depends},
 Recommends: android-tools-adb,
+            qemu-user-static,
 Built-Using: ${misc:Built-Using}
 Description: Create and run emulator images of Ubuntu Touch
  Create and destroy Ubuntu Touch instances and run them with the emulator
