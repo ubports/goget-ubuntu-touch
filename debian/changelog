@@ -1,3 +1,14 @@
+goget-ubuntu-touch (0.4+15.04.20141125-0ubuntu1) vivid; urgency=low
+
+  [ Sergio Schvezov ]
+  * ubuntu-emulator: allow setting a default password for the phablet
+    user when creating (LP: #1390476)
+  * ubuntu-emulator: fixing password setup for phablet user when setting
+    up an armhf instance (LP: #1393398)
+  * ubuntu-device-flash: dual images for core
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Tue, 25 Nov 2014 23:51:15 +0000
+
 goget-ubuntu-touch (0.4+15.04.20141121-0ubuntu1) vivid; urgency=low
 
   [ Sergio Schvezov ]
