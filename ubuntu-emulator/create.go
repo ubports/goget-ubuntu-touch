@@ -39,6 +39,7 @@ type CreateCmd struct {
 	RawDisk  bool   `long:"use-raw-disk" description:"Use raw disks instead of qcow2"`
 	SDCard   bool   `long:"with-sdcard" description:"Create an external vfat sdcard"`
 	Arch     string `long:"arch" description:"Device architecture to use (i386 or armhf)"`
+	Password string `long:"password" description:"This sets up the default password for the phablet user" default:"0000"`
 }
 
 var createCmd CreateCmd
@@ -118,7 +119,7 @@ func (createCmd *CreateCmd) Execute(args []string) error {
 	sdcardImage := diskimage.New(filepath.Join(dataDir, "sdcard.img"), "USERDATA", 4)
 	systemImage := diskimage.NewExisting(filepath.Join(dataDir, "system.img"))
 
-	if err := createSystem(ubuntuImage, sdcardImage, files); err != nil {
+	if err := createCmd.createSystem(ubuntuImage, sdcardImage, files); err != nil {
 		return err
 	}
 
@@ -179,7 +180,7 @@ func extractBuildProperties(systemImage *diskimage.DiskImage, dataDir string) er
 	return systemImage.ExtractFile("build.prop", filepath.Join(dataDir, "system"))
 }
 
-func createSystem(ubuntuImage, sdcardImage *diskimage.DiskImage, files []string) (err error) {
+func (createCmd *CreateCmd) createSystem(ubuntuImage, sdcardImage *diskimage.DiskImage, files []string) (err error) {
 	for _, img := range []*diskimage.DiskImage{ubuntuImage, sdcardImage} {
 		if err := img.CreateExt4(); err != nil {
 			return err
@@ -205,8 +206,8 @@ func createSystem(ubuntuImage, sdcardImage *diskimage.DiskImage, files []string)
 		}
 		return err
 	}
-	fmt.Println("Setting up a default password for phablet to: '0000'")
-	if err := ubuntuImage.SetPassword("phablet", "0000"); err != nil {
+	fmt.Printf("Setting up a default password for phablet to: '%s'\n", createCmd.Password)
+	if err := ubuntuImage.SetPassword("phablet", createCmd.Password); err != nil {
 		if err := ubuntuImage.Unmount(); err != nil {
 			fmt.Println("Unmount error :", err)
 		}
