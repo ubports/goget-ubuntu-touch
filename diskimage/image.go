@@ -37,13 +37,15 @@ type imageLabel string
 type directory string
 
 const (
-	systemDataLabel imageLabel = "system-data"
-	userDataLabel   imageLabel = "user-data"
+	systemDataLabel  imageLabel = "system-data"
+	systemDataLabel2 imageLabel = "system-data-2"
+	userDataLabel    imageLabel = "user-data"
 )
 
 const (
-	systemDataDir directory = "system"
-	userDataDir   directory = "user-data"
+	systemDataDir  directory = "system"
+	systemDataDir2 directory = "system-2"
+	userDataDir    directory = "user-data"
 )
 
 type partition struct {
@@ -128,16 +130,19 @@ func (img *DiskImage) User() (string, error) {
 }
 
 //System returns the system path
-func (img *DiskImage) System() (string, error) {
+func (img *DiskImage) System() ([]string, error) {
 	if img.parts == nil {
-		return "", errors.New("img is not setup with partitions")
+		return nil, errors.New("img is not setup with partitions")
 	}
 
 	if img.Mountpoint == "" {
-		return "", errors.New("img not mounted")
+		return nil, errors.New("img not mounted")
 	}
 
-	return filepath.Join(img.Mountpoint, string(systemDataDir)), nil
+	return []string{
+		filepath.Join(img.Mountpoint, string(systemDataDir)),
+		filepath.Join(img.Mountpoint, string(systemDataDir2)),
+	}, nil
 }
 
 //Mount the DiskImage
@@ -245,7 +250,7 @@ func (img *DiskImage) Provision(tarList []string) error {
 }
 
 //Partition creates a partitioned image from an img
-func (img *DiskImage) Partition() error {
+func (img *DiskImage) Partition(dual bool) error {
 	if err := sysutils.CreateEmptyFile(img.path, img.size); err != nil {
 		return err
 	}
@@ -257,17 +262,22 @@ func (img *DiskImage) Partition() error {
 	}
 
 	stdin.Write([]byte("mklabel msdos\n"))
-	stdin.Write([]byte("mkpart primary ext4 2048s 4G\n"))
-	stdin.Write([]byte("mkpart primary ext4 4G -1s\n"))
+	stdin.Write([]byte("mkpart primary ext4 2048s 3905535s\n"))
+	if dual {
+		stdin.Write([]byte("mkpart primary ext4 3905536s 7809023s\n"))
+		stdin.Write([]byte("mkpart primary ext4 7809024s -1s\n"))
+	} else {
+		stdin.Write([]byte("mkpart primary ext4 3905536s -1s\n"))
+	}
 	stdin.Write([]byte("set 1 boot on\n"))
-	stdin.Write([]byte("print\n"))
+	stdin.Write([]byte("unit s print\n"))
 	stdin.Write([]byte("quit\n"))
 
 	return partedCmd.Run()
 }
 
 //MapPartitions creates loop devices for the partitions
-func (img *DiskImage) MapPartitions() error {
+func (img *DiskImage) MapPartitions(dual bool) error {
 	kpartxCmd := exec.Command("kpartx", "-avs", img.path)
 	stdout, err := kpartxCmd.StdoutPipe()
 	if err != nil {
@@ -278,10 +288,11 @@ func (img *DiskImage) MapPartitions() error {
 		return err
 	}
 
-	loops := make([]string, 0, 2)
+	loops := make([]string, 0, 3)
 	scanner := bufio.NewScanner(stdout)
 	for scanner.Scan() {
 		fields := strings.Fields(scanner.Text())
+
 		if len(fields) > 2 {
 			loops = append(loops, fields[2])
 		} else {
@@ -292,13 +303,26 @@ func (img *DiskImage) MapPartitions() error {
 		return err
 	}
 
-	if len(loops) != 2 {
+	expectedLoops := 2
+	if dual {
+		expectedLoops = 3
+	}
+
+	if len(loops) != expectedLoops {
 		return errors.New("more partitions then expected while creating loop mapping")
 	}
 
-	img.parts = []partition{
-		partition{label: systemDataLabel, dir: systemDataDir, loop: loops[0]},
-		partition{label: userDataLabel, dir: userDataDir, loop: loops[1]},
+	if dual {
+		img.parts = []partition{
+			partition{label: systemDataLabel, dir: systemDataDir, loop: loops[0]},
+			partition{label: systemDataLabel2, dir: systemDataDir2, loop: loops[1]},
+			partition{label: userDataLabel, dir: userDataDir, loop: loops[2]},
+		}
+	} else {
+		img.parts = []partition{
+			partition{label: systemDataLabel, dir: systemDataDir, loop: loops[0]},
+			partition{label: userDataLabel, dir: userDataDir, loop: loops[1]},
+		}
 	}
 
 	if err := kpartxCmd.Wait(); err != nil {

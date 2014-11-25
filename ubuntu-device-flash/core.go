@@ -53,6 +53,7 @@ type CoreCmd struct {
 	Output        string `long:"output" short:"o" description:"Name of the image file to create" required:"true"`
 	Size          int64  `long:"size" short:"s" description:"Size of image file to create in GB (min 6)" default:"20"`
 	DeveloperMode bool   `long:"developer-mode" description:"Finds the latest public key in your ~/.ssh and sets it up"`
+	Dual          bool   `long:"dual-images" description:"Sets up two images to upgrade with providing rollback support"`
 }
 
 var coreCmd CoreCmd
@@ -127,7 +128,7 @@ func (coreCmd *CoreCmd) Execute(args []string) error {
 	}()
 
 	img := diskimage.New(coreCmd.Output, "", coreCmd.Size)
-	if err := img.Partition(); err != nil {
+	if err := img.Partition(coreCmd.Dual); err != nil {
 		return err
 	}
 	defer func() {
@@ -176,7 +177,7 @@ func (coreCmd *CoreCmd) Execute(args []string) error {
 }
 
 func (coreCmd *CoreCmd) partition(img *diskimage.DiskImage) error {
-	if err := img.MapPartitions(); err != nil {
+	if err := img.MapPartitions(coreCmd.Dual); err != nil {
 		return fmt.Errorf("issue while mapping partitions: %s", err)
 	}
 	defer img.UnMapPartitions()
@@ -185,7 +186,7 @@ func (coreCmd *CoreCmd) partition(img *diskimage.DiskImage) error {
 }
 
 func (coreCmd *CoreCmd) setup(img *diskimage.DiskImage, filePathChan <-chan string) error {
-	if err := img.MapPartitions(); err != nil {
+	if err := img.MapPartitions(coreCmd.Dual); err != nil {
 		return err
 	}
 	defer img.UnMapPartitions()
@@ -201,22 +202,23 @@ func (coreCmd *CoreCmd) setup(img *diskimage.DiskImage, filePathChan <-chan stri
 		}
 	}
 
-	systemPath, err := img.System()
+	systemPaths, err := img.System()
 	if err != nil {
-		return err
-	}
-
-	if err := coreCmd.setupBootloader(systemPath); err != nil {
-		return err
-	}
-
-	if err := coreCmd.setupKeyboardLayout(systemPath); err != nil {
 		return err
 	}
 
 	userPath, err := img.User()
 	if err != nil {
 		return err
+	}
+
+	if coreCmd.Dual {
+		src := fmt.Sprintf("%s/system/.", img.Mountpoint)
+		dst := fmt.Sprintf("%s/system-2", img.Mountpoint)
+		cmd := exec.Command("cp", "-r", "--preserve=all", src, dst)
+		if out, err := cmd.CombinedOutput(); err != nil {
+			return fmt.Errorf("failed to replicate image contents: %s", out)
+		}
 	}
 
 	for _, dir := range []string{"system-data", "cache"} {
@@ -226,8 +228,18 @@ func (coreCmd *CoreCmd) setup(img *diskimage.DiskImage, filePathChan <-chan stri
 		}
 	}
 
-	if err := coreCmd.setupCloudInit(systemPath, filepath.Join(userPath, "system-data")); err != nil {
-		return err
+	for i := range systemPaths {
+		if err := coreCmd.setupBootloader(systemPaths[i]); err != nil {
+			return err
+		}
+
+		if err := coreCmd.setupKeyboardLayout(systemPaths[i]); err != nil {
+			return err
+		}
+
+		if err := coreCmd.setupCloudInit(systemPaths[i], filepath.Join(userPath, "system-data")); err != nil {
+			return err
+		}
 	}
 
 	return nil
