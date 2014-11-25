@@ -273,13 +273,6 @@ func (img *DiskImage) Partition(dual bool) error {
 	stdin.Write([]byte("unit s print\n"))
 	stdin.Write([]byte("quit\n"))
 
-	stdout, err := partedCmd.StdoutPipe()
-	if err != nil {
-		return err
-	}
-
-	go io.Copy(os.Stdout, stdout)
-
 	return partedCmd.Run()
 }
 

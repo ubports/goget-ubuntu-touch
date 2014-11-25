@@ -197,7 +197,6 @@ func (coreCmd *CoreCmd) setup(img *diskimage.DiskImage, filePathChan <-chan stri
 	defer img.Unmount()
 
 	for f := range filePathChan {
-		fmt.Println("Extracting", f, "to", img.Mountpoint)
 		if out, err := exec.Command("tar", "--numeric-owner", "-axvf", f, "-C", img.Mountpoint).CombinedOutput(); err != nil {
 			return fmt.Errorf("issues while extracting: %s", out)
 		}
