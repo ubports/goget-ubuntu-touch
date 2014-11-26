@@ -86,6 +86,8 @@ func (coreCmd *CoreCmd) Execute(args []string) error {
 		return err
 	}
 
+	fmt.Println("Fetching information from server...")
+
 	channels, err := ubuntuimage.NewChannels(globalArgs.Server)
 	if err != nil {
 		return err
@@ -108,6 +110,8 @@ func (coreCmd *CoreCmd) Execute(args []string) error {
 	sigFilesChan := make(chan Files, len(sigFiles))
 	defer close(sigFilesChan)
 
+	fmt.Println("Downloading and setting up...")
+
 	for _, f := range sigFiles {
 		go bitDownloader(f, sigFilesChan, globalArgs.Server, cacheDir)
 	}
@@ -121,7 +125,9 @@ func (coreCmd *CoreCmd) Execute(args []string) error {
 	go func() {
 		for i := 0; i < len(image.Files); i++ {
 			f := <-filesChan
-			fmt.Println("Download finished for", f.FilePath)
+
+			printOut("Download finished for", f.FilePath)
+
 			filePathChan <- f.FilePath
 		}
 		close(filePathChan)
@@ -143,7 +149,7 @@ func (coreCmd *CoreCmd) Execute(args []string) error {
 		signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM)
 
 		for sig := range ch {
-			fmt.Println("Received", sig, "... ignoring")
+			printOut("Received", sig, "... ignoring")
 		}
 	}()
 
@@ -268,6 +274,8 @@ func (coreCmd *CoreCmd) setupCloudInit(systemPath, systemData string) error {
 	}
 
 	if coreCmd.DeveloperMode {
+		fmt.Println("Enabling developer mode...")
+
 		authorizedKey, err := getAuthorizedSshKey()
 		if err != nil {
 			return fmt.Errorf("failed to obtain a public key for developer mode: %s", err)
@@ -353,7 +361,7 @@ func (coreCmd *CoreCmd) setupBootloader(systemPath string) error {
 	if out, err := exec.Command("chroot", systemPath, "grub-install", "/root_dev").CombinedOutput(); err != nil {
 		return fmt.Errorf("unable to install grub: %s", out)
 	} else {
-		fmt.Println(string(out))
+		printOut(string(out))
 	}
 
 	// ensure we run not into recordfail issue
@@ -376,7 +384,7 @@ func (coreCmd *CoreCmd) setupBootloader(systemPath string) error {
 	if out, err := exec.Command("chroot", systemPath, "update-grub").CombinedOutput(); err != nil {
 		return fmt.Errorf("unable to update grub: %s", out)
 	} else {
-		fmt.Println(string(out))
+		printOut(string(out))
 	}
 
 	return nil
