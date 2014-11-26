@@ -1,3 +1,10 @@
+goget-ubuntu-touch (0.4+15.04.20141126-0ubuntu1) vivid; urgency=low
+
+  [ Sergio Schvezov ]
+  * ubuntu-device-flash: return the correct amount of system image parts
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Wed, 26 Nov 2014 18:54:16 +0000
+
 goget-ubuntu-touch (0.4+15.04.20141125-0ubuntu1) vivid; urgency=low
 
   [ Sergio Schvezov ]
