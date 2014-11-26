@@ -139,10 +139,13 @@ func (img *DiskImage) System() ([]string, error) {
 		return nil, errors.New("img not mounted")
 	}
 
-	return []string{
-		filepath.Join(img.Mountpoint, string(systemDataDir)),
-		filepath.Join(img.Mountpoint, string(systemDataDir2)),
-	}, nil
+	paths := []string{filepath.Join(img.Mountpoint, string(systemDataDir))}
+
+	if len(img.parts) == 3 {
+		paths = append(paths, filepath.Join(img.Mountpoint, string(systemDataDir2)))
+	}
+
+	return paths, nil
 }
 
 //Mount the DiskImage
