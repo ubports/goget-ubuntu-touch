@@ -1,3 +1,12 @@
+goget-ubuntu-touch (0.5-0ubuntu1) vivid; urgency=medium
+
+  * ubuntu-device-flash: 
+    - adding a verbose flag and minimizing output using friendly messages
+    - dual is the default for core
+    - use system-a, system-b and writbale (instead of user-data) for labels
+
+ -- Sergio Schvezov <sergio.schvezov@canonical.com>  Fri, 28 Nov 2014 14:55:12 -0300
+
 goget-ubuntu-touch (0.4+15.04.20141126-0ubuntu1) vivid; urgency=low
 
   [ Sergio Schvezov ]
