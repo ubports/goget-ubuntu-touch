@@ -35,6 +35,7 @@ type arguments struct {
 	Server        string `long:"server" description:"Use a different image server" default:"https://system-image.ubuntu.com"`
 	CleanCache    bool   `long:"clean-cache" description:"Cleans up cache with all downloaded bits"`
 	TLSSkipVerify bool   `long:"tls-skip-verify" description:"Skip TLS certificate validation"`
+	Verbose       bool   `long:"verbose" short:"v" description:"More messages will be printed out"`
 }
 
 var globalArgs arguments
@@ -61,5 +62,11 @@ func main() {
 	} else if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
+	}
+}
+
+func printOut(args ...interface{}) {
+	if globalArgs.Verbose {
+		fmt.Println(args...)
 	}
 }
