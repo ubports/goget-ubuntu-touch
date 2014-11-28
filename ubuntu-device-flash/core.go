@@ -224,7 +224,7 @@ func (coreCmd *CoreCmd) setup(img *diskimage.DiskImage, filePathChan <-chan stri
 
 	if !coreCmd.Single {
 		src := fmt.Sprintf("%s/system/.", img.Mountpoint)
-		dst := fmt.Sprintf("%s/system-2", img.Mountpoint)
+		dst := fmt.Sprintf("%s/system-b", img.Mountpoint)
 		cmd := exec.Command("cp", "-r", "--preserve=all", src, dst)
 		if out, err := cmd.CombinedOutput(); err != nil {
 			return fmt.Errorf("failed to replicate image contents: %s", out)
@@ -238,6 +238,8 @@ func (coreCmd *CoreCmd) setup(img *diskimage.DiskImage, filePathChan <-chan stri
 		}
 	}
 
+	cloudBaseDir := filepath.Join("var", "lib", "cloud")
+
 	for i := range systemPaths {
 		if err := coreCmd.setupBootloader(systemPaths[i]); err != nil {
 			return err
@@ -247,20 +249,24 @@ func (coreCmd *CoreCmd) setup(img *diskimage.DiskImage, filePathChan <-chan stri
 			return err
 		}
 
-		if err := coreCmd.setupCloudInit(systemPaths[i], filepath.Join(userPath, "system-data")); err != nil {
+		if err := os.MkdirAll(filepath.Join(systemPaths[i], cloudBaseDir), 0755); err != nil {
 			return err
 		}
+
+		// This is a temporary solution for something that should be built in by the server
+		if err := createWritable(systemPaths[i]); err != nil {
+			return err
+		}
+	}
+
+	if err := coreCmd.setupCloudInit(cloudBaseDir, filepath.Join(userPath, "system-data")); err != nil {
+		return err
 	}
 
 	return nil
 }
 
-func (coreCmd *CoreCmd) setupCloudInit(systemPath, systemData string) error {
-	cloudBaseDir := filepath.Join("var", "lib", "cloud")
-	if err := os.MkdirAll(filepath.Join(systemPath, cloudBaseDir), 0755); err != nil {
-		return err
-	}
-
+func (coreCmd *CoreCmd) setupCloudInit(cloudBaseDir, systemData string) error {
 	// create a basic cloud-init seed
 	cloudDir := filepath.Join(systemData, cloudBaseDir, "seed", "nocloud-net")
 	if err := os.MkdirAll(cloudDir, 0755); err != nil {
@@ -439,4 +445,14 @@ func getAuthorizedSshKey() (string, error) {
 	pubKey, err := ioutil.ReadFile(filepath.Join(sshDir, preferredPubKey))
 
 	return string(pubKey), err
+}
+
+func createWritable(systemPath string) error {
+	writableDir := filepath.Join(systemPath, "writable")
+
+	if _, err := os.Stat(writableDir); err != nil && !os.IsNotExist(err) {
+		return err
+	}
+
+	return os.Mkdir(writableDir, 0755)
 }
