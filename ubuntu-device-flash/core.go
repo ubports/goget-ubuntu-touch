@@ -53,7 +53,7 @@ type CoreCmd struct {
 	Output        string `long:"output" short:"o" description:"Name of the image file to create" required:"true"`
 	Size          int64  `long:"size" short:"s" description:"Size of image file to create in GB (min 6)" default:"20"`
 	DeveloperMode bool   `long:"developer-mode" description:"Finds the latest public key in your ~/.ssh and sets it up"`
-	Dual          bool   `long:"dual-images" description:"Sets up two images to upgrade with providing rollback support"`
+	Single        bool   `long:"single-partition" description:"Sets up a single system partiton"`
 }
 
 var coreCmd CoreCmd
@@ -84,6 +84,10 @@ func (coreCmd *CoreCmd) Execute(args []string) error {
 	runtime.LockOSThread()
 	if err := sysutils.DropPrivs(); err != nil {
 		return err
+	}
+
+	if coreCmd.Single {
+		fmt.Println("Image will have a single system partition...")
 	}
 
 	fmt.Println("Fetching information from server...")
@@ -134,7 +138,7 @@ func (coreCmd *CoreCmd) Execute(args []string) error {
 	}()
 
 	img := diskimage.New(coreCmd.Output, "", coreCmd.Size)
-	if err := img.Partition(coreCmd.Dual); err != nil {
+	if err := img.Partition(!coreCmd.Single); err != nil {
 		return err
 	}
 	defer func() {
@@ -183,7 +187,7 @@ func (coreCmd *CoreCmd) Execute(args []string) error {
 }
 
 func (coreCmd *CoreCmd) partition(img *diskimage.DiskImage) error {
-	if err := img.MapPartitions(coreCmd.Dual); err != nil {
+	if err := img.MapPartitions(!coreCmd.Single); err != nil {
 		return fmt.Errorf("issue while mapping partitions: %s", err)
 	}
 	defer img.UnMapPartitions()
@@ -192,7 +196,7 @@ func (coreCmd *CoreCmd) partition(img *diskimage.DiskImage) error {
 }
 
 func (coreCmd *CoreCmd) setup(img *diskimage.DiskImage, filePathChan <-chan string) error {
-	if err := img.MapPartitions(coreCmd.Dual); err != nil {
+	if err := img.MapPartitions(!coreCmd.Single); err != nil {
 		return err
 	}
 	defer img.UnMapPartitions()
@@ -218,7 +222,7 @@ func (coreCmd *CoreCmd) setup(img *diskimage.DiskImage, filePathChan <-chan stri
 		return err
 	}
 
-	if coreCmd.Dual {
+	if !coreCmd.Single {
 		src := fmt.Sprintf("%s/system/.", img.Mountpoint)
 		dst := fmt.Sprintf("%s/system-2", img.Mountpoint)
 		cmd := exec.Command("cp", "-r", "--preserve=all", src, dst)
