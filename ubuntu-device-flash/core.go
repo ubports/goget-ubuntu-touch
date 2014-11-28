@@ -238,6 +238,8 @@ func (coreCmd *CoreCmd) setup(img *diskimage.DiskImage, filePathChan <-chan stri
 		}
 	}
 
+	cloudBaseDir := filepath.Join("var", "lib", "cloud")
+
 	for i := range systemPaths {
 		if err := coreCmd.setupBootloader(systemPaths[i]); err != nil {
 			return err
@@ -247,20 +249,20 @@ func (coreCmd *CoreCmd) setup(img *diskimage.DiskImage, filePathChan <-chan stri
 			return err
 		}
 
-		if err := coreCmd.setupCloudInit(systemPaths[i], filepath.Join(userPath, "system-data")); err != nil {
+		if err := os.MkdirAll(filepath.Join(systemPaths[i], cloudBaseDir), 0755); err != nil {
 			return err
 		}
+
+	}
+
+	if err := coreCmd.setupCloudInit(cloudBaseDir, filepath.Join(userPath, "system-data")); err != nil {
+		return err
 	}
 
 	return nil
 }
 
-func (coreCmd *CoreCmd) setupCloudInit(systemPath, systemData string) error {
-	cloudBaseDir := filepath.Join("var", "lib", "cloud")
-	if err := os.MkdirAll(filepath.Join(systemPath, cloudBaseDir), 0755); err != nil {
-		return err
-	}
-
+func (coreCmd *CoreCmd) setupCloudInit(cloudBaseDir, systemData string) error {
 	// create a basic cloud-init seed
 	cloudDir := filepath.Join(systemData, cloudBaseDir, "seed", "nocloud-net")
 	if err := os.MkdirAll(cloudDir, 0755); err != nil {

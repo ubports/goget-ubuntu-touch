@@ -39,13 +39,13 @@ type directory string
 const (
 	systemALabel  imageLabel = "system-a"
 	systemBLabel  imageLabel = "system-b"
-	writableLabel imageLabel = "user-data"
+	writableLabel imageLabel = "writable"
 )
 
 const (
 	systemADir  directory = "system"
 	systemBDir  directory = "system-b"
-	userDataDir directory = "user-data"
+	writableDir directory = "writable"
 )
 
 type partition struct {
@@ -126,7 +126,7 @@ func (img *DiskImage) User() (string, error) {
 		return "", errors.New("img not mounted")
 	}
 
-	return filepath.Join(img.Mountpoint, string(userDataDir)), nil
+	return filepath.Join(img.Mountpoint, string(writableDir)), nil
 }
 
 //System returns the system path
@@ -319,12 +319,12 @@ func (img *DiskImage) MapPartitions(dual bool) error {
 		img.parts = []partition{
 			partition{label: systemALabel, dir: systemADir, loop: loops[0]},
 			partition{label: systemBLabel, dir: systemBDir, loop: loops[1]},
-			partition{label: writableLabel, dir: userDataDir, loop: loops[2]},
+			partition{label: writableLabel, dir: writableDir, loop: loops[2]},
 		}
 	} else {
 		img.parts = []partition{
 			partition{label: systemALabel, dir: systemADir, loop: loops[0]},
-			partition{label: writableLabel, dir: userDataDir, loop: loops[1]},
+			partition{label: writableLabel, dir: writableDir, loop: loops[1]},
 		}
 	}
 
