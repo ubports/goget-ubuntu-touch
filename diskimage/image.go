@@ -37,15 +37,15 @@ type imageLabel string
 type directory string
 
 const (
-	systemDataLabel  imageLabel = "system-data"
-	systemDataLabel2 imageLabel = "system-data-2"
-	userDataLabel    imageLabel = "user-data"
+	systemALabel  imageLabel = "system-a"
+	systemBLabel  imageLabel = "system-b"
+	writableLabel imageLabel = "user-data"
 )
 
 const (
-	systemDataDir  directory = "system"
-	systemDataDir2 directory = "system-2"
-	userDataDir    directory = "user-data"
+	systemADir  directory = "system"
+	systemBDir  directory = "system-b"
+	userDataDir directory = "user-data"
 )
 
 type partition struct {
@@ -139,10 +139,10 @@ func (img *DiskImage) System() ([]string, error) {
 		return nil, errors.New("img not mounted")
 	}
 
-	paths := []string{filepath.Join(img.Mountpoint, string(systemDataDir))}
+	paths := []string{filepath.Join(img.Mountpoint, string(systemADir))}
 
 	if len(img.parts) == 3 {
-		paths = append(paths, filepath.Join(img.Mountpoint, string(systemDataDir2)))
+		paths = append(paths, filepath.Join(img.Mountpoint, string(systemBDir)))
 	}
 
 	return paths, nil
@@ -317,14 +317,14 @@ func (img *DiskImage) MapPartitions(dual bool) error {
 
 	if dual {
 		img.parts = []partition{
-			partition{label: systemDataLabel, dir: systemDataDir, loop: loops[0]},
-			partition{label: systemDataLabel2, dir: systemDataDir2, loop: loops[1]},
-			partition{label: userDataLabel, dir: userDataDir, loop: loops[2]},
+			partition{label: systemALabel, dir: systemADir, loop: loops[0]},
+			partition{label: systemBLabel, dir: systemBDir, loop: loops[1]},
+			partition{label: writableLabel, dir: userDataDir, loop: loops[2]},
 		}
 	} else {
 		img.parts = []partition{
-			partition{label: systemDataLabel, dir: systemDataDir, loop: loops[0]},
-			partition{label: userDataLabel, dir: userDataDir, loop: loops[1]},
+			partition{label: systemALabel, dir: systemADir, loop: loops[0]},
+			partition{label: writableLabel, dir: userDataDir, loop: loops[1]},
 		}
 	}
 
