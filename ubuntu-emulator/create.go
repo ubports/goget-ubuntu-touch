@@ -60,7 +60,7 @@ const (
 )
 
 const localeTemplate string = `description "Set wizard language"
-author "Chris Wayne <cwayne@ubuntu.com>"
+author "ubuntu-emulator"
 
 start on starting ubuntu-system-settings-wizard
 
