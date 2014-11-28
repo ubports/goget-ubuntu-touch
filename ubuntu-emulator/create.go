@@ -67,7 +67,6 @@ start on starting ubuntu-system-settings-wizard
 task
 
 script
-    [ ! -d /custom ] && exit 0
     setenv() {
         initctl set-env --global $1=$2
         gdbus call --session --dest org.freedesktop.DBus --object-path /org/freedesktop/DBus --method org.freedesktop.DBus.UpdateActivationEnvironment "@a{ss} {'$1': '$2'}"
