@@ -43,7 +43,7 @@ type CreateCmd struct {
 	SDCard   bool   `long:"with-sdcard" description:"Create an external vfat sdcard"`
 	Arch     string `long:"arch" description:"Device architecture to use (i386 or armhf)"`
 	Password string `long:"password" description:"This sets up the default password for the phablet user" default:"0000"`
-	Locale   string `long:"locale" description:"Use a different locale than the default one"`
+	Locale   string `long:"locale" description:"Use a different locale than the default one (e.g.; --locale es_AR.utf8)"`
 }
 
 var createCmd CreateCmd
