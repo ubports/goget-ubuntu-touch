@@ -1,3 +1,10 @@
+goget-ubuntu-touch (0.6+15.04.20141203-0ubuntu1) vivid; urgency=low
+
+  [ Sergio Schvezov ]
+  * ubuntu-emulator: allow to setup alternate locale.
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Wed, 03 Dec 2014 03:44:00 +0000
+
 goget-ubuntu-touch (0.6-0ubuntu1) vivid; urgency=medium
 
   * ubuntu-device-flash: enable ssh on developer mode toggle for core. 
