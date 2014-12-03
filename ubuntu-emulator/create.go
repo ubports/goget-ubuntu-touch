@@ -20,6 +20,7 @@ package main
 // with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
 	"os"
@@ -27,6 +28,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"syscall"
+	"text/template"
 
 	"launchpad.net/goget-ubuntu-touch/diskimage"
 	"launchpad.net/goget-ubuntu-touch/sysutils"
@@ -41,6 +43,7 @@ type CreateCmd struct {
 	SDCard   bool   `long:"with-sdcard" description:"Create an external vfat sdcard"`
 	Arch     string `long:"arch" description:"Device architecture to use (i386 or armhf)"`
 	Password string `long:"password" description:"This sets up the default password for the phablet user" default:"0000"`
+	Locale   string `long:"locale" description:"Use a different locale than the default one (e.g.; --locale es_AR.utf8)"`
 }
 
 var createCmd CreateCmd
@@ -55,6 +58,36 @@ const (
 	binQemuArmStatic  = "/usr/bin/qemu-arm-static"
 	pkgQemuUserStatic = "qemu-user-static"
 )
+
+const localeTemplate string = `description "Set wizard language"
+author "ubuntu-emulator"
+
+start on starting ubuntu-system-settings-wizard
+
+task
+
+script
+    setenv() {
+        initctl set-env --global $1=$2
+        gdbus call --session --dest org.freedesktop.DBus --object-path /org/freedesktop/DBus --method org.freedesktop.DBus.UpdateActivationEnvironment "@a{ss} {'$1': '$2'}"
+    }
+
+    uid=$(getent passwd $USER|cut -d: -f3)
+    if [ -z $uid ];then
+        exit 1
+    fi
+    if [ ! -e $HOME/.cache/.first-lang-set ]; then
+    setenv LANGUAGE {{ . }}
+    setenv LC_ALL {{ . }}
+    setenv LANG {{ . }}
+    dbus-send --print-reply --system --dest=org.freedesktop.Accounts /org/freedesktop/Accounts/User$uid org.freedesktop.Accounts.User.SetFormatsLocale string:{{ . }}
+    dbus-send --print-reply --system --dest=org.freedesktop.Accounts /org/freedesktop/Accounts/User$uid org.freedesktop.Accounts.User.SetLanguage string:{{ . }}
+    touch $HOME/.cache/.first-lang-set
+    fi
+end script
+
+# vim:syntax=upstart
+`
 
 func init() {
 	createCmd.Arch = defaultArch
@@ -236,6 +269,13 @@ func (createCmd *CreateCmd) createSystem(ubuntuImage, sdcardImage *diskimage.Dis
 		return err
 	}
 
+	if err := createCmd.setLocale(ubuntuImage.Mountpoint); err != nil {
+		if err := ubuntuImage.Unmount(); err != nil {
+			fmt.Println("Unmount error :", err)
+		}
+		return err
+	}
+
 	if err := ubuntuImage.Unmount(); err != nil {
 		return err
 	}
@@ -255,14 +295,74 @@ func (createCmd *CreateCmd) createSystem(ubuntuImage, sdcardImage *diskimage.Dis
 	return nil
 }
 
+// setLocale sets the locale to the one specified in locale
+func (createCmd *CreateCmd) setLocale(chroot string) error {
+	if createCmd.Locale == "" {
+		return nil
+	}
+
+	if createCmd.Arch == "armhf" {
+		if err := addQemuStatic(chroot); err != nil {
+			return err
+		}
+
+		defer removeQemuStatic(chroot)
+	}
+
+	cmd := exec.Command("chroot", chroot, "/bin/sh", "-c", "locale -a")
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return err
+	}
+
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+
+	// Verify that the locale is actually part of the emulator
+	var localeInstalled bool
+
+	scanner := bufio.NewScanner(stdout)
+	for scanner.Scan() {
+		locale := scanner.Text()
+		if createCmd.Locale == locale {
+			localeInstalled = true
+			break
+		}
+	}
+
+	if !localeInstalled {
+		return errors.New("the selected locale is not available on the image")
+	}
+
+	if err := scanner.Err(); err != nil {
+		return err
+	}
+
+	if err := cmd.Wait(); err != nil {
+		return err
+	}
+
+	// Setup the locale
+	localeFile, err := os.Create(filepath.Join(chroot, "/usr/share/upstart/sessions/emulator-language.conf"))
+	if err != nil {
+		return err
+	}
+	defer localeFile.Close()
+
+	t := template.Must(template.New("locale").Parse(localeTemplate))
+
+	return t.Execute(localeFile, createCmd.Locale)
+}
+
 // setPassword is an ugly hack to set the password
 func (createCmd *CreateCmd) setPassword(chroot string) error {
 	if createCmd.Arch == "armhf" {
-		dst := filepath.Join(chroot, binQemuArmStatic)
-		if out, err := exec.Command("cp", binQemuArmStatic, dst).CombinedOutput(); err != nil {
-			return fmt.Errorf("issues while setting up password: %s", out)
+		if err := addQemuStatic(chroot); err != nil {
+			return err
 		}
-		defer os.Remove(dst)
+
+		defer removeQemuStatic(chroot)
 	}
 
 	// Run something that would look like this
@@ -271,7 +371,23 @@ func (createCmd *CreateCmd) setPassword(chroot string) error {
 	if out, err := exec.Command("chroot", chroot, "/bin/sh", "-c", chrootCmd).CombinedOutput(); err != nil {
 		return errors.New(string(out))
 	}
+
 	return nil
+}
+
+func addQemuStatic(chroot string) error {
+	dst := filepath.Join(chroot, binQemuArmStatic)
+	if out, err := exec.Command("cp", binQemuArmStatic, dst).CombinedOutput(); err != nil {
+		return fmt.Errorf("issues while setting up password: %s", out)
+	}
+
+	return nil
+}
+
+func removeQemuStatic(chroot string) error {
+	dst := filepath.Join(chroot, binQemuArmStatic)
+
+	return os.Remove(dst)
 }
 
 func download(image ubuntuimage.Image) (files []string, err error) {
