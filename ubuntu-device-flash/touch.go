@@ -36,7 +36,7 @@ type TouchCmd struct {
 	Bootstrap     bool   `long:"bootstrap" description:"bootstrap the system, do this from the bootloader"`
 	Wipe          bool   `long:"wipe" description:"Clear all data after flashing"`
 	Serial        string `long:"serial" description:"Serial of the device to operate"`
-	DeveloperMode bool   `long:"developer-mode" description:"Enables developer mode after the factory reset, this is meant for automation and makes the device insecure by default"`
+	DeveloperMode bool   `long:"developer-mode" description:"Enables developer mode after the factory reset, this is meant for automation and makes the device insecure by default (requires --password)"`
 	DeviceTarball string `long:"device-tarball" description:"Specify a local device tarball to override the one from the server (using official Ubuntu images with custom device tarballs)"`
 	RunScript     string `long:"run-script" description:"Run a script given by path to finish the flashing process, instead of rebooting to recovery (mostly used during development to work around quirky or incomplete recovery images)"`
 	Password      string `long:"password" description:"This sets up the default password for the phablet user. This option is meant for CI and not general use"`
@@ -49,10 +49,6 @@ type TouchCmd struct {
 var touchCmd TouchCmd
 
 func (touchCmd *TouchCmd) Execute(args []string) error {
-	if touchCmd.Password != "" || touchCmd.DeveloperMode {
-		fmt.Println("WARNING --developer-mode and --password are dangerous as they remove security features from your device")
-	}
-
 	if globalArgs.TLSSkipVerify {
 		ubuntuimage.TLSSkipVerify()
 	}
@@ -78,8 +74,16 @@ func (touchCmd *TouchCmd) Execute(args []string) error {
 		touchCmd.Wipe = true
 	}
 
-	if touchCmd.Password != "" && !touchCmd.Wipe && !touchCmd.DeveloperMode {
-		log.Fatal("Default password setup requires --developer-mode, and --wipe or --bootstrap")
+	if touchCmd.DeveloperMode && touchCmd.Password == "" {
+		log.Fatal("Developer mode requires --password to be set (and --wipe or --bootstrap)")
+	}
+
+	if touchCmd.Password != "" && !touchCmd.Wipe {
+		log.Fatal("Default password setup requires --wipe or --bootstrap")
+	}
+
+	if touchCmd.Password != "" || touchCmd.DeveloperMode {
+		fmt.Println("WARNING --developer-mode and --password are dangerous as they remove security features from your device")
 	}
 
 	tarballPath := touchCmd.DeviceTarball
