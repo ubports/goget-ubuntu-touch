@@ -311,6 +311,12 @@ func (coreCmd *CoreCmd) setupCloudInit(cloudBaseDir, systemData string) error {
 		return err
 	}
 
+	if coreCmd.DeveloperMode {
+		if _, err := io.WriteString(userDataFile, "snappy:\n    ssh_enabled: True\n"); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
