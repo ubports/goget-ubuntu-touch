@@ -1,3 +1,9 @@
+goget-ubuntu-touch (0.6-0ubuntu1) vivid; urgency=medium
+
+  * ubuntu-device-flash: enable ssh on developer mode toggle for core. 
+
+ -- Sergio Schvezov <sergio.schvezov@canonical.com>  Tue, 02 Dec 2014 23:16:22 -0300
+
 goget-ubuntu-touch (0.5-0ubuntu1) vivid; urgency=medium
 
   * ubuntu-device-flash: 
