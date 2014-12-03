@@ -1,3 +1,10 @@
+goget-ubuntu-touch (0.6+15.04.20141203.1-0ubuntu1) vivid; urgency=low
+
+  [ Ricardo Salveti de Araujo ]
+  * touch: forcing --password when using developer mode
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Wed, 03 Dec 2014 19:21:00 +0000
+
 goget-ubuntu-touch (0.6+15.04.20141203-0ubuntu1) vivid; urgency=low
 
   [ Sergio Schvezov ]
