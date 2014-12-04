@@ -1,3 +1,9 @@
+goget-ubuntu-touch (0.7-0ubuntu1) vivid; urgency=medium
+
+  * ubuntu-device-flash: removing the writable dir creation logic for core.
+
+ -- Sergio Schvezov <sergio.schvezov@canonical.com>  Thu, 04 Dec 2014 17:57:11 -0300
+
 goget-ubuntu-touch (0.6+15.04.20141203.1-0ubuntu1) vivid; urgency=low
 
   [ Ricardo Salveti de Araujo ]
