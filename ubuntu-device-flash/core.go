@@ -252,11 +252,6 @@ func (coreCmd *CoreCmd) setup(img *diskimage.DiskImage, filePathChan <-chan stri
 		if err := os.MkdirAll(filepath.Join(systemPaths[i], cloudBaseDir), 0755); err != nil {
 			return err
 		}
-
-		// This is a temporary solution for something that should be built in by the server
-		if err := createWritable(systemPaths[i]); err != nil {
-			return err
-		}
 	}
 
 	if err := coreCmd.setupCloudInit(cloudBaseDir, filepath.Join(userPath, "system-data")); err != nil {
@@ -451,14 +446,4 @@ func getAuthorizedSshKey() (string, error) {
 	pubKey, err := ioutil.ReadFile(filepath.Join(sshDir, preferredPubKey))
 
 	return string(pubKey), err
-}
-
-func createWritable(systemPath string) error {
-	writableDir := filepath.Join(systemPath, "writable")
-
-	if _, err := os.Stat(writableDir); err != nil && !os.IsNotExist(err) {
-		return err
-	}
-
-	return os.Mkdir(writableDir, 0755)
 }
