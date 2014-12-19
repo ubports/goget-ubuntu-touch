@@ -52,8 +52,10 @@ type CoreCmd struct {
 	Keyboard      string `long:"keyboard-layout" description:"Specify the keyboard layout" default:"us"`
 	Output        string `long:"output" short:"o" description:"Name of the image file to create" required:"true"`
 	Size          int64  `long:"size" short:"s" description:"Size of image file to create in GB (min 6)" default:"20"`
-	DeveloperMode bool   `long:"developer-mode" description:"Finds the latest public key in your ~/.ssh and sets it up"`
+	DeveloperMode bool   `long:"developer-mode" description:"Finds the latest public key in your ~/.ssh and sets it up using cloud-init"`
 	Single        bool   `long:"single-partition" description:"Sets up a single system partiton"`
+	EnableSsh     bool   `long:"enable-ssh" description:"Enable ssh on the image through cloud-init(not need with developer mode)"`
+	Cloud         bool   `long:"cloud" description:"Generate a pure cloud image without setting up cloud-init"`
 }
 
 var coreCmd CoreCmd
@@ -75,6 +77,10 @@ GRUB_RECORDFAIL_TIMEOUT=0
 `
 
 func (coreCmd *CoreCmd) Execute(args []string) error {
+	if coreCmd.EnableSsh && coreCmd.Cloud {
+		return errors.New("--cloud and --enable-ssh cannot be used together")
+	}
+
 	if syscall.Getuid() != 0 {
 		return errors.New("command requires sudo/pkexec (root)")
 	}
@@ -212,23 +218,9 @@ func (coreCmd *CoreCmd) setup(img *diskimage.DiskImage, filePathChan <-chan stri
 		}
 	}
 
-	systemPaths, err := img.System()
-	if err != nil {
-		return err
-	}
-
 	userPath, err := img.User()
 	if err != nil {
 		return err
-	}
-
-	if !coreCmd.Single {
-		src := fmt.Sprintf("%s/system/.", img.Mountpoint)
-		dst := fmt.Sprintf("%s/system-b", img.Mountpoint)
-		cmd := exec.Command("cp", "-r", "--preserve=all", src, dst)
-		if out, err := cmd.CombinedOutput(); err != nil {
-			return fmt.Errorf("failed to replicate image contents: %s", out)
-		}
 	}
 
 	for _, dir := range []string{"system-data", "cache"} {
@@ -238,24 +230,29 @@ func (coreCmd *CoreCmd) setup(img *diskimage.DiskImage, filePathChan <-chan stri
 		}
 	}
 
-	cloudBaseDir := filepath.Join("var", "lib", "cloud")
-
-	for i := range systemPaths {
-		if err := coreCmd.setupBootloader(systemPaths[i]); err != nil {
-			return err
-		}
-
-		if err := coreCmd.setupKeyboardLayout(systemPaths[i]); err != nil {
-			return err
-		}
-
-		if err := os.MkdirAll(filepath.Join(systemPaths[i], cloudBaseDir), 0755); err != nil {
-			return err
-		}
+	systemPath, err := img.System()
+	if err != nil {
+		return err
 	}
 
-	if err := coreCmd.setupCloudInit(cloudBaseDir, filepath.Join(userPath, "system-data")); err != nil {
+	if err := coreCmd.setupBootloader(systemPath); err != nil {
 		return err
+	}
+
+	if err := coreCmd.setupKeyboardLayout(systemPath); err != nil {
+		return err
+	}
+
+	if !coreCmd.Cloud {
+		cloudBaseDir := filepath.Join("var", "lib", "cloud")
+
+		if err := os.MkdirAll(filepath.Join(systemPath, cloudBaseDir), 0755); err != nil {
+			return err
+		}
+
+		if err := coreCmd.setupCloudInit(cloudBaseDir, filepath.Join(userPath, "system-data")); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -306,7 +303,7 @@ func (coreCmd *CoreCmd) setupCloudInit(cloudBaseDir, systemData string) error {
 		return err
 	}
 
-	if coreCmd.DeveloperMode {
+	if coreCmd.DeveloperMode || coreCmd.EnableSsh {
 		if _, err := io.WriteString(userDataFile, "snappy:\n    ssh_enabled: True\n"); err != nil {
 			return err
 		}

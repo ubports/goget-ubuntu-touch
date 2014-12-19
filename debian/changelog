@@ -1,3 +1,12 @@
+goget-ubuntu-touch (0.8-0ubuntu1) vivid; urgency=medium
+
+  * ubuntu-device-flash:
+    - adding option to only enable ssh and another option to not pre provision
+      cloud data for core.
+    - format but don't provision system-b for core.
+
+ -- Sergio Schvezov <sergio.schvezov@canonical.com>  Mon, 08 Dec 2014 17:27:27 +0200
+
 goget-ubuntu-touch (0.7-0ubuntu1) vivid; urgency=medium
 
   * ubuntu-device-flash: removing the writable dir creation logic for core.

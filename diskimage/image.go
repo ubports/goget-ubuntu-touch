@@ -130,22 +130,16 @@ func (img *DiskImage) User() (string, error) {
 }
 
 //System returns the system path
-func (img *DiskImage) System() ([]string, error) {
+func (img *DiskImage) System() (string, error) {
 	if img.parts == nil {
-		return nil, errors.New("img is not setup with partitions")
+		return "", errors.New("img is not setup with partitions")
 	}
 
 	if img.Mountpoint == "" {
-		return nil, errors.New("img not mounted")
+		return "", errors.New("img not mounted")
 	}
 
-	paths := []string{filepath.Join(img.Mountpoint, string(systemADir))}
-
-	if len(img.parts) == 3 {
-		paths = append(paths, filepath.Join(img.Mountpoint, string(systemBDir)))
-	}
-
-	return paths, nil
+	return filepath.Join(img.Mountpoint, string(systemADir)), nil
 }
 
 //Mount the DiskImage
