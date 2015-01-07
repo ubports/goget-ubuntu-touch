@@ -1,5 +1,5 @@
 //
-// ubuntu-emu - Tool to download and run Ubuntu Touch emulator instances
+// diskimage - handles ubuntu disk images
 //
 // Copyright (c) 2013 Canonical Ltd.
 //
@@ -28,24 +28,8 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 
 	"launchpad.net/goget-ubuntu-touch/sysutils"
-)
-
-type imageLabel string
-type directory string
-
-const (
-	systemALabel  imageLabel = "system-a"
-	systemBLabel  imageLabel = "system-b"
-	writableLabel imageLabel = "writable"
-)
-
-const (
-	systemADir  directory = "system"
-	systemBDir  directory = "system-b"
-	writableDir directory = "writable"
 )
 
 type partition struct {
@@ -116,32 +100,6 @@ func (img *DiskImage) Copy(dst string) (err error) {
 	return nil
 }
 
-// User returns the user path
-func (img *DiskImage) User() (string, error) {
-	if img.parts == nil {
-		return "", errors.New("img is not setup with partitions")
-	}
-
-	if img.Mountpoint == "" {
-		return "", errors.New("img not mounted")
-	}
-
-	return filepath.Join(img.Mountpoint, string(writableDir)), nil
-}
-
-//System returns the system path
-func (img *DiskImage) System() (string, error) {
-	if img.parts == nil {
-		return "", errors.New("img is not setup with partitions")
-	}
-
-	if img.Mountpoint == "" {
-		return "", errors.New("img not mounted")
-	}
-
-	return filepath.Join(img.Mountpoint, string(systemADir)), nil
-}
-
 //Mount the DiskImage
 func (img *DiskImage) Mount() (err error) {
 	img.Mountpoint, err = ioutil.TempDir(os.TempDir(), "ubuntu-system")
@@ -154,27 +112,7 @@ func (img *DiskImage) Mount() (err error) {
 			os.Remove(img.Mountpoint)
 		}
 	}()
-	if img.parts == nil {
-		return img.emulatorMount()
-	}
 
-	return img.coreMount()
-}
-
-func (img *DiskImage) coreMount() (err error) {
-	for _, part := range img.parts {
-		mountpoint := filepath.Join(img.Mountpoint, string(part.dir))
-		if err := os.MkdirAll(mountpoint, 0755); err != nil {
-			return err
-		}
-		if out, err := exec.Command("mount", filepath.Join("/dev/mapper", part.loop), mountpoint).CombinedOutput(); err != nil {
-			return fmt.Errorf("unable to mount dir to create system image: %s", out)
-		}
-	}
-	return nil
-}
-
-func (img *DiskImage) emulatorMount() (err error) {
 	if out, err := exec.Command("mount", img.path, img.Mountpoint).CombinedOutput(); err != nil {
 		return fmt.Errorf("unable to mount temp dir to create system image: %s", out)
 	}
@@ -191,35 +129,6 @@ func (img *DiskImage) Unmount() error {
 		return errors.New(fmt.Sprintf("Failed to sync filesystems before unmounting: %s", out))
 	}
 
-	if img.parts == nil {
-		if err := img.emulatorUnmount(); err != nil {
-			return err
-		}
-	} else {
-		if err := img.coreUnmount(); err != nil {
-			return err
-		}
-	}
-
-	img.Mountpoint = ""
-
-	return nil
-}
-
-func (img *DiskImage) coreUnmount() (err error) {
-	for _, part := range img.parts {
-		mountpoint := filepath.Join(img.Mountpoint, string(part.dir))
-		if out, err := exec.Command("umount", mountpoint).CombinedOutput(); err != nil {
-			return fmt.Errorf("unable to unmount dir for image: %s", out)
-		}
-		if err := os.Remove(mountpoint); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (img *DiskImage) emulatorUnmount() (err error) {
 	if err := exec.Command("umount", img.Mountpoint).Run(); err != nil {
 		return errors.New("Failed to unmount temp dir where system image was created")
 	}
@@ -246,116 +155,17 @@ func (img *DiskImage) Provision(tarList []string) error {
 	return nil
 }
 
-//Partition creates a partitioned image from an img
-func (img *DiskImage) Partition(dual bool) error {
+//CreateExt4 returns a ext4 partition for a given file
+func (img DiskImage) CreateExt4() error {
+	if img.parts != nil {
+		panic("creating ext4 on images with multiple parts not supported")
+	}
+
 	if err := sysutils.CreateEmptyFile(img.path, img.size); err != nil {
 		return err
 	}
 
-	partedCmd := exec.Command("parted", img.path)
-	stdin, err := partedCmd.StdinPipe()
-	if err != nil {
-		return err
-	}
-
-	stdin.Write([]byte("mklabel msdos\n"))
-	stdin.Write([]byte("mkpart primary ext4 2048s 3905535s\n"))
-	if dual {
-		stdin.Write([]byte("mkpart primary ext4 3905536s 7809023s\n"))
-		stdin.Write([]byte("mkpart primary ext4 7809024s -1s\n"))
-	} else {
-		stdin.Write([]byte("mkpart primary ext4 3905536s -1s\n"))
-	}
-	stdin.Write([]byte("set 1 boot on\n"))
-	stdin.Write([]byte("unit s print\n"))
-	stdin.Write([]byte("quit\n"))
-
-	return partedCmd.Run()
-}
-
-//MapPartitions creates loop devices for the partitions
-func (img *DiskImage) MapPartitions(dual bool) error {
-	kpartxCmd := exec.Command("kpartx", "-avs", img.path)
-	stdout, err := kpartxCmd.StdoutPipe()
-	if err != nil {
-		return err
-	}
-
-	if err := kpartxCmd.Start(); err != nil {
-		return err
-	}
-
-	loops := make([]string, 0, 3)
-	scanner := bufio.NewScanner(stdout)
-	for scanner.Scan() {
-		fields := strings.Fields(scanner.Text())
-
-		if len(fields) > 2 {
-			loops = append(loops, fields[2])
-		} else {
-			return errors.New("issues while determining drive mappings")
-		}
-	}
-	if err := scanner.Err(); err != nil {
-		return err
-	}
-
-	expectedLoops := 2
-	if dual {
-		expectedLoops = 3
-	}
-
-	if len(loops) != expectedLoops {
-		return errors.New("more partitions then expected while creating loop mapping")
-	}
-
-	if dual {
-		img.parts = []partition{
-			partition{label: systemALabel, dir: systemADir, loop: loops[0]},
-			partition{label: systemBLabel, dir: systemBDir, loop: loops[1]},
-			partition{label: writableLabel, dir: writableDir, loop: loops[2]},
-		}
-	} else {
-		img.parts = []partition{
-			partition{label: systemALabel, dir: systemADir, loop: loops[0]},
-			partition{label: writableLabel, dir: writableDir, loop: loops[1]},
-		}
-	}
-
-	if err := kpartxCmd.Wait(); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-//UnMapPartitions destroys loop devices for the partitions
-func (img *DiskImage) UnMapPartitions() error {
-	for _, part := range img.parts {
-		if err := exec.Command("dmsetup", "clear", part.loop).Run(); err != nil {
-			return err
-		}
-	}
-	return exec.Command("kpartx", "-d", img.path).Run()
-}
-
-//CreateExt4 returns a ext4 partition for a given file
-func (img DiskImage) CreateExt4() error {
-	if img.parts == nil {
-		if err := sysutils.CreateEmptyFile(img.path, img.size); err != nil {
-			return err
-		}
-		return exec.Command("mkfs.ext4", "-F", "-L", img.label, img.path).Run()
-	}
-
-	for _, part := range img.parts {
-		dev := filepath.Join("/dev/mapper", part.loop)
-		if out, err := exec.Command("mkfs.ext4", "-F", "-L", string(part.label), dev).CombinedOutput(); err != nil {
-			return fmt.Errorf("unable to create filesystem: %s", out)
-		}
-	}
-
-	return nil
+	return exec.Command("mkfs.ext4", "-F", "-L", img.label, img.path).Run()
 }
 
 //CreateVFat returns a vfat partition for a given file

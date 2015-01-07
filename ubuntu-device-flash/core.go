@@ -22,6 +22,8 @@ import (
 	"syscall"
 	"time"
 
+	"gopkg.in/yaml.v1"
+
 	"launchpad.net/goget-ubuntu-touch/diskimage"
 	"launchpad.net/goget-ubuntu-touch/sysutils"
 	"launchpad.net/goget-ubuntu-touch/ubuntuimage"
@@ -51,11 +53,16 @@ type CoreCmd struct {
 	Device        string `long:"device" description:"Specify the device to use" default:"generic_amd64"`
 	Keyboard      string `long:"keyboard-layout" description:"Specify the keyboard layout" default:"us"`
 	Output        string `long:"output" short:"o" description:"Name of the image file to create" required:"true"`
-	Size          int64  `long:"size" short:"s" description:"Size of image file to create in GB (min 6)" default:"20"`
+	Size          int64  `long:"size" short:"s" description:"Size of image file to create in GB (min 4)" default:"20"`
 	DeveloperMode bool   `long:"developer-mode" description:"Finds the latest public key in your ~/.ssh and sets it up using cloud-init"`
-	Single        bool   `long:"single-partition" description:"Sets up a single system partiton"`
 	EnableSsh     bool   `long:"enable-ssh" description:"Enable ssh on the image through cloud-init(not need with developer mode)"`
 	Cloud         bool   `long:"cloud" description:"Generate a pure cloud image without setting up cloud-init"`
+
+	Development struct {
+		DevicePart string `long:"device-part" description:"Specify a local device part to override the one from the server"`
+	} `group:"Development"`
+
+	hardware diskimage.HardwareDescription
 }
 
 var coreCmd CoreCmd
@@ -69,16 +76,19 @@ chpasswd: { expire: False }
 ssh_pwauth: True
 `
 
-const grubCfgContent = `# console only, no graphics/vga
-GRUB_CMDLINE_LINUX_DEFAULT="console=tty1 console=ttyS0"
-GRUB_TERMINAL=console
-# LP: #1035279
-GRUB_RECORDFAIL_TIMEOUT=0
-`
-
 func (coreCmd *CoreCmd) Execute(args []string) error {
 	if coreCmd.EnableSsh && coreCmd.Cloud {
 		return errors.New("--cloud and --enable-ssh cannot be used together")
+	}
+
+	var devicePart string
+	if coreCmd.Development.DevicePart != "" {
+		p, err := expandFile(coreCmd.Development.DevicePart)
+		if err != nil {
+			return err
+		}
+
+		devicePart = p
 	}
 
 	if syscall.Getuid() != 0 {
@@ -90,10 +100,6 @@ func (coreCmd *CoreCmd) Execute(args []string) error {
 	runtime.LockOSThread()
 	if err := sysutils.DropPrivs(); err != nil {
 		return err
-	}
-
-	if coreCmd.Single {
-		fmt.Println("Image will have a single system partition...")
 	}
 
 	fmt.Println("Fetching information from server...")
@@ -126,25 +132,52 @@ func (coreCmd *CoreCmd) Execute(args []string) error {
 		go bitDownloader(f, sigFilesChan, globalArgs.Server, cacheDir)
 	}
 
-	for _, f := range image.Files {
-		go bitDownloader(f, filesChan, globalArgs.Server, cacheDir)
-	}
-
-	filePathChan := make(chan string)
+	filePathChan := make(chan string, len(image.Files))
+	hwChan := make(chan diskimage.HardwareDescription)
 
 	go func() {
 		for i := 0; i < len(image.Files); i++ {
 			f := <-filesChan
 
-			printOut("Download finished for", f.FilePath)
+			if isDevicePart(f.FilePath) {
+				if hardware, err := extractHWDescription(f.FilePath); err != nil {
+					fmt.Println("Failed to read harware.yaml from device part, provisioning may fail:", err)
+				} else {
+					hwChan <- hardware
+				}
+			}
 
+			printOut("Download finished for", f.FilePath)
 			filePathChan <- f.FilePath
 		}
-		close(filePathChan)
+		close(hwChan)
 	}()
 
-	img := diskimage.New(coreCmd.Output, "", coreCmd.Size)
-	if err := img.Partition(!coreCmd.Single); err != nil {
+	for _, f := range image.Files {
+		if devicePart != "" && isDevicePart(f.Path) {
+			printOut("Using a custom device tarball")
+			filesChan <- Files{FilePath: devicePart}
+		} else {
+			go bitDownloader(f, filesChan, globalArgs.Server, cacheDir)
+		}
+	}
+
+	coreCmd.hardware = <-hwChan
+
+	var img diskimage.CoreImage
+
+	switch coreCmd.hardware.Bootloader {
+	case "grub":
+		img = diskimage.NewCoreGrubImage(coreCmd.Output, coreCmd.Size)
+	case "u-boot":
+		img = diskimage.NewCoreUBootImage(coreCmd.Output, coreCmd.Size, coreCmd.hardware)
+	default:
+		fmt.Printf("Bootloader set to '%s' in hardware description, assuming grub as a fallback\n", coreCmd.hardware.Bootloader)
+		img = diskimage.NewCoreGrubImage(coreCmd.Output, coreCmd.Size)
+	}
+
+	printOut("Partitioning...")
+	if err := img.Partition(); err != nil {
 		return err
 	}
 	defer func() {
@@ -173,11 +206,11 @@ func (coreCmd *CoreCmd) Execute(args []string) error {
 		}
 		defer sysutils.DropPrivs()
 
-		if err := coreCmd.partition(img); err != nil {
+		if err := format(img); err != nil {
 			return err
 		}
 
-		if err := coreCmd.setup(img, filePathChan); err != nil {
+		if err := coreCmd.setup(img, filePathChan, len(image.Files)); err != nil {
 			return err
 		}
 
@@ -192,50 +225,60 @@ func (coreCmd *CoreCmd) Execute(args []string) error {
 	return nil
 }
 
-func (coreCmd *CoreCmd) partition(img *diskimage.DiskImage) error {
-	if err := img.MapPartitions(!coreCmd.Single); err != nil {
+func format(img diskimage.Image) error {
+	printOut("Mapping...")
+	if err := img.Map(); err != nil {
 		return fmt.Errorf("issue while mapping partitions: %s", err)
 	}
-	defer img.UnMapPartitions()
+	defer img.Unmap()
 
-	return img.CreateExt4()
+	printOut("Formatting...")
+	return img.Format()
 }
 
-func (coreCmd *CoreCmd) setup(img *diskimage.DiskImage, filePathChan <-chan string) error {
-	if err := img.MapPartitions(!coreCmd.Single); err != nil {
+func (coreCmd *CoreCmd) setup(img diskimage.CoreImage, filePathChan <-chan string, fileCount int) error {
+	printOut("Mapping...")
+	if err := img.Map(); err != nil {
 		return err
 	}
-	defer img.UnMapPartitions()
+	defer func() {
+		printOut("Unmapping...")
+		defer img.Unmap()
+	}()
 
+	printOut("Mounting...")
 	if err := img.Mount(); err != nil {
+		fmt.Println(err)
 		return err
 	}
-	defer img.Unmount()
+	defer func() {
+		printOut("Unmounting...")
+		if err := img.Unmount(); err != nil {
+			fmt.Println(err)
+		}
+	}()
 
-	for f := range filePathChan {
-		if out, err := exec.Command("tar", "--numeric-owner", "-axvf", f, "-C", img.Mountpoint).CombinedOutput(); err != nil {
+	printOut("Provisioning...")
+	for i := 0; i < fileCount; i++ {
+		f := <-filePathChan
+		if out, err := exec.Command("fakeroot", "tar", "--numeric-owner", "-axvf", f, "-C", img.BaseMount()).CombinedOutput(); err != nil {
+			fmt.Println(string(out))
 			return fmt.Errorf("issues while extracting: %s", out)
 		}
 	}
 
-	userPath, err := img.User()
-	if err != nil {
-		return err
-	}
+	writablePath := img.Writable()
 
 	for _, dir := range []string{"system-data", "cache"} {
-		dirPath := filepath.Join(userPath, dir)
+		dirPath := filepath.Join(writablePath, dir)
 		if err := os.Mkdir(dirPath, 0755); err != nil {
 			return err
 		}
 	}
 
-	systemPath, err := img.System()
-	if err != nil {
-		return err
-	}
+	systemPath := img.System()
 
-	if err := coreCmd.setupBootloader(systemPath); err != nil {
+	if err := img.SetupBoot(); err != nil {
 		return err
 	}
 
@@ -250,7 +293,7 @@ func (coreCmd *CoreCmd) setup(img *diskimage.DiskImage, filePathChan <-chan stri
 			return err
 		}
 
-		if err := coreCmd.setupCloudInit(cloudBaseDir, filepath.Join(userPath, "system-data")); err != nil {
+		if err := coreCmd.setupCloudInit(cloudBaseDir, filepath.Join(writablePath, "system-data")); err != nil {
 			return err
 		}
 	}
@@ -331,89 +374,6 @@ func (coreCmd *CoreCmd) setupKeyboardLayout(systemPath string) error {
 	return ioutil.WriteFile(kbFilePath, kbFileContents, 0644)
 }
 
-func (coreCmd *CoreCmd) setupBootloader(systemPath string) error {
-	for _, dev := range []string{"dev", "proc", "sys"} {
-		src := filepath.Join("/", dev)
-		dst := filepath.Join(systemPath, dev)
-		if err := bindMount(src, dst); err != nil {
-			return err
-		}
-		defer unmount(dst)
-	}
-
-	firmwarePath := filepath.Join(systemPath, "sys", "firmware")
-	if err := bindMount(filepath.Join(systemPath, "mnt"), firmwarePath); err != nil {
-		return err
-	}
-	defer unmount(firmwarePath)
-
-	outputPath, err := filepath.Abs(coreCmd.Output)
-	if err != nil {
-		return errors.New("cannot determined absolute path for output image")
-	}
-
-	rootDevPath := filepath.Join(systemPath, "root_dev")
-
-	if f, err := os.Create(rootDevPath); err != nil {
-		return err
-	} else {
-		f.Close()
-		defer os.Remove(rootDevPath)
-	}
-
-	if err := bindMount(outputPath, rootDevPath); err != nil {
-		return err
-	}
-	defer unmount(rootDevPath)
-
-	if out, err := exec.Command("chroot", systemPath, "grub-install", "/root_dev").CombinedOutput(); err != nil {
-		return fmt.Errorf("unable to install grub: %s", out)
-	} else {
-		printOut(string(out))
-	}
-
-	// ensure we run not into recordfail issue
-	grubDir := filepath.Join(systemPath, "etc", "default", "grub.d")
-	if err := os.MkdirAll(grubDir, 0755); err != nil {
-		return fmt.Errorf("unable to create %s dir: %s", grubDir, err)
-	}
-	grubFile, err := os.Create(filepath.Join(grubDir, "50-system-image.cfg"))
-	if err != nil {
-		return fmt.Errorf("unable to create %s file: %s", grubFile, err)
-	}
-	defer grubFile.Close()
-	if _, err := io.WriteString(grubFile, grubCfgContent); err != nil {
-		return err
-	}
-
-	// I don't know why this is needed, I just picked it up from the original implementation
-	time.Sleep(3 * time.Second)
-
-	if out, err := exec.Command("chroot", systemPath, "update-grub").CombinedOutput(); err != nil {
-		return fmt.Errorf("unable to update grub: %s", out)
-	} else {
-		printOut(string(out))
-	}
-
-	return nil
-}
-
-func bindMount(src, dst string) error {
-	if out, err := exec.Command("mount", "--bind", src, dst).CombinedOutput(); err != nil {
-		return fmt.Errorf("issues while bind mounting: %s", out)
-	}
-
-	return nil
-}
-
-func unmount(dst string) error {
-	if out, err := exec.Command("umount", dst).CombinedOutput(); err != nil {
-		return fmt.Errorf("issues while unmounting: %s", out)
-	}
-
-	return nil
-}
-
 func getAuthorizedSshKey() (string, error) {
 	sshDir := os.ExpandEnv("$HOME/.ssh")
 
@@ -443,4 +403,39 @@ func getAuthorizedSshKey() (string, error) {
 	pubKey, err := ioutil.ReadFile(filepath.Join(sshDir, preferredPubKey))
 
 	return string(pubKey), err
+}
+
+// useGrub determines if this system is booted through grub.
+//
+// The logic is rudimentary and awaits the hardware.yaml
+func useGrub(systemPath string) bool {
+	grubInstall := filepath.Join(systemPath, "usr", "sbin", "grub-install")
+
+	if _, err := os.Stat(grubInstall); err != nil && os.IsNotExist(err) {
+		return false
+	}
+
+	return true
+}
+
+func extractHWDescription(path string) (hw diskimage.HardwareDescription, err error) {
+	printOut("Searching for hardware.yaml in device part")
+	tmpdir, err := ioutil.TempDir("", "hardware")
+	if err != nil {
+		return hw, errors.New("cannot create tempdir to extract hardware.yaml from device part")
+	}
+	defer os.RemoveAll(tmpdir)
+
+	if err := exec.Command("tar", "xf", path, "-C", tmpdir, "hardware.yaml").Run(); err != nil {
+		return hw, errors.New("device part does not contain a hardware.yaml")
+	}
+
+	data, err := ioutil.ReadFile(filepath.Join(tmpdir, "hardware.yaml"))
+	if err != nil {
+		return hw, err
+	}
+
+	err = yaml.Unmarshal([]byte(data), &hw)
+
+	return hw, err
 }

@@ -19,7 +19,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"syscall"
 
 	"launchpad.net/goget-ubuntu-touch/devices"
 	"launchpad.net/goget-ubuntu-touch/ubuntuimage"
@@ -86,20 +85,14 @@ func (touchCmd *TouchCmd) Execute(args []string) error {
 		fmt.Println("WARNING --developer-mode and --password are dangerous as they remove security features from your device")
 	}
 
-	tarballPath := touchCmd.DeviceTarball
-	if tarballPath != "" {
-		if p, err := filepath.Abs(tarballPath); err != nil {
-			log.Fatal("Device tarball not found", err)
-		} else {
-			tarballPath = p
-		}
-		fi, err := os.Lstat(tarballPath)
+	var tarballPath string
+	if touchCmd.DeviceTarball != "" {
+		p, err := expandFile(touchCmd.DeviceTarball)
 		if err != nil {
-			log.Fatal(err)
+			log.Fatalln("Issues while replacing the device tarball:", err)
 		}
-		if !fi.Mode().IsRegular() {
-			log.Fatalf("The file %s passed via --device-tarball is not a regular file\n", tarballPath)
-		}
+
+		tarballPath = p
 	}
 
 	channels, err := ubuntuimage.NewChannels(globalArgs.Server)
@@ -137,7 +130,7 @@ func (touchCmd *TouchCmd) Execute(args []string) error {
 	done := make(chan bool, totalFiles)
 
 	for i, file := range image.Files {
-		if tarballPath != "" && strings.HasPrefix(file.Path, "/pool/device") {
+		if tarballPath != "" && isDevicePart(file.Path) {
 			//change the file paths so they are correctly picked up by bitPusher later on
 			image.Files[i].Path = tarballPath
 			image.Files[i].Signature = tarballPath + ".asc"
@@ -274,18 +267,11 @@ func (touchCmd *TouchCmd) setupDevice() (err error) {
 	return nil
 }
 
-// ensureExists touches a file. It can be used to create a dummy .asc file if none exists
-func ensureExists(path string) {
-	f, err := os.OpenFile(path, syscall.O_WRONLY|syscall.O_CREAT, 0666)
-	if err != nil {
-		log.Fatal("Cannot touch %s : %s", path, err)
-	}
-	f.Close()
-}
-
 // useLocalTarball adds a local file to the ones to be pushed
 func useLocalTarball(file ubuntuimage.File, files chan<- Files) {
-	ensureExists(file.Signature)
+	if err := ensureExists(file.Signature); err != nil {
+		log.Fatal(err)
+	}
 	files <- Files{FilePath: file.Path, SigPath: file.Signature}
 }
 
