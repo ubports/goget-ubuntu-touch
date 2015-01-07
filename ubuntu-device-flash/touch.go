@@ -42,6 +42,7 @@ type TouchCmd struct {
 	Password      string `long:"password" description:"This sets up the default password for the phablet user. This option is meant for CI and not general use"`
 	Channel       string `long:"channel" description:"Specify the channel to use" default:"ubuntu-touch/stable"`
 	Device        string `long:"device" description:"Specify the device to flash"`
+	RecoveryImage string `long:"recovery-image" description:"Specify the recovery image file to use when flashing, overriding the one from the device tarball (useful if the latter has no adb enabled)"`
 	fastboot      devices.Fastboot
 	adb           devices.UbuntuDebugBridge
 }
@@ -160,24 +161,34 @@ func (touchCmd *TouchCmd) Execute(args []string) error {
 	}
 
 	if touchCmd.Bootstrap {
-		var downloadedFiles []Files
-		for i := 0; i < totalFiles; i++ {
-			downloadedFiles = append(downloadedFiles, <-files)
-		}
-		//Find the recovery image
-		var recovery string
-		for _, file := range downloadedFiles {
-			if strings.HasSuffix(file.FilePath, ".xz") {
-				fmt.Println(file.FilePath)
-				recovery, err = tryExtractRecovery(file.FilePath)
-				if err == nil {
-					break
+		// Unless --recovery-image is passed use the recovery image from the device tarball
+		recovery := touchCmd.RecoveryImage
+
+		if recovery == "" {
+			var downloadedFiles []Files
+			for i := 0; i < totalFiles; i++ {
+				downloadedFiles = append(downloadedFiles, <-files)
+			}
+			//Find the recovery image
+			for _, file := range downloadedFiles {
+				if strings.HasSuffix(file.FilePath, ".xz") {
+					fmt.Println(file.FilePath)
+					recovery, err = tryExtractRecovery(file.FilePath)
+					if err == nil {
+						defer os.Remove(recovery)
+						break
+					}
 				}
 			}
+			if recovery == "" {
+				return errors.New("recovery image not found, cannot continue with bootstrap")
+			}
+			// Resend all the files
+			for _, file := range downloadedFiles {
+				files <- file
+			}
 		}
-		if recovery == "" {
-			return errors.New("recovery image not found, cannot continue with bootstrap")
-		}
+
 		if err := touchCmd.fastboot.Flash("recovery", recovery); err != nil {
 			return errors.New("can't flash recovery image")
 		}
@@ -189,13 +200,8 @@ func (touchCmd *TouchCmd) Execute(args []string) error {
 		if err := touchCmd.fastboot.BootImage(recovery); err != nil {
 			return errors.New("Can't boot recovery image")
 		}
-		os.Remove(recovery)
 		if err := touchCmd.adb.WaitForRecovery(); err != nil {
 			return err
-		}
-		// Resend all the files
-		for _, file := range downloadedFiles {
-			files <- file
 		}
 	}
 	go bitPusher(touchCmd.adb, files, done)
