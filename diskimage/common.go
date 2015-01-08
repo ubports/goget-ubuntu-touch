@@ -30,7 +30,7 @@ type directory string
 
 const (
 	grubLabel     imageLabel = "grub"
-	bootLabel     imageLabel = "boot"
+	bootLabel     imageLabel = "system-boot"
 	systemALabel  imageLabel = "system-a"
 	systemBLabel  imageLabel = "system-b"
 	writableLabel imageLabel = "writable"
