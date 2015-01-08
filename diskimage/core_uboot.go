@@ -272,7 +272,7 @@ func (img CoreUBootImage) SetupBoot() error {
 	kernelPath := filepath.Join(img.baseMount, img.hardware.Kernel)
 	initrdPath := filepath.Join(img.baseMount, img.hardware.Initrd)
 	dtbsPath := filepath.Join(img.baseMount, img.hardware.Dtbs)
-	uEnvPath := filepath.Join(img.baseMount, "bootloader-assets", "uEnv.txt")
+	uEnvPath := filepath.Join(img.baseMount, "flashtool-assets", "uEnv.txt")
 
 	// create layout
 	if err := os.MkdirAll(bootDtbPath, 0755); err != nil {
