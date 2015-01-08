@@ -22,7 +22,7 @@ import (
 	"syscall"
 	"time"
 
-	"gopkg.in/yaml.v1"
+	"launchpad.net/goyaml"
 
 	"launchpad.net/goget-ubuntu-touch/diskimage"
 	"launchpad.net/goget-ubuntu-touch/sysutils"
@@ -435,7 +435,7 @@ func extractHWDescription(path string) (hw diskimage.HardwareDescription, err er
 		return hw, err
 	}
 
-	err = yaml.Unmarshal([]byte(data), &hw)
+	err = goyaml.Unmarshal([]byte(data), &hw)
 
 	return hw, err
 }
