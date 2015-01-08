@@ -91,15 +91,17 @@ func (coreCmd *CoreCmd) Execute(args []string) error {
 		devicePart = p
 	}
 
-	if syscall.Getuid() != 0 {
-		return errors.New("command requires sudo/pkexec (root)")
-	}
+	if !globalArgs.DownloadOnly {
+		if syscall.Getuid() != 0 {
+			return errors.New("command requires sudo/pkexec (root)")
+		}
 
-	// hack to circumvent https://code.google.com/p/go/issues/detail?id=1435
-	runtime.GOMAXPROCS(1)
-	runtime.LockOSThread()
-	if err := sysutils.DropPrivs(); err != nil {
-		return err
+		// hack to circumvent https://code.google.com/p/go/issues/detail?id=1435
+		runtime.GOMAXPROCS(1)
+		runtime.LockOSThread()
+		if err := sysutils.DropPrivs(); err != nil {
+			return err
+		}
 	}
 
 	fmt.Println("Fetching information from server...")
@@ -165,6 +167,33 @@ func (coreCmd *CoreCmd) Execute(args []string) error {
 	coreCmd.hardware = <-hwChan
 
 	var img diskimage.CoreImage
+
+	if globalArgs.DownloadOnly {
+		workDir, err := os.Getwd()
+		if err != nil {
+			return err
+		}
+
+		downloadedFiles := make([]string, 0, len(image.Files))
+
+		for i := 0; i < len(image.Files); i++ {
+			f := <-filePathChan
+			baseFile := filepath.Base(f)
+
+			if err := copyFile(f, filepath.Join(workDir, baseFile)); err != nil {
+				return err
+			}
+			downloadedFiles = append(downloadedFiles, baseFile)
+		}
+
+		fmt.Println("Files downloaded to current directory: ")
+		for _, f := range downloadedFiles {
+			fmt.Println(" -", f)
+		}
+		fmt.Println()
+
+		return nil
+	}
 
 	switch coreCmd.hardware.Bootloader {
 	case "grub":

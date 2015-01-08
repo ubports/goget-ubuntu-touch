@@ -1,7 +1,9 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -82,4 +84,31 @@ func expandFile(path string) (abspath string, err error) {
 // isDevicePart checks if the file corresponds to the device part.
 func isDevicePart(path string) bool {
 	return strings.Contains(path, "device")
+}
+
+func copyFile(src, dst string) error {
+	dstFile, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	defer dstFile.Close()
+
+	srcFile, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer srcFile.Close()
+
+	reader := bufio.NewReader(srcFile)
+	writer := bufio.NewWriter(dstFile)
+	defer func() {
+		if err != nil {
+			writer.Flush()
+		}
+	}()
+	if _, err = io.Copy(writer, reader); err != nil {
+		return err
+	}
+	writer.Flush()
+	return nil
 }
