@@ -67,9 +67,9 @@ type CoreImage interface {
 
 type HardwareDescription struct {
 	Kernel          string `yaml:"kernel"`
-	Dtb             string `yaml:"dtb"`
+	Dtbs            string `yaml:"dtbs"`
 	Initrd          string `yaml:"initrd"`
-	PartitionLayout string `yaml:"partition-layout"`
+	PartitionLayout string `yaml:"partition-layout,omitempty"`
 	Bootloader      string `yaml:"bootloader"`
 }
 

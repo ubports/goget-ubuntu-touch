@@ -294,7 +294,7 @@ func (img CoreUBootImage) SetupBoot() error {
 	hardwareYamlPath := filepath.Join(img.baseMount, "hardware.yaml")
 	kernelPath := filepath.Join(img.baseMount, img.hardware.Kernel)
 	initrdPath := filepath.Join(img.baseMount, img.hardware.Initrd)
-	dtbPath := filepath.Join(img.baseMount, img.hardware.Dtb)
+	dtbsPath := filepath.Join(img.baseMount, img.hardware.Dtbs)
 
 	// destinations
 	uEnvPath := filepath.Join(bootPath, "uEnv.txt")
@@ -319,8 +319,17 @@ func (img CoreUBootImage) SetupBoot() error {
 		return err
 	}
 
-	if err := move(dtbPath, filepath.Join(bootDtbPath, filepath.Base(img.hardware.Dtb))); err != nil {
+	dtbFis, err := ioutil.ReadDir(dtbsPath)
+	if err != nil {
 		return err
+	}
+
+	for _, dtbFi := range dtbFis {
+		src := filepath.Join(dtbsPath, dtbFi.Name())
+		dst := filepath.Join(bootDtbPath, dtbFi.Name())
+		if err := move(src, dst); err != nil {
+			return err
+		}
 	}
 
 	return nil
