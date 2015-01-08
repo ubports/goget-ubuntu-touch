@@ -443,6 +443,16 @@ func getAuthorizedSshKey() (string, error) {
 }
 
 func extractHWDescription(path string) (hw diskimage.HardwareDescription, err error) {
+	// hack to circumvent https://code.google.com/p/go/issues/detail?id=1435
+	if syscall.Getuid() == 0 {
+		runtime.GOMAXPROCS(1)
+		runtime.LockOSThread()
+
+		if err := sysutils.DropPrivs(); err != nil {
+			return hw, err
+		}
+	}
+
 	printOut("Searching for hardware.yaml in device part")
 	tmpdir, err := ioutil.TempDir("", "hardware")
 	if err != nil {
