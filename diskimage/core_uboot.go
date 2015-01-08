@@ -299,8 +299,6 @@ func (img CoreUBootImage) SetupBoot() error {
 	// destinations
 	uEnvPath := filepath.Join(bootPath, "uEnv.txt")
 
-	fmt.Printf("%#v\n", img.hardware)
-
 	if err := ioutil.WriteFile(uEnvPath, []byte(uEnvTemplate), 0755); err != nil {
 		return err
 	}
