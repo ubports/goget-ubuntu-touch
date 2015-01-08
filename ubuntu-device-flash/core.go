@@ -254,7 +254,10 @@ func (coreCmd *CoreCmd) Execute(args []string) error {
 		return err
 	}
 
-	fmt.Println("New image complete, launch by running: kvm -m 768", coreCmd.Output)
+	fmt.Println("New image complete")
+	if coreCmd.Device != "generic_armhf" {
+		fmt.Println("Launch by running: kvm -m 768", coreCmd.Output)
+	}
 
 	return nil
 }

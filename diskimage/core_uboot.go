@@ -411,6 +411,7 @@ func (img *CoreUBootImage) FlashExtra(devicePart string) error {
 		return err
 	}
 
+	fmt.Println("Running flashtool-asset commands")
 	for _, cmd := range flash.Bootloader {
 		cmd = fmt.Sprintf(cmd, flashAssetsPath, img.location)
 		cmdFields := strings.Fields(cmd)
