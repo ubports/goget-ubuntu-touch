@@ -63,6 +63,7 @@ type CoreImage interface {
 	Image
 	SystemImage
 	SetupBoot() error
+	FlashExtra(string) error
 }
 
 type HardwareDescription struct {

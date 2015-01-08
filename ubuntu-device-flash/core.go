@@ -57,6 +57,7 @@ type CoreCmd struct {
 	DeveloperMode bool   `long:"developer-mode" description:"Finds the latest public key in your ~/.ssh and sets it up using cloud-init"`
 	EnableSsh     bool   `long:"enable-ssh" description:"Enable ssh on the image through cloud-init(not need with developer mode)"`
 	Cloud         bool   `long:"cloud" description:"Generate a pure cloud image without setting up cloud-init"`
+	Platform      string `long:"platform" description:"specify the boards platform"`
 
 	Development struct {
 		DevicePart string `long:"device-part" description:"Specify a local device part to override the one from the server"`
@@ -199,7 +200,7 @@ func (coreCmd *CoreCmd) Execute(args []string) error {
 	case "grub":
 		img = diskimage.NewCoreGrubImage(coreCmd.Output, coreCmd.Size)
 	case "u-boot":
-		img = diskimage.NewCoreUBootImage(coreCmd.Output, coreCmd.Size, coreCmd.hardware)
+		img = diskimage.NewCoreUBootImage(coreCmd.Output, coreCmd.Size, coreCmd.hardware, coreCmd.Platform)
 	default:
 		fmt.Printf("Bootloader set to '%s' in hardware description, assuming grub as a fallback\n", coreCmd.hardware.Bootloader)
 		img = diskimage.NewCoreGrubImage(coreCmd.Output, coreCmd.Size)
@@ -246,6 +247,10 @@ func (coreCmd *CoreCmd) Execute(args []string) error {
 		return nil
 	}()
 	if err != nil {
+		return err
+	}
+
+	if err := img.FlashExtra(devicePart); err != nil {
 		return err
 	}
 
@@ -442,8 +447,8 @@ func extractHWDescription(path string) (hw diskimage.HardwareDescription, err er
 	}
 	defer os.RemoveAll(tmpdir)
 
-	if err := exec.Command("tar", "xf", path, "-C", tmpdir, "hardware.yaml").Run(); err != nil {
-		return hw, errors.New("device part does not contain a hardware.yaml")
+	if out, err := exec.Command("tar", "xf", path, "-C", tmpdir, "hardware.yaml").CombinedOutput(); err != nil {
+		return hw, fmt.Errorf("failed to extract a hardware.yaml from the device part: %s", out)
 	}
 
 	data, err := ioutil.ReadFile(filepath.Join(tmpdir, "hardware.yaml"))

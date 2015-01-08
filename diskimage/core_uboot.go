@@ -17,8 +17,10 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"text/template"
 
 	"launchpad.net/goget-ubuntu-touch/sysutils"
+	"launchpad.net/goyaml"
 )
 
 // This program is free software: you can redistribute it and/or modify it
@@ -41,13 +43,45 @@ type CoreUBootImage struct {
 	size      int64
 	baseMount string
 	parts     []partition
+	platform  string
 }
 
-func NewCoreUBootImage(location string, size int64, hw HardwareDescription) *CoreUBootImage {
+const snappySystemTemplate = `# This is a snappy variables and boot logic file and is entirely generated and managed by Snappy
+# Modification can break boot
+######
+# functions to load kernel, initrd and fdt from various env values
+loadfiles=run loadkernel; run loadinitrd; run loadfdt
+loadkernel=load mmc ${mmcdev}:${mmcpart} ${loadaddr} ${snappy_ab}/${kernel_file}
+loadinitrd=load mmc ${mmcdev}:${mmcpart} ${initrd_addr} ${snappy_ab}/${initrd_file}; setenv initrd_size ${filesize}
+loadfdt=load mmc ${mmcdev}:${mmcpart} ${fdtaddr} ${snappy_ab}/dtbs/${fdtfile}
+
+# standard kernel and initrd file names; NB: ftdfile is set early from bootcmd
+kernel_file=vmlinuz
+initrd_file=initrd.img
+{{ . }}
+
+# boot logic
+# either "a" or "b"; target partition we want to boot
+snappy_ab=a
+# stamp file indicating a new version is being tried; removed by s-i after boot
+snappy_stamp=snappy-stamp.txt
+# either "regular" (normal boot) or "try" when trying a new version
+snappy_mode=regular
+# if we're trying a new version, check if stamp file is already there to revert
+# to other version
+snappy_boot=if test "${snappy_mode}" = "try"; then if fatsize ${snappy_stamp}; then if test "${snappy_ab}" = "a"; then setenv snappy_ab "b"; else setenv snappy_ab "a"; fi; else fatwrite mmc ${mmcdev}:${mmcpart} 0x0 ${snappy_stamp} 0; fi; fi; run loadfiles; setenv mmcroot /dev/disk/by-label/system-${snappy_ab} init=/lib/systemd/systemd ro panic=-1; run mmcargs; bootz ${loadaddr} ${initrd_addr}:${initrd_size} ${fdtaddr}
+`
+
+type FlashInstructions struct {
+	Bootloader []string `yaml:"bootloader"`
+}
+
+func NewCoreUBootImage(location string, size int64, hw HardwareDescription, platform string) *CoreUBootImage {
 	return &CoreUBootImage{
 		hardware: hw,
 		location: location,
 		size:     size,
+		platform: platform,
 	}
 }
 
@@ -266,24 +300,18 @@ func (img CoreUBootImage) SetupBoot() error {
 	bootAPath := filepath.Join(bootPath, "a")
 	bootDtbPath := filepath.Join(bootAPath, "dtbs")
 	bootuEnvPath := filepath.Join(bootPath, "uEnv.txt")
+	bootSnappySystemPath := filepath.Join(bootPath, "snappy-system.txt")
 
 	// origins
 	hardwareYamlPath := filepath.Join(img.baseMount, "hardware.yaml")
 	kernelPath := filepath.Join(img.baseMount, img.hardware.Kernel)
 	initrdPath := filepath.Join(img.baseMount, img.hardware.Initrd)
 	dtbsPath := filepath.Join(img.baseMount, img.hardware.Dtbs)
-	uEnvPath := filepath.Join(img.baseMount, "flashtool-assets", "uEnv.txt")
+	flashAssetsPath := filepath.Join(img.baseMount, "flashtool-assets", img.platform)
 
 	// create layout
 	if err := os.MkdirAll(bootDtbPath, 0755); err != nil {
 		return err
-	}
-
-	// if a uEnv.txt is provided in the bootloader-assets, use it
-	if _, err := os.Stat(uEnvPath); err == nil {
-		if err := move(uEnvPath, bootuEnvPath); err != nil {
-			return err
-		}
 	}
 
 	if err := move(hardwareYamlPath, filepath.Join(bootAPath, "hardware.yaml")); err != nil {
@@ -303,11 +331,95 @@ func (img CoreUBootImage) SetupBoot() error {
 		return err
 	}
 
-	for _, dtbFi := range dtbFis {
-		src := filepath.Join(dtbsPath, dtbFi.Name())
-		dst := filepath.Join(bootDtbPath, dtbFi.Name())
-		if err := move(src, dst); err != nil {
+	dtb := filepath.Join(dtbsPath, fmt.Sprintf("%s.dtb", img.platform))
+
+	// if there is a specific dtb for the platform, copy it.
+	if _, err := os.Stat(dtb); err == nil {
+		dst := filepath.Join(bootDtbPath, filepath.Base(dtb))
+		if err := move(dtb, dst); err != nil {
 			return err
+		}
+	} else {
+		for _, dtbFi := range dtbFis {
+			src := filepath.Join(dtbsPath, dtbFi.Name())
+			dst := filepath.Join(bootDtbPath, dtbFi.Name())
+			if err := move(src, dst); err != nil {
+				return err
+			}
+		}
+	}
+
+	snappySystemFile, err := os.Create(bootSnappySystemPath)
+	if err != nil {
+		return err
+	}
+	defer snappySystemFile.Close()
+
+	var ftdfile string
+	if img.platform != "" {
+		ftdfile = fmt.Sprintf("ftdfile=%s.dtb", img.platform)
+	}
+
+	t := template.Must(template.New("snappy-system").Parse(snappySystemTemplate))
+	t.Execute(snappySystemFile, ftdfile)
+
+	if img.platform != "" {
+		uEnvPath := filepath.Join(flashAssetsPath, "uEnv.txt")
+
+		// if a uEnv.txt is provided in the bootloader-assets, use it
+		if _, err := os.Stat(uEnvPath); err == nil {
+			if err := move(uEnvPath, bootuEnvPath); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func (img *CoreUBootImage) FlashExtra(devicePart string) error {
+	if img.platform == "" {
+		return nil
+	}
+
+	tmpdir, err := ioutil.TempDir("", "device")
+	if err != nil {
+		return errors.New("cannot create tempdir to extract hardware.yaml from device part")
+	}
+	defer os.RemoveAll(tmpdir)
+
+	if out, err := exec.Command("tar", "xf", devicePart, "-C", tmpdir, "flashtool-assets").CombinedOutput(); err != nil {
+		return fmt.Errorf("failed to extract the flashtool-assets from the device part: %s", out)
+	}
+
+	flashAssetsPath := filepath.Join(tmpdir, "flashtool-assets", img.platform)
+	flashPath := filepath.Join(flashAssetsPath, "flash.yaml")
+
+	if _, err := os.Stat(flashPath); err != nil && os.IsNotExist(err) {
+		return nil
+	} else if err != nil {
+		return err
+	}
+
+	data, err := ioutil.ReadFile(flashPath)
+	if err != nil {
+		return err
+	}
+
+	var flash FlashInstructions
+	if err := goyaml.Unmarshal([]byte(data), &flash); err != nil {
+		return err
+	}
+
+	for _, cmd := range flash.Bootloader {
+		cmd = fmt.Sprintf(cmd, flashAssetsPath, img.location)
+		cmdFields := strings.Fields(cmd)
+
+		if out, err := exec.Command(cmdFields[0], cmdFields[1:]...).CombinedOutput(); err != nil {
+			return fmt.Errorf("failed to run flash command: %s : %s", cmd, out)
+		} else {
+			fmt.Println(cmd)
+			fmt.Println(string(out))
 		}
 	}
 
@@ -325,6 +437,7 @@ func move(src, dst string) error {
 	if err != nil {
 		return err
 	}
+	defer os.Remove(src)
 	defer srcFile.Close()
 
 	reader := bufio.NewReader(srcFile)
