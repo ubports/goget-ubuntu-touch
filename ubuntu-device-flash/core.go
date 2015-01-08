@@ -405,19 +405,6 @@ func getAuthorizedSshKey() (string, error) {
 	return string(pubKey), err
 }
 
-// useGrub determines if this system is booted through grub.
-//
-// The logic is rudimentary and awaits the hardware.yaml
-func useGrub(systemPath string) bool {
-	grubInstall := filepath.Join(systemPath, "usr", "sbin", "grub-install")
-
-	if _, err := os.Stat(grubInstall); err != nil && os.IsNotExist(err) {
-		return false
-	}
-
-	return true
-}
-
 func extractHWDescription(path string) (hw diskimage.HardwareDescription, err error) {
 	printOut("Searching for hardware.yaml in device part")
 	tmpdir, err := ioutil.TempDir("", "hardware")
