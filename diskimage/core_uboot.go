@@ -33,31 +33,6 @@ import (
 // You should have received a copy of the GNU General Public License along
 // with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-const uEnvTemplate = `# functions to load kernel, initrd and fdt from various env values
-loadfiles=run loadkernel; run loadinitrd; run loadfdt
-loadkernel=load mmc ${mmcdev}:${mmcpart} ${loadaddr} ${snappy_ab}/${kernel_file}
-loadinitrd=load mmc ${mmcdev}:${mmcpart} ${initrd_addr} ${snappy_ab}/${initrd_file}; setenv initrd_size ${filesize}
-loadfdt=load mmc ${mmcdev}:${mmcpart} ${fdtaddr} ${snappy_ab}/dtbs/${fdtfile}
-
-# where to load initrd
-initrd_addr=0x88080000
-
-# standard kernel and initrd file names; NB: ftdfile is set early from bootcmd
-kernel_file=vmlinuz
-initrd_file=initrd.img
-
-# boot logic
-# either "a" or "b"; target partition we want to boot
-snappy_ab=a
-# stamp file indicating a new version is being tried; removed by s-i after boot
-snappy_stamp=snappy-stamp.txt
-# either "regular" (normal boot) or "try" when trying a new version
-snappy_mode=regular
-# if we're trying a new version, check if stamp file is already there to revert
-# to other version
-uenvcmd=if test "${snappy_mode}" = "try"; then if fatsize ${snappy_stamp}; then if test "${snappy_ab}" = "a"; then setenv snappy_ab "b"; else setenv snappy_ab "a"; fi; else fatwrite mmc ${mmcdev}:${mmcpart} 0x0 ${snappy_stamp} 0; fi; fi; run loadfiles; setenv mmcroot /dev/disk/by-label/system-${snappy_ab} init=/lib/systemd/systemd ro; run mmcargs; bootz ${loadaddr} ${initrd_addr}:${initrd_size} ${fdtaddr}
-`
-
 type CoreUBootImage struct {
 	CoreImage
 	SystemImage
@@ -286,25 +261,29 @@ func (img CoreUBootImage) BaseMount() string {
 }
 
 func (img CoreUBootImage) SetupBoot() error {
+	// destinations
 	bootPath := filepath.Join(img.baseMount, string(bootDir))
 	bootAPath := filepath.Join(bootPath, "a")
 	bootDtbPath := filepath.Join(bootAPath, "dtbs")
+	bootuEnvPath := filepath.Join(bootPath, "uEnv.txt")
 
 	// origins
 	hardwareYamlPath := filepath.Join(img.baseMount, "hardware.yaml")
 	kernelPath := filepath.Join(img.baseMount, img.hardware.Kernel)
 	initrdPath := filepath.Join(img.baseMount, img.hardware.Initrd)
 	dtbsPath := filepath.Join(img.baseMount, img.hardware.Dtbs)
+	uEnvPath := filepath.Join(img.baseMount, "bootloader-assets", "uEnv.txt")
 
-	// destinations
-	uEnvPath := filepath.Join(bootPath, "uEnv.txt")
-
-	if err := ioutil.WriteFile(uEnvPath, []byte(uEnvTemplate), 0755); err != nil {
+	// create layout
+	if err := os.MkdirAll(bootDtbPath, 0755); err != nil {
 		return err
 	}
 
-	if err := os.MkdirAll(bootDtbPath, 0755); err != nil {
-		return err
+	// if a uEnv.txt is provided in the bootloader-assets, use it
+	if _, err := os.Stat(uEnvPath); err == nil {
+		if err := move(uEnvPath, bootuEnvPath); err != nil {
+			return err
+		}
 	}
 
 	if err := move(hardwareYamlPath, filepath.Join(bootAPath, "hardware.yaml")); err != nil {
