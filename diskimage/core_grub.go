@@ -50,7 +50,7 @@ func NewCoreGrubImage(location string, size int64) *CoreGrubImage {
 }
 
 const grubCfgContent = `# console only, no graphics/vga
-GRUB_CMDLINE_LINUX_DEFAULT="console=tty1 console=ttyS0"
+GRUB_CMDLINE_LINUX_DEFAULT="console=tty1 console=ttyS0 panic=-1"
 GRUB_TERMINAL=console
 # LP: #1035279
 GRUB_RECORDFAIL_TIMEOUT=0
