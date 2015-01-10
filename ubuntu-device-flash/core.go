@@ -212,7 +212,7 @@ func (coreCmd *CoreCmd) Execute(args []string) error {
 	}
 	defer func() {
 		if err != nil {
-			os.Remove(coreCmd.Output)
+			//os.Remove(coreCmd.Output)
 		}
 	}()
 

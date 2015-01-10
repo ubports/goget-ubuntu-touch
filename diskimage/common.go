@@ -25,25 +25,6 @@ import (
 // You should have received a copy of the GNU General Public License along
 // with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-type imageLabel string
-type directory string
-
-const (
-	grubLabel     imageLabel = "grub"
-	bootLabel     imageLabel = "system-boot"
-	systemALabel  imageLabel = "system-a"
-	systemBLabel  imageLabel = "system-b"
-	writableLabel imageLabel = "writable"
-)
-
-const (
-	grubDir     directory = "system/boot/grub-gpt"
-	bootDir     directory = "boot"
-	systemADir  directory = "system"
-	systemBDir  directory = "system-b"
-	writableDir directory = "writable"
-)
-
 type Image interface {
 	Mount() error
 	Unmount() error

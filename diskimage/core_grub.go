@@ -69,7 +69,7 @@ func (img *CoreGrubImage) Mount() (err error) {
 	}()
 
 	for _, part := range img.parts {
-		if part.label == grubLabel {
+		if part.fs == fsNone {
 			continue
 		}
 
@@ -96,13 +96,13 @@ func (img *CoreGrubImage) Unmount() (err error) {
 	}
 
 	for i := len(img.parts) - 1; i >= 0; i-- {
-		if img.parts[i].label == grubLabel {
+		if img.parts[i].fs == fsNone {
 			continue
 		}
 
 		mountpoint := filepath.Join(img.baseMount, string(img.parts[i].dir))
 		if out, err := exec.Command("umount", mountpoint).CombinedOutput(); err != nil {
-			return fmt.Errorf("unable to unmount dir for image: %s", out)
+			return fmt.Errorf("unable to unmount dir for image: %d %s", i, out)
 		}
 	}
 
@@ -117,32 +117,28 @@ func (img *CoreGrubImage) Partition() error {
 		return err
 	}
 
-	partedCmd := exec.Command("parted", img.location)
-	stdin, err := partedCmd.StdinPipe()
+	parted, err := newParted(mkLabelGpt)
 	if err != nil {
 		return err
 	}
 
-	stdin.Write([]byte("mklabel gpt\n"))
+	parted.addPart(grubLabel, "", fsNone, 4)
+	parted.addPart(bootLabel, bootDir, fsFat32, 64)
+	parted.addPart(systemALabel, systemADir, fsExt4, 1024)
+	parted.addPart(systemBLabel, systemBDir, fsExt4, 1024)
+	parted.addPart(writableLabel, writableDir, fsExt4, -1)
 
-	stdin.Write([]byte("mkpart non-fs ext4 8192s 16383s\n"))
-	stdin.Write([]byte("mkpart boot fat32 16384s 1064959s\n"))
-	stdin.Write([]byte("mkpart system-a ext4 1064960s 3162111s\n"))
-	stdin.Write([]byte("mkpart system-b ext4 3162112s 5259263s\n"))
-	stdin.Write([]byte("mkpart writable ext4 5259264s -1M\n"))
+	parted.setBoot(2)
+	parted.setBiosGrub(1)
 
-	stdin.Write([]byte("set 1 boot on\n"))
-	stdin.Write([]byte("set 2 esp on\n"))
-	stdin.Write([]byte("set 1 bios_grub on\n"))
-	stdin.Write([]byte("unit s print\n"))
-	stdin.Write([]byte("quit\n"))
+	img.parts = parted.parts
 
-	return partedCmd.Run()
+	return parted.create(img.location)
 }
 
 //Map creates loop devices for the partitions
 func (img *CoreGrubImage) Map() error {
-	if img.parts != nil {
+	if isMapped(img.parts) {
 		panic("cannot double map partitions")
 	}
 
@@ -176,13 +172,7 @@ func (img *CoreGrubImage) Map() error {
 		return errors.New("more partitions then expected while creating loop mapping")
 	}
 
-	img.parts = []partition{
-		partition{label: bootLabel, dir: bootDir, loop: loops[1]},
-		partition{label: systemALabel, dir: systemADir, loop: loops[2]},
-		partition{label: systemBLabel, dir: systemBDir, loop: loops[3]},
-		partition{label: writableLabel, dir: writableDir, loop: loops[4]},
-		partition{label: grubLabel, dir: grubDir, loop: loops[0]},
-	}
+	mapPartitions(img.parts, loops)
 
 	if err := kpartxCmd.Wait(); err != nil {
 		return err
@@ -207,7 +197,7 @@ func (img *CoreGrubImage) Unmap() error {
 		return err
 	}
 
-	img.parts = nil
+	unmapPartitions(img.parts)
 
 	return nil
 }
@@ -216,7 +206,7 @@ func (img CoreGrubImage) Format() error {
 	for _, part := range img.parts {
 		dev := filepath.Join("/dev/mapper", part.loop)
 
-		if part.label == bootLabel {
+		if part.fs == fsFat32 {
 			cmd := []string{"-F", "32", "-n", string(part.label)}
 
 			size, err := sectorSize(dev)
@@ -233,7 +223,7 @@ func (img CoreGrubImage) Format() error {
 			if out, err := exec.Command("mkfs.vfat", cmd...).CombinedOutput(); err != nil {
 				return fmt.Errorf("unable to create filesystem: %s", out)
 			}
-		} else if part.label != grubLabel {
+		} else if part.fs == fsExt4 {
 			if out, err := exec.Command("mkfs.ext4", "-F", "-L", string(part.label), dev).CombinedOutput(); err != nil {
 				return fmt.Errorf("unable to create filesystem: %s", out)
 			}

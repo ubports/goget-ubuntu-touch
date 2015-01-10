@@ -86,7 +86,7 @@ func NewCoreUBootImage(location string, size int64, hw HardwareDescription, plat
 }
 
 func (img *CoreUBootImage) Mount() (err error) {
-	img.baseMount, err = ioutil.TempDir(os.TempDir(), "core-grub-disk")
+	img.baseMount, err = ioutil.TempDir(os.TempDir(), "core-uboot-disk")
 	if err != nil {
 		return errors.New(fmt.Sprintf("Unable to create temp dir to create system image: %s", err))
 	}
@@ -138,29 +138,26 @@ func (img *CoreUBootImage) Partition() error {
 		return err
 	}
 
-	partedCmd := exec.Command("parted", img.location)
-	stdin, err := partedCmd.StdinPipe()
+	parted, err := newParted(mkLabelGpt)
 	if err != nil {
 		return err
 	}
 
-	stdin.Write([]byte("mklabel gpt\n"))
+	parted.addPart(bootLabel, bootDir, fsFat32, 64)
+	parted.addPart(systemALabel, systemADir, fsExt4, 1024)
+	parted.addPart(systemBLabel, systemBDir, fsExt4, 1024)
+	parted.addPart(writableLabel, writableDir, fsExt4, -1)
 
-	stdin.Write([]byte("mkpart boot fat32 8192s 1056767s\n"))
-	stdin.Write([]byte("mkpart system-a ext4 1056768s 3153919s\n"))
-	stdin.Write([]byte("mkpart system-b ext4 3153920s 5251071s\n"))
-	stdin.Write([]byte("mkpart writable ext4 5251072s -1M\n"))
+	parted.setBoot(1)
 
-	stdin.Write([]byte("set 1 boot on\n"))
-	stdin.Write([]byte("unit s print\n"))
-	stdin.Write([]byte("quit\n"))
+	img.parts = parted.parts
 
-	return partedCmd.Run()
+	return parted.create(img.location)
 }
 
 //Map creates loop devices for the partitions
 func (img *CoreUBootImage) Map() error {
-	if img.parts != nil {
+	if isMapped(img.parts) {
 		panic("cannot double map partitions")
 	}
 
@@ -194,12 +191,7 @@ func (img *CoreUBootImage) Map() error {
 		return errors.New("more partitions then expected while creating loop mapping")
 	}
 
-	img.parts = []partition{
-		partition{label: bootLabel, dir: bootDir, loop: loops[0]},
-		partition{label: systemALabel, dir: systemADir, loop: loops[1]},
-		partition{label: systemBLabel, dir: systemBDir, loop: loops[2]},
-		partition{label: writableLabel, dir: writableDir, loop: loops[3]},
-	}
+	mapPartitions(img.parts, loops)
 
 	if err := kpartxCmd.Wait(); err != nil {
 		return err
@@ -224,7 +216,7 @@ func (img *CoreUBootImage) Unmap() error {
 		return err
 	}
 
-	img.parts = nil
+	unmapPartitions(img.parts)
 
 	return nil
 }
@@ -233,7 +225,7 @@ func (img CoreUBootImage) Format() error {
 	for _, part := range img.parts {
 		dev := filepath.Join("/dev/mapper", part.loop)
 
-		if part.label == bootLabel {
+		if part.fs == fsFat32 {
 			cmd := []string{"-F", "32", "-n", string(part.label)}
 
 			size, err := sectorSize(dev)

@@ -32,12 +32,6 @@ import (
 	"launchpad.net/goget-ubuntu-touch/sysutils"
 )
 
-type partition struct {
-	label imageLabel
-	dir   directory
-	loop  string
-}
-
 type DiskImage struct {
 	Mountpoint string
 	label      string
