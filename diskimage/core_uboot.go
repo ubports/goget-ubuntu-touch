@@ -341,6 +341,11 @@ func (img CoreUBootImage) SetupBoot() error {
 		}
 	}
 
+	// create /boot/uboot
+	if os.MkdirAll(filepath.Join(img.System(), "boot", "uboot"), 755); err != nil {
+		return err
+	}
+
 	snappySystemFile, err := os.Create(bootSnappySystemPath)
 	if err != nil {
 		return err
