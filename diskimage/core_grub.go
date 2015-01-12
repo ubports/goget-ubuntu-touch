@@ -95,14 +95,15 @@ func (img *CoreGrubImage) Unmount() (err error) {
 		return fmt.Errorf("Failed to sync filesystems before unmounting: %s", out)
 	}
 
-	for i := len(img.parts) - 1; i >= 0; i-- {
-		if img.parts[i].fs == fsNone {
+	for _, part := range img.parts {
+		if part.fs == fsNone {
 			continue
 		}
 
-		mountpoint := filepath.Join(img.baseMount, string(img.parts[i].dir))
+		mountpoint := filepath.Join(img.baseMount, string(part.dir))
 		if out, err := exec.Command("umount", mountpoint).CombinedOutput(); err != nil {
-			return fmt.Errorf("unable to unmount dir for image: %d %s", i, out)
+			return fmt.Errorf("unable to unmount dir for image: %s", out)
+		} else {
 		}
 	}
 
