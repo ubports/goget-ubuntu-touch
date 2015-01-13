@@ -357,14 +357,15 @@ func (coreCmd *CoreCmd) install(systemPath string) error {
 	defer sysutils.ChrootBindUnmount(systemPath)
 
 	for _, snap := range coreCmd.Install {
-		fmt.Println("Installing", snap)
+		snapBase := filepath.Base(snap)
+		fmt.Println("Installing", snapBase)
 
-		if err := copyFile(snap, filepath.Join(systemPath, snap)); err != nil {
+		if err := copyFile(snap, filepath.Join(systemPath, snapBase)); err != nil {
 			return err
 		}
-		defer os.Remove(filepath.Join(systemPath, snap))
+		defer os.Remove(filepath.Join(systemPath, snapBase))
 
-		if err := sysutils.ChrootRun(systemPath, "snappy", "install", snap); err != nil {
+		if err := sysutils.ChrootRun(systemPath, "snappy", "install", snapBase); err != nil {
 			return err
 		}
 	}
