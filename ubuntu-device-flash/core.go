@@ -49,15 +49,16 @@ func init() {
 }
 
 type CoreCmd struct {
-	Channel       string `long:"channel" description:"Specify the channel to use" default:"ubuntu-core/devel"`
-	Device        string `long:"device" description:"Specify the device to use" default:"generic_amd64"`
-	Keyboard      string `long:"keyboard-layout" description:"Specify the keyboard layout" default:"us"`
-	Output        string `long:"output" short:"o" description:"Name of the image file to create" required:"true"`
-	Size          int64  `long:"size" short:"s" description:"Size of image file to create in GB (min 4)" default:"20"`
-	DeveloperMode bool   `long:"developer-mode" description:"Finds the latest public key in your ~/.ssh and sets it up using cloud-init"`
-	EnableSsh     bool   `long:"enable-ssh" description:"Enable ssh on the image through cloud-init(not need with developer mode)"`
-	Cloud         bool   `long:"cloud" description:"Generate a pure cloud image without setting up cloud-init"`
-	Platform      string `long:"platform" description:"specify the boards platform"`
+	Channel       string   `long:"channel" description:"Specify the channel to use" default:"ubuntu-core/devel"`
+	Device        string   `long:"device" description:"Specify the device to use" default:"generic_amd64"`
+	Keyboard      string   `long:"keyboard-layout" description:"Specify the keyboard layout" default:"us"`
+	Output        string   `long:"output" short:"o" description:"Name of the image file to create" required:"true"`
+	Size          int64    `long:"size" short:"s" description:"Size of image file to create in GB (min 4)" default:"20"`
+	DeveloperMode bool     `long:"developer-mode" description:"Finds the latest public key in your ~/.ssh and sets it up using cloud-init"`
+	EnableSsh     bool     `long:"enable-ssh" description:"Enable ssh on the image through cloud-init(not need with developer mode)"`
+	Cloud         bool     `long:"cloud" description:"Generate a pure cloud image without setting up cloud-init"`
+	Platform      string   `long:"platform" description:"specify the boards platform"`
+	Install       []string `long:"install" description:"install additional packages (can be called multiple times)"`
 
 	Development struct {
 		DevicePart string `long:"device-part" description:"Specify a local device part to override the one from the server"`
@@ -323,6 +324,10 @@ func (coreCmd *CoreCmd) setup(img diskimage.CoreImage, filePathChan <-chan strin
 		return err
 	}
 
+	if err := coreCmd.install(systemPath); err != nil {
+		return err
+	}
+
 	if !coreCmd.Cloud {
 		cloudBaseDir := filepath.Join("var", "lib", "cloud")
 
@@ -331,6 +336,35 @@ func (coreCmd *CoreCmd) setup(img diskimage.CoreImage, filePathChan <-chan strin
 		}
 
 		if err := coreCmd.setupCloudInit(cloudBaseDir, filepath.Join(writablePath, "system-data")); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (coreCmd *CoreCmd) install(systemPath string) error {
+	if strings.Contains(coreCmd.Device, "armhf") {
+		if err := sysutils.AddQemuStatic(systemPath); err != nil {
+			return err
+		}
+		defer sysutils.RemoveQemuStatic(systemPath)
+	}
+
+	if err := sysutils.ChrootBindMount(systemPath); err != nil {
+		return err
+	}
+	defer sysutils.ChrootBindUnmount(systemPath)
+
+	for _, snap := range coreCmd.Install {
+		fmt.Println("Installing", snap)
+
+		if err := copyFile(snap, filepath.Join(systemPath, snap)); err != nil {
+			return err
+		}
+		defer os.Remove(filepath.Join(systemPath, snap))
+
+		if err := sysutils.ChrootRun(systemPath, "snappy", "install", snap); err != nil {
 			return err
 		}
 	}

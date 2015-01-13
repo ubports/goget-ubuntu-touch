@@ -1,5 +1,5 @@
 //
-// ubuntu-emu - Tool to download and run Ubuntu Touch emulator instances
+// sysutils - Tool to download and run Ubuntu Touch emulator instances
 //
 // Copyright (c) 2013 Canonical Ltd.
 //
