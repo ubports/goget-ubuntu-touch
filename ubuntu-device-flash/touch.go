@@ -172,7 +172,6 @@ func (touchCmd *TouchCmd) Execute(args []string) error {
 			//Find the recovery image
 			for _, file := range downloadedFiles {
 				if strings.HasSuffix(file.FilePath, ".xz") {
-					fmt.Println(file.FilePath)
 					recovery, err = tryExtractRecovery(file.FilePath)
 					if err == nil {
 						defer os.Remove(recovery)
