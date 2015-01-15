@@ -36,7 +36,8 @@ type TouchCmd struct {
 	Wipe          bool   `long:"wipe" description:"Clear all data after flashing"`
 	Serial        string `long:"serial" description:"Serial of the device to operate"`
 	DeveloperMode bool   `long:"developer-mode" description:"Enables developer mode after the factory reset, this is meant for automation and makes the device insecure by default (requires --password)"`
-	DeviceTarball string `long:"device-tarball" description:"Specify a local device tarball to override the one from the server (using official Ubuntu images with custom device tarballs)"`
+	DeviceTarball string `long:"device-tarball" description:"Specify a local device tarball to override the one from the server (using official Ubuntu images with different device tarballs)"`
+	CustomTarball string `long:"custom-tarball" description:"Specify a local custom tarball to override the one from the server (using official Ubuntu images with different custom tarballs)"`
 	RunScript     string `long:"run-script" description:"Run a script given by path to finish the flashing process, instead of rebooting to recovery (mostly used during development to work around quirky or incomplete recovery images)"`
 	Password      string `long:"password" description:"This sets up the default password for the phablet user. This option is meant for CI and not general use"`
 	Channel       string `long:"channel" description:"Specify the channel to use" default:"ubuntu-touch/stable"`
@@ -86,14 +87,24 @@ func (touchCmd *TouchCmd) Execute(args []string) error {
 		fmt.Println("WARNING --developer-mode and --password are dangerous as they remove security features from your device")
 	}
 
-	var tarballPath string
+	var deviceTarballPath string
 	if touchCmd.DeviceTarball != "" {
 		p, err := expandFile(touchCmd.DeviceTarball)
 		if err != nil {
 			log.Fatalln("Issues while replacing the device tarball:", err)
 		}
 
-		tarballPath = p
+		deviceTarballPath = p
+	}
+
+	var customTarballPath string
+	if touchCmd.CustomTarball != "" {
+		p, err := expandFile(touchCmd.CustomTarball)
+		if err != nil {
+			log.Fatalln("Issues while replacing the custom tarball:", err)
+		}
+
+		customTarballPath = p
 	}
 
 	channels, err := ubuntuimage.NewChannels(globalArgs.Server)
@@ -131,10 +142,15 @@ func (touchCmd *TouchCmd) Execute(args []string) error {
 	done := make(chan bool, totalFiles)
 
 	for i, file := range image.Files {
-		if tarballPath != "" && isDevicePart(file.Path) {
+		if deviceTarballPath != "" && isDevicePart(file.Path) {
 			//change the file paths so they are correctly picked up by bitPusher later on
-			image.Files[i].Path = tarballPath
-			image.Files[i].Signature = tarballPath + ".asc"
+			image.Files[i].Path = deviceTarballPath
+			image.Files[i].Signature = deviceTarballPath + ".asc"
+			useLocalTarball(image.Files[i], files)
+		} else if customTarballPath != "" && isCustomPart(file.Path) {
+			//change the file paths so they are correctly picked up by bitPusher later on
+			image.Files[i].Path = customTarballPath
+			image.Files[i].Signature = customTarballPath + ".asc"
 			useLocalTarball(image.Files[i], files)
 		} else {
 			go bitDownloader(file, files, globalArgs.Server, cacheDir)

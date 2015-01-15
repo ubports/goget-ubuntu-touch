@@ -86,6 +86,11 @@ func isDevicePart(path string) bool {
 	return strings.Contains(path, "device")
 }
 
+// isCustomPart checks if the file corresponds to the custom part.
+func isCustomPart(path string) bool {
+	return strings.Contains(path, "custom")
+}
+
 func copyFile(src, dst string) error {
 	dstFile, err := os.Create(dst)
 	if err != nil {
