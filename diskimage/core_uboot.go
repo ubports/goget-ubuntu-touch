@@ -69,7 +69,7 @@ snappy_stamp=snappy-stamp.txt
 snappy_mode=regular
 # if we're trying a new version, check if stamp file is already there to revert
 # to other version
-snappy_boot=if test "${snappy_mode}" = "try"; then if fatsize ${snappy_stamp}; then if test "${snappy_ab}" = "a"; then setenv snappy_ab "b"; else setenv snappy_ab "a"; fi; else fatwrite mmc ${mmcdev}:${mmcpart} 0x0 ${snappy_stamp} 0; fi; fi; run loadfiles; setenv mmcroot /dev/disk/by-label/system-${snappy_ab} init=/lib/systemd/systemd ro panic=-1; run mmcargs; bootz ${loadaddr} ${initrd_addr}:${initrd_size} ${fdtaddr}
+snappy_boot=if test "${snappy_mode}" = "try"; then if fatsize ${snappy_stamp}; then if test "${snappy_ab}" = "a"; then setenv snappy_ab "b"; else setenv snappy_ab "a"; fi; else fatwrite mmc ${mmcdev}:${mmcpart} 0x0 ${snappy_stamp} 0; fi; fi; run loadfiles; setenv mmcroot /dev/disk/by-label/system-${snappy_ab} init=/lib/systemd/systemd ro fixrtc panic=-1; run mmcargs; bootz ${loadaddr} ${initrd_addr}:${initrd_size} ${fdtaddr}
 `
 
 type FlashInstructions struct {
@@ -381,7 +381,7 @@ func (img CoreUBootImage) provisionDtbs(bootDtbPath string) error {
 
 	if _, err := os.Stat(dtbsPath); os.IsNotExist(err) {
 		return nil
-	} else {
+	} else if err != nil {
 		return err
 	}
 
