@@ -10,6 +10,8 @@ package diskimage
 import (
 	"errors"
 	"fmt"
+	"io"
+	"os"
 	"os/exec"
 )
 
@@ -46,7 +48,10 @@ const (
 	writableDir directory = "writable"
 )
 
-const mkLabelGpt mklabelType = "gpt"
+const (
+	mkLabelGpt   mklabelType = "gpt"
+	mkLabelMsdos mklabelType = "msdos"
+)
 
 const (
 	fsFat32 fsType = "fat32"
@@ -73,7 +78,7 @@ type partition struct {
 }
 
 func newParted(mklabel mklabelType) (*parted, error) {
-	if mklabel != mkLabelGpt {
+	if mklabel != mkLabelGpt && mklabel != mkLabelMsdos {
 		return nil, errUnsupportedPartitioning
 	}
 
@@ -115,18 +120,44 @@ func (p *parted) create(target string) error {
 		return err
 	}
 
+	stdout, err := partedCmd.StdoutPipe()
+	if err != nil {
+		return err
+	}
+
+	stderr, err := partedCmd.StderrPipe()
+	if err != nil {
+		return err
+	}
+
 	if err := partedCmd.Start(); err != nil {
 		return err
 	}
 
 	stdin.Write([]byte(fmt.Sprintf("mklabel %s\n", p.mklabel)))
 
-	for _, parts := range p.parts {
-		if parts.end != -1 {
-			stdin.Write([]byte(fmt.Sprintf("mkpart %s %s %ds %ds\n", parts.label, parts.fs, parts.begin, parts.end)))
-		} else {
-			stdin.Write([]byte(fmt.Sprintf("mkpart %s %s %ds %dM\n", parts.label, parts.fs, parts.begin, parts.end)))
+	if p.mklabel == mkLabelGpt {
+		for _, parts := range p.parts {
+			if parts.end != -1 {
+				stdin.Write([]byte(fmt.Sprintf("mkpart %s %s %ds %ds\n", parts.label, parts.fs, parts.begin, parts.end)))
+			} else {
+				stdin.Write([]byte(fmt.Sprintf("mkpart %s %s %ds %dM\n", parts.label, parts.fs, parts.begin, parts.end)))
+			}
 		}
+	} else if p.mklabel == mkLabelMsdos {
+		if len(p.parts) > 4 {
+			panic("invalid amount of partitions for msdos")
+		}
+
+		for _, parts := range p.parts {
+			if parts.end != -1 {
+				stdin.Write([]byte(fmt.Sprintf("mkpart primary %s %ds %ds\n", parts.fs, parts.begin, parts.end)))
+			} else {
+				stdin.Write([]byte(fmt.Sprintf("mkpart primary %s %ds %dM\n", parts.fs, parts.begin, parts.end)))
+			}
+		}
+	} else {
+		panic("unsupported mklabel for partitioning")
 	}
 
 	if p.bootPartition != 0 {
@@ -138,6 +169,11 @@ func (p *parted) create(target string) error {
 	}
 
 	stdin.Write([]byte("quit\n"))
+
+	if debugPrint {
+		go io.Copy(os.Stdout, stdout)
+		go io.Copy(os.Stderr, stderr)
+	}
 
 	if err := partedCmd.Wait(); err != nil {
 		return errors.New("issues while partitioning")

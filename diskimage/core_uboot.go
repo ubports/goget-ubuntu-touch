@@ -139,7 +139,7 @@ func (img *CoreUBootImage) Partition() error {
 		return err
 	}
 
-	parted, err := newParted(mkLabelGpt)
+	parted, err := newParted(mkLabelMsdos)
 	if err != nil {
 		return err
 	}
@@ -321,6 +321,10 @@ func (img CoreUBootImage) SetupBoot() error {
 		return err
 	}
 
+	if err := img.provisionUenv(bootuEnvPath); err != nil {
+		return err
+	}
+
 	// create /boot/uboot
 	if err := os.MkdirAll(filepath.Join(img.System(), "boot", "uboot"), 755); err != nil {
 		return err
@@ -340,15 +344,12 @@ func (img CoreUBootImage) SetupBoot() error {
 	t := template.Must(template.New("snappy-system").Parse(snappySystemTemplate))
 	t.Execute(snappySystemFile, ftdfile)
 
-	if err := img.provisionUenv(bootuEnvPath); err != nil {
-		return err
-	}
-
 	return nil
 }
 
 func (img CoreUBootImage) provisionUenv(bootuEnvPath string) error {
 	if img.platform == "" {
+		printOut("No platform select, not searching for uEnv.txt")
 		return nil
 	}
 
@@ -356,16 +357,20 @@ func (img CoreUBootImage) provisionUenv(bootuEnvPath string) error {
 	uEnvPath := filepath.Join(flashAssetsPath, "uEnv.txt")
 
 	if _, err := os.Stat(flashAssetsPath); os.IsNotExist(err) {
+		printOut("No flash assets path available")
 		return nil
-	} else {
+	} else if err != nil {
 		return err
 	}
 
 	// if a uEnv.txt is provided in the flashtool-assets, use it
 	if _, err := os.Stat(uEnvPath); err == nil {
+		printOut("Adding uEnv.txt to", bootuEnvPath)
 		if err := move(uEnvPath, bootuEnvPath); err != nil {
 			return err
 		}
+	} else {
+		printOut("Can't copy", uEnvPath, "to", bootuEnvPath, "due to:", err)
 	}
 
 	return nil
@@ -417,8 +422,13 @@ func (img *CoreUBootImage) FlashExtra(devicePart string) error {
 	}
 	defer os.RemoveAll(tmpdir)
 
-	if err := exec.Command("tar", "xf", devicePart, "-C", tmpdir, "flashtool-assets").Run(); err != nil {
+	if out, err := exec.Command("tar", "xf", devicePart, "-C", tmpdir, "flashtool-assets").CombinedOutput(); err != nil {
 		fmt.Println("No flashtool-assets found, skipping...")
+		if debugPrint {
+			fmt.Println("device part:", devicePart)
+			fmt.Println("command output:", string(out))
+		}
+
 		return nil
 	}
 
