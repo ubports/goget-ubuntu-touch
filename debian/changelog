@@ -1,3 +1,13 @@
+goget-ubuntu-touch (0.12-0ubuntu1) vivid; urgency=medium
+
+  * ubuntu-device-flash:
+    - replicating system-a into system-b for slow devices.
+    - setting the cloud-init password to ubuntu.
+    - updating to a new snappy-system.txt.
+    - bug fixes to relax requirements for devices.
+
+ -- Sergio Schvezov <sergio.schvezov@canonical.com>  Fri, 16 Jan 2015 13:17:27 -0300
+
 goget-ubuntu-touch (0.11-0ubuntu0) vivid; urgency=medium
 
    [ Sergio Schvezov ]
