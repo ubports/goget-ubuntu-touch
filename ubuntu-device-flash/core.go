@@ -73,7 +73,7 @@ const cloudInitMetaData = `instance-id: nocloud-static
 `
 
 const cloudInitUserData = `#cloud-config
-password: passw0rd
+password: ubuntu
 chpasswd: { expire: False }
 ssh_pwauth: True
 `
