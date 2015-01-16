@@ -46,8 +46,8 @@ type CoreUBootImage struct {
 	platform  string
 }
 
-const snappySystemTemplate = `# This is a snappy variables and boot logic file and is entirely generated and managed by Snappy
-# Modification can break boot
+const snappySystemTemplate = `# This is a snappy variables and boot logic file and is entirely generated and
+# managed by Snappy. Modifications may break boot
 ######
 # functions to load kernel, initrd and fdt from various env values
 loadfiles=run loadkernel; run loadinitrd; run loadfdt
@@ -60,6 +60,9 @@ kernel_file=vmlinuz
 initrd_file=initrd.img
 {{ . }}
 
+# extra kernel cmdline args, set via mmcroot
+snappy_cmdline=init=/lib/systemd/systemd ro panic=-1 fixrtc
+
 # boot logic
 # either "a" or "b"; target partition we want to boot
 snappy_ab=a
@@ -69,7 +72,7 @@ snappy_stamp=snappy-stamp.txt
 snappy_mode=regular
 # if we're trying a new version, check if stamp file is already there to revert
 # to other version
-snappy_boot=if test "${snappy_mode}" = "try"; then if load mmc ${bootpart} ${loadaddr} ${snappy_stamp} 0; then if test "${snappy_ab}" = "a"; then setenv snappy_ab "b"; else setenv snappy_ab "a"; fi; else fatwrite mmc ${mmcdev}:${mmcpart} 0x0 ${snappy_stamp} 0; fi; fi; run loadfiles; setenv mmcroot /dev/disk/by-label/system-${snappy_ab} init=/lib/systemd/systemd ro fixrtc panic=-1; run mmcargs; bootz ${loadaddr} ${initrd_addr}:${initrd_size} ${fdtaddr}
+snappy_boot=if test "${snappy_mode}" = "try"; then if load mmc ${bootpart} ${loadaddr} ${snappy_stamp} 0; then if test "${snappy_ab}" = "a"; then setenv snappy_ab "b"; else setenv snappy_ab "a"; fi; else fatwrite mmc ${mmcdev}:${mmcpart} 0x0 ${snappy_stamp} 0; fi; fi; run loadfiles; setenv mmcroot /dev/disk/by-label/system-${snappy_ab} ${snappy_cmdline}; run mmcargs; bootz ${loadaddr} ${initrd_addr}:${initrd_size} ${fdtaddr}
 `
 
 type FlashInstructions struct {
