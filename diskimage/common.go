@@ -9,6 +9,7 @@ package diskimage
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 	"strings"
 )
@@ -24,6 +25,14 @@ import (
 //
 // You should have received a copy of the GNU General Public License along
 // with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+var debugPrint bool
+
+func init() {
+	if debug := os.Getenv("DEBUG_DISK"); debug != "" {
+		debugPrint = true
+	}
+}
 
 type Image interface {
 	Mount() error
@@ -62,4 +71,10 @@ func sectorSize(dev string) (string, error) {
 	}
 
 	return strings.TrimSpace(string(out)), err
+}
+
+func printOut(args ...interface{}) {
+	if debugPrint {
+		fmt.Println(args...)
+	}
 }

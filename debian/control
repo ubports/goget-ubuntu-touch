@@ -20,6 +20,7 @@ Architecture: any
 Depends: android-tools-adb,
          android-tools-fastboot,
          kpartx,
+         qemu-user-static,
          ${misc:Depends},
          ${shlibs:Depends},
 Built-Using: ${misc:Built-Using}

@@ -69,7 +69,7 @@ snappy_stamp=snappy-stamp.txt
 snappy_mode=regular
 # if we're trying a new version, check if stamp file is already there to revert
 # to other version
-snappy_boot=if test "${snappy_mode}" = "try"; then if fatsize ${snappy_stamp}; then if test "${snappy_ab}" = "a"; then setenv snappy_ab "b"; else setenv snappy_ab "a"; fi; else fatwrite mmc ${mmcdev}:${mmcpart} 0x0 ${snappy_stamp} 0; fi; fi; run loadfiles; setenv mmcroot /dev/disk/by-label/system-${snappy_ab} init=/lib/systemd/systemd ro panic=-1; run mmcargs; bootz ${loadaddr} ${initrd_addr}:${initrd_size} ${fdtaddr}
+snappy_boot=if test "${snappy_mode}" = "try"; then if fatsize ${snappy_stamp}; then if test "${snappy_ab}" = "a"; then setenv snappy_ab "b"; else setenv snappy_ab "a"; fi; else fatwrite mmc ${mmcdev}:${mmcpart} 0x0 ${snappy_stamp} 0; fi; fi; run loadfiles; setenv mmcroot /dev/disk/by-label/system-${snappy_ab} init=/lib/systemd/systemd ro fixrtc debug=vc panic=-1; run mmcargs; bootz ${loadaddr} ${initrd_addr}:${initrd_size} ${fdtaddr}
 `
 
 type FlashInstructions struct {
@@ -114,7 +114,10 @@ func (img *CoreUBootImage) Unmount() (err error) {
 	if img.baseMount == "" {
 		panic("No base mountpoint set")
 	}
-	defer os.Remove(img.baseMount)
+	defer func() {
+		os.Remove(img.baseMount)
+		img.baseMount = ""
+	}()
 
 	if out, err := exec.Command("sync").CombinedOutput(); err != nil {
 		return fmt.Errorf("Failed to sync filesystems before unmounting: %s", out)
@@ -123,11 +126,9 @@ func (img *CoreUBootImage) Unmount() (err error) {
 	for _, part := range img.parts {
 		mountpoint := filepath.Join(img.baseMount, string(part.dir))
 		if out, err := exec.Command("umount", mountpoint).CombinedOutput(); err != nil {
-			return fmt.Errorf("unable to unmount dir for image: %s", out)
+			panic(fmt.Sprintf("unable to unmount dir for image: %s", out))
 		}
 	}
-
-	img.baseMount = ""
 
 	return nil
 }
@@ -138,7 +139,7 @@ func (img *CoreUBootImage) Partition() error {
 		return err
 	}
 
-	parted, err := newParted(mkLabelGpt)
+	parted, err := newParted(mkLabelMsdos)
 	if err != nil {
 		return err
 	}
@@ -298,8 +299,6 @@ func (img CoreUBootImage) SetupBoot() error {
 	hardwareYamlPath := filepath.Join(img.baseMount, "hardware.yaml")
 	kernelPath := filepath.Join(img.baseMount, img.hardware.Kernel)
 	initrdPath := filepath.Join(img.baseMount, img.hardware.Initrd)
-	dtbsPath := filepath.Join(img.baseMount, img.hardware.Dtbs)
-	flashAssetsPath := filepath.Join(img.baseMount, "flashtool-assets", img.platform)
 
 	// create layout
 	if err := os.MkdirAll(bootDtbPath, 0755); err != nil {
@@ -310,11 +309,79 @@ func (img CoreUBootImage) SetupBoot() error {
 		return err
 	}
 
-	if err := move(kernelPath, filepath.Join(bootAPath, "vmlinuz")); err != nil {
+	if err := move(kernelPath, filepath.Join(bootAPath, filepath.Base(kernelPath))); err != nil {
 		return err
 	}
 
-	if err := move(initrdPath, filepath.Join(bootAPath, "initrd.img")); err != nil {
+	if err := move(initrdPath, filepath.Join(bootAPath, filepath.Base(initrdPath))); err != nil {
+		return err
+	}
+
+	if err := img.provisionDtbs(bootDtbPath); err != nil {
+		return err
+	}
+
+	if err := img.provisionUenv(bootuEnvPath); err != nil {
+		return err
+	}
+
+	// create /boot/uboot
+	if err := os.MkdirAll(filepath.Join(img.System(), "boot", "uboot"), 755); err != nil {
+		return err
+	}
+
+	snappySystemFile, err := os.Create(bootSnappySystemPath)
+	if err != nil {
+		return err
+	}
+	defer snappySystemFile.Close()
+
+	var ftdfile string
+	if img.platform != "" {
+		ftdfile = fmt.Sprintf("ftdfile=%s.dtb", img.platform)
+	}
+
+	t := template.Must(template.New("snappy-system").Parse(snappySystemTemplate))
+	t.Execute(snappySystemFile, ftdfile)
+
+	return nil
+}
+
+func (img CoreUBootImage) provisionUenv(bootuEnvPath string) error {
+	if img.platform == "" {
+		printOut("No platform select, not searching for uEnv.txt")
+		return nil
+	}
+
+	flashAssetsPath := filepath.Join(img.baseMount, "flashtool-assets", img.platform)
+	uEnvPath := filepath.Join(flashAssetsPath, "uEnv.txt")
+
+	if _, err := os.Stat(flashAssetsPath); os.IsNotExist(err) {
+		printOut("No flash assets path available")
+		return nil
+	} else if err != nil {
+		return err
+	}
+
+	// if a uEnv.txt is provided in the flashtool-assets, use it
+	if _, err := os.Stat(uEnvPath); err == nil {
+		printOut("Adding uEnv.txt to", bootuEnvPath)
+		if err := move(uEnvPath, bootuEnvPath); err != nil {
+			return err
+		}
+	} else {
+		printOut("Can't copy", uEnvPath, "to", bootuEnvPath, "due to:", err)
+	}
+
+	return nil
+}
+
+func (img CoreUBootImage) provisionDtbs(bootDtbPath string) error {
+	dtbsPath := filepath.Join(img.baseMount, img.hardware.Dtbs)
+
+	if _, err := os.Stat(dtbsPath); os.IsNotExist(err) {
+		return nil
+	} else if err != nil {
 		return err
 	}
 
@@ -341,36 +408,6 @@ func (img CoreUBootImage) SetupBoot() error {
 		}
 	}
 
-	// create /boot/uboot
-	if os.MkdirAll(filepath.Join(img.System(), "boot", "uboot"), 755); err != nil {
-		return err
-	}
-
-	snappySystemFile, err := os.Create(bootSnappySystemPath)
-	if err != nil {
-		return err
-	}
-	defer snappySystemFile.Close()
-
-	var ftdfile string
-	if img.platform != "" {
-		ftdfile = fmt.Sprintf("ftdfile=%s.dtb", img.platform)
-	}
-
-	t := template.Must(template.New("snappy-system").Parse(snappySystemTemplate))
-	t.Execute(snappySystemFile, ftdfile)
-
-	if img.platform != "" {
-		uEnvPath := filepath.Join(flashAssetsPath, "uEnv.txt")
-
-		// if a uEnv.txt is provided in the bootloader-assets, use it
-		if _, err := os.Stat(uEnvPath); err == nil {
-			if err := move(uEnvPath, bootuEnvPath); err != nil {
-				return err
-			}
-		}
-	}
-
 	return nil
 }
 
@@ -386,7 +423,13 @@ func (img *CoreUBootImage) FlashExtra(devicePart string) error {
 	defer os.RemoveAll(tmpdir)
 
 	if out, err := exec.Command("tar", "xf", devicePart, "-C", tmpdir, "flashtool-assets").CombinedOutput(); err != nil {
-		return fmt.Errorf("failed to extract the flashtool-assets from the device part: %s", out)
+		fmt.Println("No flashtool-assets found, skipping...")
+		if debugPrint {
+			fmt.Println("device part:", devicePart)
+			fmt.Println("command output:", string(out))
+		}
+
+		return nil
 	}
 
 	flashAssetsPath := filepath.Join(tmpdir, "flashtool-assets", img.platform)

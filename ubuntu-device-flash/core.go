@@ -144,6 +144,8 @@ func (coreCmd *CoreCmd) Execute(args []string) error {
 			f := <-filesChan
 
 			if isDevicePart(f.FilePath) {
+				devicePart = f.FilePath
+
 				if hardware, err := extractHWDescription(f.FilePath); err != nil {
 					fmt.Println("Failed to read harware.yaml from device part, provisioning may fail:", err)
 				} else {
