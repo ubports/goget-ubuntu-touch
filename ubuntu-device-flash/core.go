@@ -342,6 +342,20 @@ func (coreCmd *CoreCmd) setup(img diskimage.CoreImage, filePathChan <-chan strin
 		}
 	}
 
+	// if the device is armhf, we can't to make this copy here since it's faster
+	// than on the device.
+	if coreCmd.Device == "generic_armhf" && coreCmd.hardware.PartitionLayout == "system-AB" {
+		printOut("Replicating system-a into system-b")
+
+		src := fmt.Sprintf("%s/.", systemPath)
+		dst := fmt.Sprintf("%s/system-b", img.BaseMount())
+
+		cmd := exec.Command("cp", "-r", "--preserve=all", src, dst)
+		if out, err := cmd.CombinedOutput(); err != nil {
+			return fmt.Errorf("failed to replicate image contents: %s", out)
+		}
+	}
+
 	return nil
 }
 
