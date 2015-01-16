@@ -38,7 +38,7 @@ func CreateEmptyFile(path string, size int64) (err error) {
 			os.Remove(path)
 		}
 	}()
-	size = size * 1024 * 1024 * 1024
+	size = size * 1000 * 1000 * 1000
 	if err := file.Truncate(size); err != nil {
 		return errors.New(fmt.Sprintf("Error creating %s of size %d to stage image onto", path, size))
 	}
