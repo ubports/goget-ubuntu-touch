@@ -55,7 +55,7 @@ type CoreCmd struct {
 	Output        string   `long:"output" short:"o" description:"Name of the image file to create" required:"true"`
 	Size          int64    `long:"size" short:"s" description:"Size of image file to create in GB (min 4)" default:"20"`
 	DeveloperMode bool     `long:"developer-mode" description:"Finds the latest public key in your ~/.ssh and sets it up using cloud-init"`
-	EnableSsh     bool     `long:"enable-ssh" description:"Enable ssh on the image through cloud-init(not need with developer mode)"`
+	EnableSsh     bool     `long:"enable-ssh" description:"Enable ssh on the image through cloud-init(not needed with developer mode)"`
 	Cloud         bool     `long:"cloud" description:"Generate a pure cloud image without setting up cloud-init"`
 	Platform      string   `long:"platform" description:"specify the boards platform"`
 	Install       []string `long:"install" description:"install additional packages (can be called multiple times)"`
@@ -76,6 +76,7 @@ const cloudInitUserData = `#cloud-config
 password: ubuntu
 chpasswd: { expire: False }
 ssh_pwauth: True
+ssh_genkeytypes: ['rsa', 'dsa', 'ecdsa', 'ed25519']
 `
 
 func (coreCmd *CoreCmd) Execute(args []string) error {
