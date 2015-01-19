@@ -45,6 +45,20 @@ var cacheDir = ubuntuimage.GetCacheDir()
 func main() {
 	args := os.Args
 
+	if v := os.Getenv("MANPAGE"); v != "" {
+		manpagePath := "/tmp/ubuntu-device-flash.manpage"
+		w, err := os.Create(manpagePath)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+
+		parser.WriteManPage(w)
+		fmt.Println("Created manpage at", manpagePath)
+
+		return
+	}
+
 	if _, err := parser.ParseArgs(args); err != nil && parser.Active == nil {
 		if e, ok := err.(*flags.Error); ok {
 			if e.Type == flags.ErrHelp {

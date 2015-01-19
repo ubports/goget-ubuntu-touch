@@ -1,68 +1,125 @@
-.TH UBUNTU-DEVICE-FLASH 1
-
+.TH ubuntu-device-flash 1 "19 January 2015"
 .SH NAME
-ubuntu-device-flash \- provision supported Nexus devices with Ubuntu
-
+ubuntu-device-flash \- 
 .SH SYNOPSIS
-.B ubuntu-device-flash
-[OPTIONS]
-
+\fBubuntu-device-flash\fP [OPTIONS]
 .SH DESCRIPTION
-.B ubuntu-device-flash
-Use this tool to flash a suported device with Ubuntu by either
-bootstrapping from fastboot or reflashing from an already
-supported device.
 
 .SH OPTIONS
-\fB\-bootstrap\fR=\fIfalse\fR: Bootstrap the system, do this from fastboot
-.HP
-\fB\-channel=\fR"stable": Select channel to flash
-.HP
-\fB\-device=\fR"": Select device to flash
-.HP
-\fB\-list\-channels\fR=\fIfalse\fR: List available channels
-.HP
-\fB\-revision\fR=\fI0\fR: Revision to flash, 0 is current, use explicit version number or negative relative ones to current
-.HP
-\fB\-serial=\fR"": Serial of the device to operate
-.HP
-\fB\-server=\fR"https://system\-image.ubuntu.com": Select image server
-.HP
-\fB\-wipe\fR=\fIfalse\fR: Clear all data after flashing
+.TP
+\fB--revision\fP
+revision to use, absolute or relative allowed
+.TP
+\fB--download-only\fP
+Only download.
+.TP
+\fB--server\fP
+Use a different image server
+.TP
+\fB--clean-cache\fP
+Cleans up cache with all downloaded bits
+.TP
+\fB--tls-skip-verify\fP
+Skip TLS certificate validation
+.TP
+\fB-v, --verbose\fP
+More messages will be printed out
+.SH COMMANDS
+.SS core
+Creates ubuntu core images
 
-.SH EXAMPLES
-To list the available channels on the server for the connected device
-.PP
-.nf
-.RS
-ubuntu-device-flash --list-channels
-.RE
-.fi
-.PP
+\fBUsage\fP: ubuntu-device-flash [OPTIONS] core [core-OPTIONS]
 
-To flash a full image over an existing Ubuntu Touch install with a different
-channel
-.PP
-.nf
-.RS
-ubuntu-device-flash --channel [channel]
-.RE
-.fi
-.PP
+.TP
+\fB--channel\fP
+Specify the channel to use
+.TP
+\fB--device\fP
+Specify the device to use
+.TP
+\fB--keyboard-layout\fP
+Specify the keyboard layout
+.TP
+\fB-o, --output\fP
+Name of the image file to create
+.TP
+\fB-s, --size\fP
+Size of image file to create in GB (min 4)
+.TP
+\fB--developer-mode\fP
+Finds the latest public key in your ~/.ssh and sets it up using cloud-init
+.TP
+\fB--enable-ssh\fP
+Enable ssh on the image through cloud-init(not needed with developer mode)
+.TP
+\fB--cloud\fP
+Generate a pure cloud image without setting up cloud-init
+.TP
+\fB--platform\fP
+specify the boards platform
+.TP
+\fB--install\fP
+install additional packages (can be called multiple times)
+.TP
+\fB--device-part\fP
+Specify a local device part to override the one from the server
+.SS query
+Run queries against the image server
 
-To flash a full image over a non Ubuntu Touch install with the default
-channel, do the following from fastboot
-.PP
-.nf
-.RS
-ubuntu-device-flash --bootstrap
-.RE
-.fi
-.PP
+Choose from the list of query options to retrieve information from the server
 
-.SH ENVIRONMENT
-.IP XDG_CACHE_HOME
-If set, downloads take place in XDG_CACHE_HOME/ubuntuimages
+\fBUsage\fP: ubuntu-device-flash [OPTIONS] query [query-OPTIONS]
 
-.SH AUTHOR
-Sergio Schvezov <sergio.schvezov at canonical dot com>
+.TP
+\fB--list-channels\fP
+List available channels
+.TP
+\fB--list-images\fP
+List available images for a channel
+.TP
+\fB--show-image\fP
+Show information for an image in the given channel
+.TP
+\fB--channel\fP
+Specify an alternate channel
+.TP
+\fB--device\fP
+Specify the device to use as a base for querying
+.SS touch
+Flashes ubuntu touch images
+
+\fBUsage\fP: ubuntu-device-flash [OPTIONS] touch [touch-OPTIONS]
+
+.TP
+\fB--bootstrap\fP
+bootstrap the system, do this from the bootloader
+.TP
+\fB--wipe\fP
+Clear all data after flashing
+.TP
+\fB--serial\fP
+Serial of the device to operate
+.TP
+\fB--developer-mode\fP
+Enables developer mode after the factory reset, this is meant for automation and makes the device insecure by default (requires --password)
+.TP
+\fB--device-tarball\fP
+Specify a local device tarball to override the one from the server (using official Ubuntu images with different device tarballs)
+.TP
+\fB--custom-tarball\fP
+Specify a local custom tarball to override the one from the server (using official Ubuntu images with different custom tarballs)
+.TP
+\fB--run-script\fP
+Run a script given by path to finish the flashing process, instead of rebooting to recovery (mostly used during development to work around quirky or incomplete recovery images)
+.TP
+\fB--password\fP
+This sets up the default password for the phablet user. This option is meant for CI and not general use
+.TP
+\fB--channel\fP
+Specify the channel to use
+.TP
+\fB--device\fP
+Specify the device to flash
+.TP
+\fB--recovery-image\fP
+Specify the recovery image file to use when flashing, overriding the one from the device tarball (useful if the latter has no adb enabled)
