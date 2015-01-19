@@ -1,3 +1,10 @@
+goget-ubuntu-touch (0.13-0ubuntu1) vivid; urgency=medium
+
+  * Setting a fixed set of ssh host keys to create.
+  * Updating ubuntu-device-flash's manpage and code to generate it. 
+
+ -- Sergio Schvezov <sergio.schvezov@canonical.com>  Mon, 19 Jan 2015 18:45:29 -0300
+
 goget-ubuntu-touch (0.12-0ubuntu1) vivid; urgency=medium
 
   * ubuntu-device-flash:
