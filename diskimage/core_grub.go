@@ -247,6 +247,19 @@ func (img CoreGrubImage) Writable() string {
 	return filepath.Join(img.baseMount, string(writableDir))
 }
 
+// Boot returns the system-boot path
+func (img CoreGrubImage) Boot() string {
+	if img.parts == nil {
+		panic("img is not setup with partitions")
+	}
+
+	if img.baseMount == "" {
+		panic("img not mounted")
+	}
+
+	return filepath.Join(img.baseMount, string(bootDir))
+}
+
 //System returns the system path
 func (img CoreGrubImage) System() string {
 	if img.parts == nil {
@@ -303,6 +316,30 @@ func (img *CoreGrubImage) SetupBoot() error {
 	}
 	defer unmount(rootDevPath)
 
+	efiDir := filepath.Join(img.System(), "boot", "efi")
+	if err := os.MkdirAll(efiDir, 0755); err != nil {
+		return fmt.Errorf("unable to create %s dir: %s", efiDir, err)
+	}
+
+	if err := bindMount(img.Boot(), efiDir); err != nil {
+		return err
+	}
+	defer unmount(efiDir)
+
+	// create efi layout
+	efiGrubDir := filepath.Join(img.System(), "boot", "efi", "EFI", "ubuntu", "grub")
+	if err := os.MkdirAll(efiGrubDir, 0755); err != nil {
+		return fmt.Errorf("unable to create %s dir: %s", efiGrubDir, err)
+	}
+
+	bootGrubDir := filepath.Join(img.System(), "boot", "grub")
+
+	if err := bindMount(efiGrubDir, bootGrubDir); err != nil {
+		return err
+	}
+	defer unmount(bootGrubDir)
+
+	// install grub
 	if out, err := exec.Command("chroot", img.System(), "grub-install", "/root_dev").CombinedOutput(); err != nil {
 		return fmt.Errorf("unable to install grub: %s", out)
 	}
