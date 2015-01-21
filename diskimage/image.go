@@ -155,7 +155,7 @@ func (img DiskImage) CreateExt4() error {
 		panic("creating ext4 on images with multiple parts not supported")
 	}
 
-	if err := sysutils.CreateEmptyFile(img.path, img.size); err != nil {
+	if err := sysutils.CreateEmptyFile(img.path, img.size, sysutils.GiB); err != nil {
 		return err
 	}
 
@@ -164,7 +164,7 @@ func (img DiskImage) CreateExt4() error {
 
 //CreateVFat returns a vfat partition for a given file
 func (img DiskImage) CreateVFat() error {
-	if err := sysutils.CreateEmptyFile(img.path, img.size); err != nil {
+	if err := sysutils.CreateEmptyFile(img.path, img.size, sysutils.GiB); err != nil {
 		return err
 	}
 	return exec.Command("mkfs.vfat", "-n", img.label, img.path).Run()

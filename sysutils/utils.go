@@ -27,7 +27,14 @@ import (
 	"syscall"
 )
 
-func CreateEmptyFile(path string, size int64) (err error) {
+type unit int64
+
+const (
+	GiB unit = 1024
+	GB  unit = 1000
+)
+
+func CreateEmptyFile(path string, size int64, u unit) (err error) {
 	file, err := os.Create(path)
 	if err != nil {
 		return err
@@ -38,7 +45,16 @@ func CreateEmptyFile(path string, size int64) (err error) {
 			os.Remove(path)
 		}
 	}()
-	size = size * 1000 * 1000 * 1000
+
+	switch u {
+	case GiB:
+		size = size * 1024 * 1024 * 1024
+	case GB:
+		size = size * 1000 * 1000 * 1000
+	default:
+		panic("improper sizing unit used")
+	}
+
 	if err := file.Truncate(size); err != nil {
 		return errors.New(fmt.Sprintf("Error creating %s of size %d to stage image onto", path, size))
 	}

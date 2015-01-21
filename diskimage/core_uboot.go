@@ -138,7 +138,7 @@ func (img *CoreUBootImage) Unmount() (err error) {
 
 //Partition creates a partitioned image from an img
 func (img *CoreUBootImage) Partition() error {
-	if err := sysutils.CreateEmptyFile(img.location, img.size); err != nil {
+	if err := sysutils.CreateEmptyFile(img.location, img.size, sysutils.GB); err != nil {
 		return err
 	}
 
