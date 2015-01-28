@@ -55,7 +55,7 @@ loadkernel=load mmc ${mmcdev}:${mmcpart} ${loadaddr} ${snappy_ab}/${kernel_file}
 loadinitrd=load mmc ${mmcdev}:${mmcpart} ${initrd_addr} ${snappy_ab}/${initrd_file}; setenv initrd_size ${filesize}
 loadfdt=load mmc ${mmcdev}:${mmcpart} ${fdtaddr} ${snappy_ab}/dtbs/${fdtfile}
 
-# standard kernel and initrd file names; NB: ftdfile is set early from bootcmd
+# standard kernel and initrd file names; NB: fdtfile is set early from bootcmd
 kernel_file=vmlinuz
 initrd_file=initrd.img
 {{ . }}
@@ -344,13 +344,13 @@ func (img CoreUBootImage) SetupBoot() error {
 	}
 	defer snappySystemFile.Close()
 
-	var ftdfile string
+	var fdtfile string
 	if img.platform != "" {
-		ftdfile = fmt.Sprintf("ftdfile=%s.dtb", img.platform)
+		fdtfile = fmt.Sprintf("fdtfile=%s.dtb", img.platform)
 	}
 
 	t := template.Must(template.New("snappy-system").Parse(snappySystemTemplate))
-	t.Execute(snappySystemFile, ftdfile)
+	t.Execute(snappySystemFile, fdtfile)
 
 	return nil
 }
