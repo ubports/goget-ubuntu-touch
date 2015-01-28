@@ -319,15 +319,21 @@ func (coreCmd *CoreCmd) setup(img diskimage.CoreImage, filePathChan <-chan strin
 
 	systemPath := img.System()
 
-	if err := img.SetupBoot(); err != nil {
+	if err := coreCmd.install(systemPath); err != nil {
+		return err
+	}
+
+	// check if we installed an oem snap
+	oem, err := loadOem(systemPath)
+	if err != nil {
+		return err
+	}
+
+	if err := img.SetupBoot(oem); err != nil {
 		return err
 	}
 
 	if err := coreCmd.setupKeyboardLayout(systemPath); err != nil {
-		return err
-	}
-
-	if err := coreCmd.install(systemPath); err != nil {
 		return err
 	}
 
@@ -492,6 +498,42 @@ func getAuthorizedSshKey() (string, error) {
 	pubKey, err := ioutil.ReadFile(filepath.Join(sshDir, preferredPubKey))
 
 	return string(pubKey), err
+}
+
+func loadOem(systemPath string) (oem diskimage.OemDescription, err error) {
+	pkgs, err := glob(filepath.Join(systemPath, "/oem/"), "package.yaml")
+	if err != nil {
+		return oem, err
+	}
+
+	if len(pkgs) == 0 {
+		return oem, nil
+	} else if len(pkgs) > 1 || err != nil {
+		return oem, errors.New("too many oem packages installed")
+	}
+
+	f, err := ioutil.ReadFile(pkgs[0])
+	if err != nil {
+		return oem, errors.New("failed to read oem yaml")
+	}
+
+	if err := goyaml.Unmarshal([]byte(f), &oem); err != nil {
+		return oem, errors.New("cannot decode oem yaml")
+	}
+
+	return oem, nil
+}
+
+func glob(dir string, filename string) (pkgs []string, err error) {
+	err = filepath.Walk(dir, func(path string, f os.FileInfo, err error) error {
+		if filepath.Base(path) == filename {
+			pkgs = append(pkgs, path)
+		}
+
+		return nil
+	})
+
+	return pkgs, err
 }
 
 func extractHWDescription(path string) (hw diskimage.HardwareDescription, err error) {

@@ -268,7 +268,7 @@ func (img CoreGrubImage) BaseMount() string {
 	return img.baseMount
 }
 
-func (img *CoreGrubImage) SetupBoot() error {
+func (img *CoreGrubImage) SetupBoot(oem OemDescription) error {
 	for _, dev := range []string{"dev", "proc", "sys"} {
 		src := filepath.Join("/", dev)
 		dst := filepath.Join(img.System(), dev)

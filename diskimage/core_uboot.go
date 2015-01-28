@@ -290,7 +290,7 @@ func (img CoreUBootImage) BaseMount() string {
 	return img.baseMount
 }
 
-func (img CoreUBootImage) SetupBoot() error {
+func (img CoreUBootImage) SetupBoot(oem OemDescription) error {
 	// destinations
 	bootPath := filepath.Join(img.baseMount, string(bootDir))
 	bootAPath := filepath.Join(bootPath, "a")
@@ -313,19 +313,19 @@ func (img CoreUBootImage) SetupBoot() error {
 		return err
 	}
 
-	if err := move(hardwareYamlPath, filepath.Join(bootAPath, "hardware.yaml")); err != nil {
+	if err := copyFile(hardwareYamlPath, filepath.Join(bootAPath, "hardware.yaml")); err != nil {
 		return err
 	}
 
-	if err := move(kernelPath, filepath.Join(bootAPath, filepath.Base(kernelPath))); err != nil {
+	if err := copyFile(kernelPath, filepath.Join(bootAPath, filepath.Base(kernelPath))); err != nil {
 		return err
 	}
 
-	if err := move(initrdPath, filepath.Join(bootAPath, filepath.Base(initrdPath))); err != nil {
+	if err := copyFile(initrdPath, filepath.Join(bootAPath, filepath.Base(initrdPath))); err != nil {
 		return err
 	}
 
-	if err := img.provisionDtbs(bootDtbPath); err != nil {
+	if err := img.provisionDtbs(oem, bootDtbPath); err != nil {
 		return err
 	}
 
@@ -374,7 +374,7 @@ func (img CoreUBootImage) provisionUenv(bootuEnvPath string) error {
 	// if a uEnv.txt is provided in the flashtool-assets, use it
 	if _, err := os.Stat(uEnvPath); err == nil {
 		printOut("Adding uEnv.txt to", bootuEnvPath)
-		if err := move(uEnvPath, bootuEnvPath); err != nil {
+		if err := copyFile(uEnvPath, bootuEnvPath); err != nil {
 			return err
 		}
 	} else {
@@ -384,7 +384,7 @@ func (img CoreUBootImage) provisionUenv(bootuEnvPath string) error {
 	return nil
 }
 
-func (img CoreUBootImage) provisionDtbs(bootDtbPath string) error {
+func (img CoreUBootImage) provisionDtbs(oem OemDescription, bootDtbPath string) error {
 	dtbsPath := filepath.Join(img.baseMount, img.hardware.Dtbs)
 
 	if _, err := os.Stat(dtbsPath); os.IsNotExist(err) {
@@ -401,16 +401,23 @@ func (img CoreUBootImage) provisionDtbs(bootDtbPath string) error {
 	dtb := filepath.Join(dtbsPath, fmt.Sprintf("%s.dtb", img.platform))
 
 	// if there is a specific dtb for the platform, copy it.
-	if _, err := os.Stat(dtb); err == nil {
+	// First look in oem and then in device.
+	if oem.Hardware.Dtb != "" && img.platform != "" {
+		oemDtb := filepath.Join(img.System(), oem.InstallPath(), oem.Hardware.Dtb)
 		dst := filepath.Join(bootDtbPath, filepath.Base(dtb))
-		if err := move(dtb, dst); err != nil {
+		if err := copyFile(oemDtb, dst); err != nil {
+			return err
+		}
+	} else if _, err := os.Stat(dtb); err == nil {
+		dst := filepath.Join(bootDtbPath, filepath.Base(dtb))
+		if err := copyFile(dtb, dst); err != nil {
 			return err
 		}
 	} else {
 		for _, dtbFi := range dtbFis {
 			src := filepath.Join(dtbsPath, dtbFi.Name())
 			dst := filepath.Join(bootDtbPath, dtbFi.Name())
-			if err := move(src, dst); err != nil {
+			if err := copyFile(src, dst); err != nil {
 				return err
 			}
 		}
@@ -475,7 +482,7 @@ func (img *CoreUBootImage) FlashExtra(devicePart string) error {
 	return nil
 }
 
-func move(src, dst string) error {
+func copyFile(src, dst string) error {
 	dstFile, err := os.Create(dst)
 	if err != nil {
 		return err
@@ -486,7 +493,6 @@ func move(src, dst string) error {
 	if err != nil {
 		return err
 	}
-	defer os.Remove(src)
 	defer srcFile.Close()
 
 	reader := bufio.NewReader(srcFile)
