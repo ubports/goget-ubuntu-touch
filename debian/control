@@ -19,6 +19,7 @@ Package: ubuntu-device-flash
 Architecture: any
 Depends: android-tools-adb,
          android-tools-fastboot,
+         fakeroot,
          kpartx,
          qemu-user-static,
          ${misc:Depends},
