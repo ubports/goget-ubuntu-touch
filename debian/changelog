@@ -1,3 +1,10 @@
+goget-ubuntu-touch (0.16-0ubuntu1) vivid; urgency=medium
+
+  * ubuntu-device-flash: oem part to allow for dtb overrides.
+  * debian/control: dep on fakeroot for ubuntu-device-flash.
+
+ -- Sergio Schvezov <sergio.schvezov@canonical.com>  Thu, 29 Jan 2015 15:23:27 -0300
+
 goget-ubuntu-touch (0.15-0ubuntu1) vivid; urgency=medium
 
   [ Loïc Minier ]
