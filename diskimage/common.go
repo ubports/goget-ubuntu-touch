@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 )
 
@@ -52,7 +53,7 @@ type SystemImage interface {
 type CoreImage interface {
 	Image
 	SystemImage
-	SetupBoot() error
+	SetupBoot(OemDescription) error
 	FlashExtra(string) error
 }
 
@@ -62,6 +63,18 @@ type HardwareDescription struct {
 	Initrd          string `yaml:"initrd"`
 	PartitionLayout string `yaml:"partition-layout,omitempty"`
 	Bootloader      string `yaml:"bootloader"`
+}
+
+type OemDescription struct {
+	Name     string `yaml:"name"`
+	Version  string `yaml:"version"`
+	Hardware struct {
+		Dtb string `yaml:"dtb,omitempty"`
+	} `yaml:"hardware,omitempty"`
+}
+
+func (o OemDescription) InstallPath() string {
+	return filepath.Join("/oem", o.Name, o.Version)
 }
 
 func sectorSize(dev string) (string, error) {
