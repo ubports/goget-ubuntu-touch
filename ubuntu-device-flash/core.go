@@ -501,14 +501,15 @@ func getAuthorizedSshKey() (string, error) {
 }
 
 func loadOem(systemPath string) (oem diskimage.OemDescription, err error) {
-	pkgs, err := glob(filepath.Join(systemPath, "/oem/"), "package.yaml")
+	pkgs, err := filepath.Glob(filepath.Join(systemPath, "/oem/*/*/meta/package.yaml"))
 	if err != nil {
 		return oem, err
 	}
 
+	// checking for len(pkgs) > 2 due to the 'current' symlink
 	if len(pkgs) == 0 {
 		return oem, nil
-	} else if len(pkgs) > 1 || err != nil {
+	} else if len(pkgs) > 2 || err != nil {
 		return oem, errors.New("too many oem packages installed")
 	}
 
@@ -522,18 +523,6 @@ func loadOem(systemPath string) (oem diskimage.OemDescription, err error) {
 	}
 
 	return oem, nil
-}
-
-func glob(dir string, filename string) (pkgs []string, err error) {
-	err = filepath.Walk(dir, func(path string, f os.FileInfo, err error) error {
-		if filepath.Base(path) == filename {
-			pkgs = append(pkgs, path)
-		}
-
-		return nil
-	})
-
-	return pkgs, err
 }
 
 func extractHWDescription(path string) (hw diskimage.HardwareDescription, err error) {
