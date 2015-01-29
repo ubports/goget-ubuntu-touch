@@ -1,3 +1,15 @@
+goget-ubuntu-touch (0.15-0ubuntu1) vivid; urgency=medium
+
+  [ Loïc Minier ]
+  * ubuntu-device-flash: fixed ftdfile -> fdtfile typo.
+
+  [ Sergio Schvezov ]
+  * ubuntu-device-flash:
+    - future proof efi support for grub and provisioning boot partition.
+    - using test instead of load in snappy-commands.txt
+
+ -- Sergio Schvezov <sergio.schvezov@canonical.com>  Wed, 28 Jan 2015 19:53:33 -0300
+
 goget-ubuntu-touch (0.14-0ubuntu1) vivid; urgency=medium
 
   * Partition sizing multiplier matters for the emulator disk. (LP: #1412495)
