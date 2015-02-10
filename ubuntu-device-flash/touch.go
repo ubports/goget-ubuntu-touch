@@ -304,29 +304,17 @@ func bitPusher(adb devices.UbuntuDebugBridge, files <-chan Files, done chan<- bo
 	if _, err := adb.Shell("rm -rf /cache/recovery/*.xz /cache/recovery/*.xz.asc"); err != nil {
 		log.Fatal("Cannot cleanup /cache/recovery/ to ensure clean deployment", err)
 	}
-	freeSpace := "unknown"
-	dfCacheCmd := "df -h | grep /android/cache"
-	if free, err := adb.Shell(dfCacheCmd); err != nil {
-		log.Fatal("Unable to retrieve free space on target")
-	} else {
-		//Filesystem Size Used Avail Use% Mounted on
-		free := strings.Fields(free)
-		if len(free) > 3 {
-			freeSpace = free[3]
-		}
-	}
-	errMsg := "Cannot push %s to device: free space on /cache/recovery is %s"
 	for {
 		file := <-files
 		go func() {
 			log.Printf("Start pushing %s to device", file.FilePath)
 			err := adb.Push(file.FilePath, "/cache/recovery/")
 			if err != nil {
-				log.Fatalf(errMsg, file.SigPath, freeSpace)
+				log.Fatal(err)
 			}
 			err = adb.Push(file.SigPath, "/cache/recovery/")
 			if err != nil {
-				log.Fatalf(errMsg, file.SigPath, freeSpace)
+				log.Fatal(err)
 			}
 			log.Printf("Done pushing %s to device", file.FilePath)
 			done <- true
