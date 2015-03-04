@@ -1,3 +1,11 @@
+goget-ubuntu-touch (0.17-0ubuntu1) vivid; urgency=medium
+
+  [ Jani Monoses ]
+  * ubuntu-device-flash: more helpful error message on failed push.
+    (LP: #1351039)
+
+ -- Sergio Schvezov <sergio.schvezov@canonical.com>  Tue, 03 Mar 2015 07:27:17 -0300
+
 goget-ubuntu-touch (0.16-0ubuntu1) vivid; urgency=medium
 
   * ubuntu-device-flash: oem part to allow for dtb overrides.

@@ -76,7 +76,11 @@ func (adb *AndroidDebugBridge) GetDevice() (deviceName string, err error) {
 func (adb AndroidDebugBridge) Push(src, dst string) (err error) {
 	// TODO add file path verification
 	cmd := append(adb.params, []string{"push", src, dst}...)
-	return exec.Command(adbCommand, cmd...).Run()
+	b, err := exec.Command(adbCommand, cmd...).CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("error pushing: %s\n", b)
+	}
+	return nil
 }
 
 // Pull copies a file from src to dst over the adb server
