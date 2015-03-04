@@ -309,6 +309,10 @@ func (img CoreUBootImage) SetupBoot(oem OemDescription) error {
 
 	// populate both A/B
 	for _, path := range []string{bootAPath, bootBPath} {
+		if err := os.MkdirAll(path, 0755); err != nil {
+			return err
+		}
+
 		if err := copyFile(hardwareYamlPath, filepath.Join(path, "hardware.yaml")); err != nil {
 			return err
 		}
