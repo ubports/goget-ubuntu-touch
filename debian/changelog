@@ -1,3 +1,11 @@
+goget-ubuntu-touch (0.18-0ubuntu1) vivid; urgency=medium
+
+  [ Michael Vogt ]
+  * Populate both /boot/uboot/{a,b} when creating a ubuntu-core image.
+    (LP: #1428640)
+
+ -- Sergio Schvezov <sergio.schvezov@canonical.com>  Fri, 06 Mar 2015 11:21:17 -0300
+
 goget-ubuntu-touch (0.17-0ubuntu1) vivid; urgency=medium
 
   [ Jani Monoses ]
