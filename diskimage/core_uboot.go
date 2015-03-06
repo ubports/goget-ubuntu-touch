@@ -295,7 +295,6 @@ func (img CoreUBootImage) SetupBoot(oem OemDescription) error {
 	bootPath := filepath.Join(img.baseMount, string(bootDir))
 	bootAPath := filepath.Join(bootPath, "a")
 	bootBPath := filepath.Join(bootPath, "b")
-	bootDtbPath := filepath.Join(bootAPath, "dtbs")
 	bootuEnvPath := filepath.Join(bootPath, "uEnv.txt")
 	bootSnappySystemPath := filepath.Join(bootPath, "snappy-system.txt")
 
@@ -304,29 +303,37 @@ func (img CoreUBootImage) SetupBoot(oem OemDescription) error {
 	kernelPath := filepath.Join(img.baseMount, img.hardware.Kernel)
 	initrdPath := filepath.Join(img.baseMount, img.hardware.Initrd)
 
-	// create layout
-	if err := os.MkdirAll(bootDtbPath, 0755); err != nil {
-		return err
-	}
-
 	if err := os.MkdirAll(bootBPath, 0755); err != nil {
 		return err
 	}
 
-	if err := copyFile(hardwareYamlPath, filepath.Join(bootAPath, "hardware.yaml")); err != nil {
-		return err
-	}
+	// populate both A/B
+	for _, path := range []string{bootAPath, bootBPath} {
+		if err := os.MkdirAll(path, 0755); err != nil {
+			return err
+		}
 
-	if err := copyFile(kernelPath, filepath.Join(bootAPath, filepath.Base(kernelPath))); err != nil {
-		return err
-	}
+		if err := copyFile(hardwareYamlPath, filepath.Join(path, "hardware.yaml")); err != nil {
+			return err
+		}
 
-	if err := copyFile(initrdPath, filepath.Join(bootAPath, filepath.Base(initrdPath))); err != nil {
-		return err
-	}
+		if err := copyFile(kernelPath, filepath.Join(path, filepath.Base(kernelPath))); err != nil {
+			return err
+		}
 
-	if err := img.provisionDtbs(oem, bootDtbPath); err != nil {
-		return err
+		if err := copyFile(initrdPath, filepath.Join(path, filepath.Base(initrdPath))); err != nil {
+			return err
+		}
+
+		// create layout
+		bootDtbPath := filepath.Join(path, "dtbs")
+		if err := os.MkdirAll(bootDtbPath, 0755); err != nil {
+			return err
+		}
+
+		if err := img.provisionDtbs(oem, bootDtbPath); err != nil {
+			return err
+		}
 	}
 
 	if err := img.provisionUenv(bootuEnvPath); err != nil {
