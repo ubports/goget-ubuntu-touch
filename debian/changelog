@@ -1,3 +1,10 @@
+goget-ubuntu-touch (0.19-0ubuntu1) vivid; urgency=medium
+
+  * ubuntu-device-flash: For core images, take into account that the real size
+    for drives can be lees that declared. (LP: #1433409)
+
+ -- Sergio Schvezov <sergio.schvezov@canonical.com>  Wed, 18 Mar 2015 08:54:08 -0300
+
 goget-ubuntu-touch (0.18-0ubuntu1) vivid; urgency=medium
 
   [ Michael Vogt ]
