@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"launchpad.net/goyaml"
+	"launchpad.net/snappy/snappy"
 
 	"launchpad.net/goget-ubuntu-touch/diskimage"
 	"launchpad.net/goget-ubuntu-touch/sysutils"
@@ -367,28 +368,19 @@ func (coreCmd *CoreCmd) setup(img diskimage.CoreImage, filePathChan <-chan strin
 }
 
 func (coreCmd *CoreCmd) install(systemPath string) error {
-	if strings.Contains(coreCmd.Device, "armhf") {
-		if err := sysutils.AddQemuStatic(systemPath); err != nil {
-			return err
-		}
-		defer sysutils.RemoveQemuStatic(systemPath)
-	}
+	snappy.SetRootDir(systemPath)
+	defer snappy.SetRootDir("/")
 
-	if err := sysutils.ChrootBindMount(systemPath); err != nil {
-		return err
+	flags := snappy.InhibitHooks
+	if coreCmd.DeveloperMode {
+		flags |= snappy.AllowUnauthenticated
 	}
-	defer sysutils.ChrootBindUnmount(systemPath)
 
 	for _, snap := range coreCmd.Install {
 		snapBase := filepath.Base(snap)
 		fmt.Println("Installing", snapBase)
 
-		if err := copyFile(snap, filepath.Join(systemPath, snapBase)); err != nil {
-			return err
-		}
-		defer os.Remove(filepath.Join(systemPath, snapBase))
-
-		if err := sysutils.ChrootRun(systemPath, "snappy", "install", snapBase); err != nil {
+		if err := snappy.Install(snap, flags); err != nil {
 			return err
 		}
 	}
