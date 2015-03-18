@@ -50,7 +50,9 @@ func CreateEmptyFile(path string, size int64, u unit) (err error) {
 	case GiB:
 		size = size * 1024 * 1024 * 1024
 	case GB:
-		size = size * 1000 * 1000 * 1000
+		// The image size will be reduced to fit commercial drives that are
+		// smaller than what they claim, 975 comes from 97.5% of the total size
+		size = size * 1000 * 1000 * 975
 	default:
 		panic("improper sizing unit used")
 	}
