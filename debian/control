@@ -10,6 +10,7 @@ Build-Depends: debhelper (>= 9),
                golang-gocheck-dev,
                golang-pb-dev,
                golang-goyaml-dev,
+               golang-snappy-dev,
 Standards-Version: 3.9.5
 Homepage: https://launchpad.net/goget-ubuntu-touch
 Vcs-Browser: http://bazaar.launchpad.net/~phablet-team/goget-ubuntu-touch/trunk/files
@@ -19,6 +20,8 @@ Package: ubuntu-device-flash
 Architecture: any
 Depends: android-tools-adb,
          android-tools-fastboot,
+         debsig-verify,
+         click-ubuntu-policy,
          fakeroot,
          kpartx,
          qemu-user-static,
