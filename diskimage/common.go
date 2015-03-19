@@ -53,7 +53,7 @@ type SystemImage interface {
 type CoreImage interface {
 	Image
 	SystemImage
-	SetupBoot(OemDescription) error
+	SetupBoot() error
 	FlashExtra(string) error
 }
 
@@ -66,11 +66,24 @@ type HardwareDescription struct {
 }
 
 type OemDescription struct {
-	Name     string `yaml:"name"`
-	Version  string `yaml:"version"`
+	Name    string `yaml:"name"`
+	Version string `yaml:"version"`
+
+	Store struct {
+		ID string `yaml:"id,omitempty"`
+	}
+
 	Hardware struct {
-		Dtb string `yaml:"dtb,omitempty"`
+		Bootloader      string `yaml:"bootloader"`
+		PartitionLayout string `yaml:"partition-layout"`
+		Dtb             string `yaml:"dtb,omitempty"`
+		Platform        string `yaml:"platform"`
+		Architecture    string `yaml:"architecture"`
 	} `yaml:"hardware,omitempty"`
+
+	Packages []string `yaml:"packages,omitempty"`
+
+	BaseConfig string `yaml:"BaseConfig,omitempty"`
 }
 
 func (o OemDescription) InstallPath() string {
