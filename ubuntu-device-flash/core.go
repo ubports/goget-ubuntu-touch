@@ -115,7 +115,8 @@ func (coreCmd *CoreCmd) Execute(args []string) error {
 		return err
 	}
 
-	deviceChannel, err := channels.GetDeviceChannel(globalArgs.Server, coreCmd.Channel, coreCmd.Device)
+	channel := systemImageChannel(coreCmd.Channel)
+	deviceChannel, err := channels.GetDeviceChannel(globalArgs.Server, channel, coreCmd.Device)
 	if err != nil {
 		return err
 	}
