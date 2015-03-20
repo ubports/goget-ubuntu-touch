@@ -81,7 +81,10 @@ type OemDescription struct {
 		Architecture    string `yaml:"architecture"`
 	} `yaml:"hardware,omitempty"`
 
-	Packages []string `yaml:"packages,omitempty"`
+	Packages []struct {
+		Name      string `yaml:"name"`
+		Removable bool   `yaml:"removable,omitempty"`
+	} `yaml:"packages,omitempty"`
 
 	BaseConfig string `yaml:"BaseConfig,omitempty"`
 }

@@ -399,7 +399,9 @@ func (coreCmd *CoreCmd) install(systemPath string) error {
 	if coreCmd.Oem != "" {
 		packageQueue = append(packageQueue, coreCmd.Oem)
 	}
-	packageQueue = append(packageQueue, coreCmd.oem.Packages...)
+	for i := range coreCmd.oem.Packages {
+		packageQueue = append(packageQueue, coreCmd.oem.Packages[i].Name)
+	}
 	packageQueue = append(packageQueue, coreCmd.Install...)
 
 	for _, snap := range packageQueue {
