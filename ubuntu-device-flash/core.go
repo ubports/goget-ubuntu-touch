@@ -97,6 +97,11 @@ func (coreCmd *CoreCmd) Execute(args []string) error {
 		devicePart = p
 	}
 
+	fmt.Println("Determining oem configuration")
+	if err := coreCmd.extractOemDescription(coreCmd.Oem); err != nil {
+		return err
+	}
+
 	if !globalArgs.DownloadOnly {
 		if syscall.Getuid() != 0 {
 			return errors.New("command requires sudo/pkexec (root)")
@@ -108,11 +113,6 @@ func (coreCmd *CoreCmd) Execute(args []string) error {
 		if err := sysutils.DropPrivs(); err != nil {
 			return err
 		}
-	}
-
-	fmt.Println("Determining oem configuration")
-	if err := coreCmd.extractOemDescription(coreCmd.Oem); err != nil {
-		return err
 	}
 
 	fmt.Println("Fetching information from server...")
