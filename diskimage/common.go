@@ -8,7 +8,9 @@
 package diskimage
 
 import (
+	"bufio"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -53,8 +55,8 @@ type SystemImage interface {
 type CoreImage interface {
 	Image
 	SystemImage
-	SetupBoot() error
-	FlashExtra(string) error
+	SetupBoot(oemRootPath string) error
+	FlashExtra(oemRootPath, devicePart string) error
 }
 
 type HardwareDescription struct {
@@ -63,6 +65,21 @@ type HardwareDescription struct {
 	Initrd          string `yaml:"initrd"`
 	PartitionLayout string `yaml:"partition-layout,omitempty"`
 	Bootloader      string `yaml:"bootloader"`
+}
+
+type BootAssetRawFiles struct {
+	Path   string `yaml:"path"`
+	Offset string `yaml:"offset"`
+}
+
+type BootAssetFiles struct {
+	Path   string `yaml:"path"`
+	Target string `yaml:"target,omitempty"`
+}
+
+type BootAssets struct {
+	Files    []BootAssetFiles    `yaml:"files,omitempty"`
+	RawFiles []BootAssetRawFiles `yaml:"raw-files,omitempty"`
 }
 
 type OemDescription struct {
@@ -74,11 +91,12 @@ type OemDescription struct {
 	}
 
 	Hardware struct {
-		Bootloader      string `yaml:"bootloader"`
-		PartitionLayout string `yaml:"partition-layout"`
-		Dtb             string `yaml:"dtb,omitempty"`
-		Platform        string `yaml:"platform"`
-		Architecture    string `yaml:"architecture"`
+		Bootloader      string      `yaml:"bootloader"`
+		PartitionLayout string      `yaml:"partition-layout"`
+		Dtb             string      `yaml:"dtb,omitempty"`
+		Platform        string      `yaml:"platform"`
+		Architecture    string      `yaml:"architecture"`
+		BootAssets      *BootAssets `yaml:"boot-assets,omitempty"`
 	} `yaml:"hardware,omitempty"`
 
 	Packages []struct {
@@ -106,4 +124,31 @@ func printOut(args ...interface{}) {
 	if debugPrint {
 		fmt.Println(args...)
 	}
+}
+
+func copyFile(src, dst string) error {
+	dstFile, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	defer dstFile.Close()
+
+	srcFile, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer srcFile.Close()
+
+	reader := bufio.NewReader(srcFile)
+	writer := bufio.NewWriter(dstFile)
+	defer func() {
+		if err != nil {
+			writer.Flush()
+		}
+	}()
+	if _, err = io.Copy(writer, reader); err != nil {
+		return err
+	}
+	writer.Flush()
+	return nil
 }

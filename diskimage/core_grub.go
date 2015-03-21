@@ -281,7 +281,7 @@ func (img CoreGrubImage) BaseMount() string {
 	return img.baseMount
 }
 
-func (img *CoreGrubImage) SetupBoot() error {
+func (img *CoreGrubImage) SetupBoot(oemRootPath string) error {
 	for _, dev := range []string{"dev", "proc", "sys"} {
 		src := filepath.Join("/", dev)
 		dst := filepath.Join(img.System(), dev)
@@ -368,7 +368,7 @@ func (img *CoreGrubImage) SetupBoot() error {
 	return nil
 }
 
-func (img *CoreGrubImage) FlashExtra(devicePart string) error {
+func (img *CoreGrubImage) FlashExtra(oemRootPath, devicePart string) error {
 	return nil
 }
 

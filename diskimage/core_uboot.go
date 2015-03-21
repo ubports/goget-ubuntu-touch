@@ -11,7 +11,6 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -290,7 +289,7 @@ func (img CoreUBootImage) BaseMount() string {
 	return img.baseMount
 }
 
-func (img CoreUBootImage) SetupBoot() error {
+func (img CoreUBootImage) SetupBoot(oemRootPath string) error {
 	// destinations
 	bootPath := filepath.Join(img.baseMount, string(bootDir))
 	bootAPath := filepath.Join(bootPath, "a")
@@ -336,8 +335,16 @@ func (img CoreUBootImage) SetupBoot() error {
 		}
 	}
 
-	if err := img.provisionUenv(bootuEnvPath); err != nil {
-		return err
+	// if the oem package provides BootAssets use it directly, if not
+	// provisionUenv for backwards compatibility.
+	if bootAssets := img.oem.Hardware.BootAssets; bootAssets != nil {
+		if err := setupBootAssetFiles(bootPath, oemRootPath, bootAssets.Files); err != nil {
+			return err
+		}
+	} else {
+		if err := img.provisionUenv(bootuEnvPath); err != nil {
+			return err
+		}
 	}
 
 	// create /boot/uboot
@@ -433,7 +440,14 @@ func (img CoreUBootImage) provisionDtbs(bootDtbPath string) error {
 	return nil
 }
 
-func (img *CoreUBootImage) FlashExtra(devicePart string) error {
+func (img *CoreUBootImage) FlashExtra(oemRootPath, devicePart string) error {
+	// if the oem package has bootloader assets use this and skip the
+	// deprecated device part setup
+	if bootAssets := img.oem.Hardware.BootAssets; bootAssets != nil {
+		return setupBootAssetRawFiles(img.location, oemRootPath, bootAssets.RawFiles)
+	}
+
+	// this is for backwards compatibility
 	if img.oem.Hardware.Platform == "" {
 		return nil
 	}
@@ -486,32 +500,5 @@ func (img *CoreUBootImage) FlashExtra(devicePart string) error {
 		}
 	}
 
-	return nil
-}
-
-func copyFile(src, dst string) error {
-	dstFile, err := os.Create(dst)
-	if err != nil {
-		return err
-	}
-	defer dstFile.Close()
-
-	srcFile, err := os.Open(src)
-	if err != nil {
-		return err
-	}
-	defer srcFile.Close()
-
-	reader := bufio.NewReader(srcFile)
-	writer := bufio.NewWriter(dstFile)
-	defer func() {
-		if err != nil {
-			writer.Flush()
-		}
-	}()
-	if _, err = io.Copy(writer, reader); err != nil {
-		return err
-	}
-	writer.Flush()
 	return nil
 }

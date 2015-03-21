@@ -66,8 +66,9 @@ type CoreCmd struct {
 		Keyboard      string `long:"keyboard-layout" description:"Specify the keyboard layout" default:"us"`
 	} `group:"Development"`
 
-	hardware diskimage.HardwareDescription
-	oem      diskimage.OemDescription
+	hardware        diskimage.HardwareDescription
+	oem             diskimage.OemDescription
+	stagingRootPath string
 }
 
 var coreCmd CoreCmd
@@ -98,9 +99,10 @@ func (coreCmd *CoreCmd) Execute(args []string) error {
 	}
 
 	fmt.Println("Determining oem configuration")
-	if err := coreCmd.extractOemDescription(coreCmd.Oem); err != nil {
+	if err := coreCmd.extractOem(coreCmd.Oem); err != nil {
 		return err
 	}
+	defer os.RemoveAll(coreCmd.stagingRootPath)
 
 	if !globalArgs.DownloadOnly {
 		if syscall.Getuid() != 0 {
@@ -275,7 +277,8 @@ func (coreCmd *CoreCmd) Execute(args []string) error {
 		return err
 	}
 
-	if err := img.FlashExtra(devicePart); err != nil {
+	oemRootPath := filepath.Join(coreCmd.stagingRootPath, coreCmd.oem.InstallPath())
+	if err := img.FlashExtra(oemRootPath, devicePart); err != nil {
 		return err
 	}
 
@@ -344,7 +347,8 @@ func (coreCmd *CoreCmd) setup(img diskimage.CoreImage, filePathChan <-chan strin
 		return err
 	}
 
-	if err := img.SetupBoot(); err != nil {
+	oemRootPath := filepath.Join(coreCmd.stagingRootPath, coreCmd.oem.InstallPath())
+	if err := img.SetupBoot(oemRootPath); err != nil {
 		return err
 	}
 
@@ -519,7 +523,7 @@ func getAuthorizedSshKey() (string, error) {
 	return string(pubKey), err
 }
 
-func (coreCmd *CoreCmd) extractOemDescription(oemPackage string) error {
+func (coreCmd *CoreCmd) extractOem(oemPackage string) error {
 	if oemPackage == "" {
 		return nil
 	}
@@ -528,7 +532,13 @@ func (coreCmd *CoreCmd) extractOemDescription(oemPackage string) error {
 	if err != nil {
 		return err
 	}
-	defer os.RemoveAll(tempDir)
+
+	// we need to fix the permissions for tempdir
+	if err := os.Chmod(tempDir, 0755); err != nil {
+		return err
+	}
+
+	coreCmd.stagingRootPath = tempDir
 
 	snappy.SetRootDir(tempDir)
 	defer snappy.SetRootDir("/")
