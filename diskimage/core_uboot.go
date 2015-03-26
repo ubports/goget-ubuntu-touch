@@ -337,7 +337,7 @@ func (img CoreUBootImage) SetupBoot(oemRootPath string) error {
 
 	// if the oem package provides BootAssets use it directly, if not
 	// provisionUenv for backwards compatibility.
-	if bootAssets := img.oem.Hardware.BootAssets; bootAssets != nil {
+	if bootAssets := img.oem.OEM.Hardware.BootAssets; bootAssets != nil {
 		if err := setupBootAssetFiles(bootPath, oemRootPath, bootAssets.Files); err != nil {
 			return err
 		}
@@ -359,8 +359,8 @@ func (img CoreUBootImage) SetupBoot(oemRootPath string) error {
 	defer snappySystemFile.Close()
 
 	var fdtfile string
-	if img.oem.Hardware.Platform != "" {
-		fdtfile = fmt.Sprintf("fdtfile=%s.dtb", img.oem.Hardware.Platform)
+	if platform := img.oem.Platform(); platform != "" {
+		fdtfile = fmt.Sprintf("fdtfile=%s.dtb", platform)
 	}
 
 	t := template.Must(template.New("snappy-system").Parse(snappySystemTemplate))
@@ -370,12 +370,14 @@ func (img CoreUBootImage) SetupBoot(oemRootPath string) error {
 }
 
 func (img CoreUBootImage) provisionUenv(bootuEnvPath string) error {
-	if img.oem.Hardware.Platform == "" {
+	platform := img.oem.Platform()
+
+	if platform != "" {
 		printOut("No platform select, not searching for uEnv.txt")
 		return nil
 	}
 
-	flashAssetsPath := filepath.Join(img.baseMount, "flashtool-assets", img.oem.Hardware.Platform)
+	flashAssetsPath := filepath.Join(img.baseMount, "flashtool-assets", platform)
 	uEnvPath := filepath.Join(flashAssetsPath, "uEnv.txt")
 
 	if _, err := os.Stat(flashAssetsPath); os.IsNotExist(err) {
@@ -412,12 +414,12 @@ func (img CoreUBootImage) provisionDtbs(bootDtbPath string) error {
 		return err
 	}
 
-	dtb := filepath.Join(dtbsPath, fmt.Sprintf("%s.dtb", img.oem.Hardware.Platform))
+	dtb := filepath.Join(dtbsPath, fmt.Sprintf("%s.dtb", img.oem.Platform()))
 
 	// if there is a specific dtb for the platform, copy it.
 	// First look in oem and then in device.
-	if img.oem.Hardware.Dtb != "" && img.oem.Hardware.Platform != "" {
-		oemDtb := filepath.Join(img.System(), img.oem.InstallPath(), img.oem.Hardware.Dtb)
+	if oemDtb := img.oem.OEM.Hardware.Dtb; oemDtb != "" && img.oem.Platform() != "" {
+		oemDtb := filepath.Join(img.System(), img.oem.InstallPath(), oemDtb)
 		dst := filepath.Join(bootDtbPath, filepath.Base(dtb))
 		if err := copyFile(oemDtb, dst); err != nil {
 			return err
@@ -443,12 +445,12 @@ func (img CoreUBootImage) provisionDtbs(bootDtbPath string) error {
 func (img *CoreUBootImage) FlashExtra(oemRootPath, devicePart string) error {
 	// if the oem package has bootloader assets use this and skip the
 	// deprecated device part setup
-	if bootAssets := img.oem.Hardware.BootAssets; bootAssets != nil {
+	if bootAssets := img.oem.OEM.Hardware.BootAssets; bootAssets != nil {
 		return setupBootAssetRawFiles(img.location, oemRootPath, bootAssets.RawFiles)
 	}
 
 	// this is for backwards compatibility
-	if img.oem.Hardware.Platform == "" {
+	if img.oem.Platform() == "" {
 		return nil
 	}
 
@@ -468,7 +470,7 @@ func (img *CoreUBootImage) FlashExtra(oemRootPath, devicePart string) error {
 		return nil
 	}
 
-	flashAssetsPath := filepath.Join(tmpdir, "flashtool-assets", img.oem.Hardware.Platform)
+	flashAssetsPath := filepath.Join(tmpdir, "flashtool-assets", img.oem.Platform())
 	flashPath := filepath.Join(flashAssetsPath, "flash.yaml")
 
 	if _, err := os.Stat(flashPath); err != nil && os.IsNotExist(err) {

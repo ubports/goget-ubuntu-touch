@@ -126,8 +126,8 @@ func (coreCmd *CoreCmd) Execute(args []string) error {
 	channel := systemImageChannel(coreCmd.Channel)
 
 	var device string
-	if coreCmd.oem.Hardware.Architecture != "" {
-		device = systemImageDeviceChannel(coreCmd.oem.Hardware.Architecture)
+	if coreCmd.oem.Architecture() != "" {
+		device = systemImageDeviceChannel(coreCmd.oem.Architecture())
 	} else {
 		device = systemImageDeviceChannel(coreCmd.Device)
 	}
@@ -219,11 +219,11 @@ func (coreCmd *CoreCmd) Execute(args []string) error {
 	}
 
 	// for backwards compatibility
-	if coreCmd.oem.Hardware.Bootloader == "" {
-		coreCmd.oem.Hardware.Bootloader = coreCmd.hardware.Bootloader
+	if coreCmd.oem.OEM.Hardware.Bootloader == "" {
+		coreCmd.oem.OEM.Hardware.Bootloader = coreCmd.hardware.Bootloader
 	}
 
-	switch coreCmd.oem.Hardware.Bootloader {
+	switch coreCmd.oem.OEM.Hardware.Bootloader {
 	case "grub":
 		img = diskimage.NewCoreGrubImage(coreCmd.Output, coreCmd.Size)
 	case "u-boot":
@@ -283,7 +283,7 @@ func (coreCmd *CoreCmd) Execute(args []string) error {
 	}
 
 	fmt.Println("New image complete")
-	if coreCmd.oem.Hardware.Architecture != "armhf" {
+	if coreCmd.oem.OEM.Hardware.Architecture != "armhf" {
 		fmt.Println("Launch by running: kvm -m 768", coreCmd.Output)
 	}
 
@@ -370,7 +370,7 @@ func (coreCmd *CoreCmd) setup(img diskimage.CoreImage, filePathChan <-chan strin
 
 	// if the device is armhf, we can't to make this copy here since it's faster
 	// than on the device.
-	if coreCmd.oem.Hardware.Architecture == archArmhf && coreCmd.oem.Hardware.PartitionLayout == "system-AB" {
+	if coreCmd.oem.Architecture() == archArmhf && coreCmd.oem.PartitionLayout() == "system-AB" {
 		printOut("Replicating system-a into system-b")
 
 		src := fmt.Sprintf("%s/.", systemPath)
@@ -583,8 +583,8 @@ func (coreCmd CoreCmd) loadOem(systemPath string) (oem diskimage.OemDescription,
 		return oem, errors.New("cannot decode oem yaml")
 	}
 
-	if oem.Hardware.Platform == "" {
-		oem.Hardware.Platform = coreCmd.Platform
+	if oem.Platform() == "" {
+		oem.SetPlatform(coreCmd.Platform)
 	}
 
 	return oem, nil
