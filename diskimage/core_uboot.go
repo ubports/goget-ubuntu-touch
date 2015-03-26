@@ -352,8 +352,8 @@ func (img CoreUBootImage) SetupBoot() error {
 	defer snappySystemFile.Close()
 
 	var fdtfile string
-	if img.oem.Hardware.Platform != "" {
-		fdtfile = fmt.Sprintf("fdtfile=%s.dtb", img.oem.Hardware.Platform)
+	if platform := img.oem.OEM.Hardware.Platform; platform != "" {
+		fdtfile = fmt.Sprintf("fdtfile=%s.dtb", platform)
 	}
 
 	t := template.Must(template.New("snappy-system").Parse(snappySystemTemplate))
@@ -363,12 +363,14 @@ func (img CoreUBootImage) SetupBoot() error {
 }
 
 func (img CoreUBootImage) provisionUenv(bootuEnvPath string) error {
-	if img.oem.Hardware.Platform == "" {
+	platform := img.oem.OEM.Hardware.Platform
+
+	if platform != "" {
 		printOut("No platform select, not searching for uEnv.txt")
 		return nil
 	}
 
-	flashAssetsPath := filepath.Join(img.baseMount, "flashtool-assets", img.oem.Hardware.Platform)
+	flashAssetsPath := filepath.Join(img.baseMount, "flashtool-assets", platform)
 	uEnvPath := filepath.Join(flashAssetsPath, "uEnv.txt")
 
 	if _, err := os.Stat(flashAssetsPath); os.IsNotExist(err) {
@@ -405,12 +407,12 @@ func (img CoreUBootImage) provisionDtbs(bootDtbPath string) error {
 		return err
 	}
 
-	dtb := filepath.Join(dtbsPath, fmt.Sprintf("%s.dtb", img.oem.Hardware.Platform))
+	dtb := filepath.Join(dtbsPath, fmt.Sprintf("%s.dtb", img.oem.Platform()))
 
 	// if there is a specific dtb for the platform, copy it.
 	// First look in oem and then in device.
-	if img.oem.Hardware.Dtb != "" && img.oem.Hardware.Platform != "" {
-		oemDtb := filepath.Join(img.System(), img.oem.InstallPath(), img.oem.Hardware.Dtb)
+	if oemDtb := img.oem.OEM.Hardware.Dtb; oemDtb != "" && img.oem.Platform() != "" {
+		oemDtb := filepath.Join(img.System(), img.oem.InstallPath(), oemDtb)
 		dst := filepath.Join(bootDtbPath, filepath.Base(dtb))
 		if err := copyFile(oemDtb, dst); err != nil {
 			return err
@@ -434,7 +436,7 @@ func (img CoreUBootImage) provisionDtbs(bootDtbPath string) error {
 }
 
 func (img *CoreUBootImage) FlashExtra(devicePart string) error {
-	if img.oem.Hardware.Platform == "" {
+	if img.oem.Platform() == "" {
 		return nil
 	}
 
@@ -454,7 +456,7 @@ func (img *CoreUBootImage) FlashExtra(devicePart string) error {
 		return nil
 	}
 
-	flashAssetsPath := filepath.Join(tmpdir, "flashtool-assets", img.oem.Hardware.Platform)
+	flashAssetsPath := filepath.Join(tmpdir, "flashtool-assets", img.oem.Platform())
 	flashPath := filepath.Join(flashAssetsPath, "flash.yaml")
 
 	if _, err := os.Stat(flashPath); err != nil && os.IsNotExist(err) {
