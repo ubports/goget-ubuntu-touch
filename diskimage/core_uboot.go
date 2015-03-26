@@ -352,7 +352,7 @@ func (img CoreUBootImage) SetupBoot() error {
 	defer snappySystemFile.Close()
 
 	var fdtfile string
-	if platform := img.oem.OEM.Hardware.Platform; platform != "" {
+	if platform := img.oem.Platform(); platform != "" {
 		fdtfile = fmt.Sprintf("fdtfile=%s.dtb", platform)
 	}
 
@@ -363,7 +363,7 @@ func (img CoreUBootImage) SetupBoot() error {
 }
 
 func (img CoreUBootImage) provisionUenv(bootuEnvPath string) error {
-	platform := img.oem.OEM.Hardware.Platform
+	platform := img.oem.Platform()
 
 	if platform != "" {
 		printOut("No platform select, not searching for uEnv.txt")
