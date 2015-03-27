@@ -83,12 +83,7 @@ type OemDescription struct {
 		}
 	} `yaml:"oem,omitempty"`
 
-	Packages []struct {
-		Name      string `yaml:"name"`
-		Removable bool   `yaml:"removable,omitempty"`
-	} `yaml:"packages,omitempty"`
-
-	Config map[string]interface{} `yaml:"BaseConfig,omitempty"`
+	Config map[string]interface{} `yaml:"config,omitempty"`
 }
 
 func (o OemDescription) InstallPath() string {
