@@ -24,6 +24,8 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+
+	"launchpad.net/goget-ubuntu-touch/sysutils"
 )
 
 func setupBootAssetFiles(bootPath, oemRootPath string, files []BootAssetFiles) error {
@@ -34,7 +36,7 @@ func setupBootAssetFiles(bootPath, oemRootPath string, files []BootAssetFiles) e
 		}
 
 		src := filepath.Join(oemRootPath, file.Path)
-		if err := copyFile(src, dst); err != nil {
+		if err := sysutils.CopyFile(src, dst); err != nil {
 			return err
 		}
 	}
