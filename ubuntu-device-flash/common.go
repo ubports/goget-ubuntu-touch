@@ -1,9 +1,7 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
-	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -89,31 +87,4 @@ func isDevicePart(path string) bool {
 // isCustomPart checks if the file corresponds to the custom part.
 func isCustomPart(path string) bool {
 	return strings.Contains(path, "custom")
-}
-
-func copyFile(src, dst string) error {
-	dstFile, err := os.Create(dst)
-	if err != nil {
-		return err
-	}
-	defer dstFile.Close()
-
-	srcFile, err := os.Open(src)
-	if err != nil {
-		return err
-	}
-	defer srcFile.Close()
-
-	reader := bufio.NewReader(srcFile)
-	writer := bufio.NewWriter(dstFile)
-	defer func() {
-		if err != nil {
-			writer.Flush()
-		}
-	}()
-	if _, err = io.Copy(writer, reader); err != nil {
-		return err
-	}
-	writer.Flush()
-	return nil
 }
