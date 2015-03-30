@@ -33,6 +33,12 @@ func setupBootAssetFiles(bootPath, oemRootPath string, files []BootAssetFiles) e
 		dst := filepath.Join(bootPath, filepath.Base(file.Path))
 		if file.Target != "" {
 			dst = filepath.Join(bootPath, file.Target)
+			dstDir := filepath.Dir(dst)
+			if _, err := os.Stat(dstDir); os.IsNotExist(err) {
+				if err := os.MkdirAll(dstDir, 0755); err != nil {
+					return err
+				}
+			}
 		}
 
 		src := filepath.Join(oemRootPath, file.Path)
