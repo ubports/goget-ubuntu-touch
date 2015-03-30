@@ -7,7 +7,12 @@ import (
 )
 
 func CopyFile(src, dst string) error {
-	dstFile, err := os.Create(dst)
+	srcStat, err := os.Stat(src)
+	if err != nil {
+		return err
+	}
+
+	dstFile, err := os.OpenFile(dst, os.O_CREATE|os.O_WRONLY, srcStat.Mode())
 	if err != nil {
 		return err
 	}
