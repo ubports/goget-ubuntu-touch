@@ -22,10 +22,12 @@ package diskimage
 import (
 	"fmt"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"testing"
 
 	. "launchpad.net/gocheck"
+	"launchpad.net/goget-ubuntu-touch/sysutils"
 )
 
 // Hook up gocheck into the "go test" runner.
@@ -102,4 +104,90 @@ func (s *BootAssetFilesTestSuite) TestCopyFilesWithTargetInDir(c *C) {
 	c.Assert(setupBootAssetFiles(s.bootPathDir, s.oemRootPathDir, s.files), IsNil)
 
 	s.verifyTestFiles(c)
+}
+
+type BootAssetRawFilesTestSuite struct {
+	oemRootPathDir string
+	imagePath      string
+	files          []BootAssetRawFiles
+}
+
+var _ = Suite(&BootAssetRawFilesTestSuite{})
+
+const baseOffset = 60
+
+func (s *BootAssetRawFilesTestSuite) createTestFiles(c *C) {
+	for i := 0; i < 2; i++ {
+		f := fmt.Sprintf(fileName, i)
+		fAbsolutePath := filepath.Join(s.oemRootPathDir, f)
+		c.Assert(ioutil.WriteFile(fAbsolutePath, []byte(f), 0644), IsNil)
+		offset := fmt.Sprintf("%d", baseOffset+i*20)
+		s.files = append(s.files, BootAssetRawFiles{Path: f, Offset: offset})
+	}
+}
+
+func (s *BootAssetRawFilesTestSuite) verifyTestFiles(c *C) {
+	img, err := os.Open(s.imagePath)
+	c.Assert(err, IsNil)
+
+	for i := range s.files {
+		content := fmt.Sprintf(fileName, i)
+		readContent := make([]byte, len(content))
+
+		n, err := img.ReadAt(readContent, int64(baseOffset+i*20))
+		c.Assert(err, IsNil)
+		c.Assert(n, Equals, len(content))
+		c.Assert(string(readContent), Equals, content)
+
+		// check for zeros before and after
+		zero := make([]byte, 1)
+		_, err = img.ReadAt(zero, int64(baseOffset+i*20-1))
+		c.Assert(err, IsNil)
+		c.Assert(zero[0], Equals, uint8(0x0))
+
+		_, err = img.ReadAt(zero, int64(baseOffset+i*20+len(content)))
+		c.Assert(err, IsNil)
+		c.Assert(zero[0], Equals, uint8(0x0))
+	}
+}
+
+func (s *BootAssetRawFilesTestSuite) SetUpTest(c *C) {
+	s.oemRootPathDir = c.MkDir()
+	s.imagePath = filepath.Join(c.MkDir(), "image.img")
+
+	c.Assert(sysutils.CreateEmptyFile(s.imagePath, 1, sysutils.GB), IsNil)
+
+	s.createTestFiles(c)
+}
+
+func (s *BootAssetRawFilesTestSuite) TearDownTest(c *C) {
+	s.files = nil
+}
+
+func (s *BootAssetRawFilesTestSuite) TestRawWrite(c *C) {
+	c.Assert(setupBootAssetRawFiles(s.imagePath, s.oemRootPathDir, s.files), IsNil)
+
+	s.verifyTestFiles(c)
+}
+
+func (s *BootAssetRawFilesTestSuite) TestRawWriteNoValidOffset(c *C) {
+	f := fmt.Sprintf(fileName)
+	fAbsolutePath := filepath.Join(s.oemRootPathDir, f)
+	c.Assert(ioutil.WriteFile(fAbsolutePath, []byte(f), 0644), IsNil)
+	offset := "NaN"
+	s.files = []BootAssetRawFiles{BootAssetRawFiles{Path: f, Offset: offset}}
+
+	c.Assert(setupBootAssetRawFiles(s.imagePath, s.oemRootPathDir, s.files), NotNil)
+}
+
+func (s *BootAssetRawFilesTestSuite) TestRawWriteNoValidFile(c *C) {
+	f := fmt.Sprintf(fileName)
+	offset := "10"
+	s.files = []BootAssetRawFiles{BootAssetRawFiles{Path: f, Offset: offset}}
+
+	c.Assert(setupBootAssetRawFiles(s.imagePath, s.oemRootPathDir, s.files), NotNil)
+}
+
+func (s *BootAssetRawFilesTestSuite) TestRawWriteNoValidImage(c *C) {
+	c.Assert(setupBootAssetRawFiles("where_does_this_ref", s.oemRootPathDir, s.files), NotNil)
 }
