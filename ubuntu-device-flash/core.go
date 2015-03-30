@@ -203,7 +203,7 @@ func (coreCmd *CoreCmd) Execute(args []string) error {
 			f := <-filePathChan
 			baseFile := filepath.Base(f)
 
-			if err := copyFile(f, filepath.Join(workDir, baseFile)); err != nil {
+			if err := sysutils.CopyFile(f, filepath.Join(workDir, baseFile)); err != nil {
 				return err
 			}
 			downloadedFiles = append(downloadedFiles, baseFile)
