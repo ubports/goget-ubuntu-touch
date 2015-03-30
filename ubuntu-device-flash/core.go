@@ -57,6 +57,7 @@ type CoreCmd struct {
 	Cloud    bool     `long:"cloud" description:"Generate a pure cloud image without setting up cloud-init"`
 	Platform string   `long:"platform" description:"specify the boards platform"`
 	Install  []string `long:"install" description:"install additional packages (can be called multiple times)"`
+	Oem      string   `long:"oem" descripion:"the snappy oem package to base the image out of"`
 
 	Development struct {
 		DevicePart    string `long:"device-part" description:"Specify a local device part to override the one from the server"`
@@ -66,6 +67,7 @@ type CoreCmd struct {
 	} `group:"Development"`
 
 	hardware diskimage.HardwareDescription
+	oem      diskimage.OemDescription
 }
 
 var coreCmd CoreCmd
@@ -95,6 +97,11 @@ func (coreCmd *CoreCmd) Execute(args []string) error {
 		devicePart = p
 	}
 
+	fmt.Println("Determining oem configuration")
+	if err := coreCmd.extractOemDescription(coreCmd.Oem); err != nil {
+		return err
+	}
+
 	if !globalArgs.DownloadOnly {
 		if syscall.Getuid() != 0 {
 			return errors.New("command requires sudo/pkexec (root)")
@@ -109,14 +116,21 @@ func (coreCmd *CoreCmd) Execute(args []string) error {
 	}
 
 	fmt.Println("Fetching information from server...")
-
 	channels, err := ubuntuimage.NewChannels(globalArgs.Server)
 	if err != nil {
 		return err
 	}
 
 	channel := systemImageChannel(coreCmd.Channel)
-	deviceChannel, err := channels.GetDeviceChannel(globalArgs.Server, channel, coreCmd.Device)
+
+	var device string
+	if coreCmd.oem.Architecture() != "" {
+		device = systemImageDeviceChannel(coreCmd.oem.Architecture())
+	} else {
+		device = systemImageDeviceChannel(coreCmd.Device)
+	}
+
+	deviceChannel, err := channels.GetDeviceChannel(globalArgs.Server, channel, device)
 	if err != nil {
 		return err
 	}
@@ -202,11 +216,16 @@ func (coreCmd *CoreCmd) Execute(args []string) error {
 		return nil
 	}
 
-	switch coreCmd.hardware.Bootloader {
+	// for backwards compatibility
+	if coreCmd.oem.OEM.Hardware.Bootloader == "" {
+		coreCmd.oem.OEM.Hardware.Bootloader = coreCmd.hardware.Bootloader
+	}
+
+	switch coreCmd.oem.OEM.Hardware.Bootloader {
 	case "grub":
 		img = diskimage.NewCoreGrubImage(coreCmd.Output, coreCmd.Size)
 	case "u-boot":
-		img = diskimage.NewCoreUBootImage(coreCmd.Output, coreCmd.Size, coreCmd.hardware, coreCmd.Platform)
+		img = diskimage.NewCoreUBootImage(coreCmd.Output, coreCmd.Size, coreCmd.hardware, coreCmd.oem)
 	default:
 		fmt.Printf("Bootloader set to '%s' in hardware description, assuming grub as a fallback\n", coreCmd.hardware.Bootloader)
 		img = diskimage.NewCoreGrubImage(coreCmd.Output, coreCmd.Size)
@@ -261,7 +280,7 @@ func (coreCmd *CoreCmd) Execute(args []string) error {
 	}
 
 	fmt.Println("New image complete")
-	if coreCmd.Device != "generic_armhf" {
+	if coreCmd.oem.OEM.Hardware.Architecture != "armhf" {
 		fmt.Println("Launch by running: kvm -m 768", coreCmd.Output)
 	}
 
@@ -325,13 +344,7 @@ func (coreCmd *CoreCmd) setup(img diskimage.CoreImage, filePathChan <-chan strin
 		return err
 	}
 
-	// check if we installed an oem snap
-	oem, err := loadOem(systemPath)
-	if err != nil {
-		return err
-	}
-
-	if err := img.SetupBoot(oem); err != nil {
+	if err := img.SetupBoot(); err != nil {
 		return err
 	}
 
@@ -353,7 +366,7 @@ func (coreCmd *CoreCmd) setup(img diskimage.CoreImage, filePathChan <-chan strin
 
 	// if the device is armhf, we can't to make this copy here since it's faster
 	// than on the device.
-	if coreCmd.Device == "generic_armhf" && coreCmd.hardware.PartitionLayout == "system-AB" {
+	if coreCmd.oem.Architecture() == archArmhf && coreCmd.oem.PartitionLayout() == "system-AB" {
 		printOut("Replicating system-a into system-b")
 
 		src := fmt.Sprintf("%s/.", systemPath)
@@ -377,9 +390,25 @@ func (coreCmd *CoreCmd) install(systemPath string) error {
 		flags |= snappy.AllowUnauthenticated
 	}
 
-	for _, snap := range coreCmd.Install {
-		snapBase := filepath.Base(snap)
-		fmt.Println("Installing", snapBase)
+	packageCount := len(coreCmd.Install) + len(coreCmd.oem.Config)
+	if coreCmd.Oem != "" {
+		packageCount += 1
+	}
+	packageQueue := make([]string, 0, packageCount)
+
+	if coreCmd.Oem != "" {
+		packageQueue = append(packageQueue, coreCmd.Oem)
+	}
+	for k := range coreCmd.oem.Config {
+		// ubuntu-core is not a real package
+		if k != "ubuntu-core" {
+			packageQueue = append(packageQueue, k)
+		}
+	}
+	packageQueue = append(packageQueue, coreCmd.Install...)
+
+	for _, snap := range packageQueue {
+		fmt.Println("Installing", snap)
 
 		if err := snappy.Install(snap, flags); err != nil {
 			return err
@@ -493,7 +522,39 @@ func getAuthorizedSshKey() (string, error) {
 	return string(pubKey), err
 }
 
-func loadOem(systemPath string) (oem diskimage.OemDescription, err error) {
+func (coreCmd *CoreCmd) extractOemDescription(oemPackage string) error {
+	if oemPackage == "" {
+		return nil
+	}
+
+	tempDir, err := ioutil.TempDir("", "oem")
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(tempDir)
+
+	snappy.SetRootDir(tempDir)
+	defer snappy.SetRootDir("/")
+
+	flags := snappy.InhibitHooks
+	if coreCmd.Development.DeveloperMode {
+		flags |= snappy.AllowUnauthenticated
+	}
+
+	if err := snappy.Install(oemPackage, flags); err != nil {
+		return err
+	}
+
+	oem, err := coreCmd.loadOem(tempDir)
+	if err != nil {
+		return err
+	}
+	coreCmd.oem = oem
+
+	return nil
+}
+
+func (coreCmd CoreCmd) loadOem(systemPath string) (oem diskimage.OemDescription, err error) {
 	pkgs, err := filepath.Glob(filepath.Join(systemPath, "/oem/*/*/meta/package.yaml"))
 	if err != nil {
 		return oem, err
@@ -513,6 +574,10 @@ func loadOem(systemPath string) (oem diskimage.OemDescription, err error) {
 
 	if err := goyaml.Unmarshal([]byte(f), &oem); err != nil {
 		return oem, errors.New("cannot decode oem yaml")
+	}
+
+	if oem.Platform() == "" {
+		oem.SetPlatform(coreCmd.Platform)
 	}
 
 	return oem, nil

@@ -41,3 +41,28 @@ func systemImageChannel(channel string) string {
 
 	return channel
 }
+
+const (
+	archArmhf = "armhf"
+	archAmd64 = "amd64"
+	archi386  = "i386"
+)
+
+const (
+	deviceArmhf = "generic_armhf"
+	deviceAmd64 = "generic_amd64"
+	devicei386  = "generic_i386"
+)
+
+func systemImageDeviceChannel(arch string) string {
+	switch arch {
+	case archArmhf:
+		return deviceArmhf
+	case archAmd64:
+		return deviceAmd64
+	case archi386:
+		return devicei386
+	}
+
+	return arch
+}

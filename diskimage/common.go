@@ -53,7 +53,7 @@ type SystemImage interface {
 type CoreImage interface {
 	Image
 	SystemImage
-	SetupBoot(OemDescription) error
+	SetupBoot() error
 	FlashExtra(string) error
 }
 
@@ -66,15 +66,44 @@ type HardwareDescription struct {
 }
 
 type OemDescription struct {
-	Name     string `yaml:"name"`
-	Version  string `yaml:"version"`
-	Hardware struct {
-		Dtb string `yaml:"dtb,omitempty"`
-	} `yaml:"hardware,omitempty"`
+	Name    string `yaml:"name"`
+	Version string `yaml:"version"`
+
+	OEM *struct {
+		Hardware *struct {
+			Bootloader      string `yaml:"bootloader"`
+			PartitionLayout string `yaml:"partition-layout"`
+			Dtb             string `yaml:"dtb,omitempty"`
+			Platform        string `yaml:"platform"`
+			Architecture    string `yaml:"architecture"`
+		} `yaml:"hardware,omitempty"`
+
+		Store *struct {
+			ID string `yaml:"id,omitempty"`
+		}
+	} `yaml:"oem,omitempty"`
+
+	Config map[string]interface{} `yaml:"config,omitempty"`
 }
 
 func (o OemDescription) InstallPath() string {
 	return filepath.Join("/oem", o.Name, o.Version)
+}
+
+func (o OemDescription) Architecture() string {
+	return o.OEM.Hardware.Architecture
+}
+
+func (o OemDescription) PartitionLayout() string {
+	return o.OEM.Hardware.PartitionLayout
+}
+
+func (o OemDescription) Platform() string {
+	return o.OEM.Hardware.Platform
+}
+
+func (o *OemDescription) SetPlatform(platform string) {
+	o.OEM.Hardware.Platform = platform
 }
 
 func sectorSize(dev string) (string, error) {
