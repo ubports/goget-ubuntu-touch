@@ -53,8 +53,8 @@ type SystemImage interface {
 type CoreImage interface {
 	Image
 	SystemImage
-	SetupBoot() error
-	FlashExtra(string) error
+	SetupBoot(oemRootPath string) error
+	FlashExtra(oemRootPath, devicePart string) error
 }
 
 type HardwareDescription struct {
@@ -65,17 +65,33 @@ type HardwareDescription struct {
 	Bootloader      string `yaml:"bootloader"`
 }
 
+type BootAssetRawFiles struct {
+	Path   string `yaml:"path"`
+	Offset string `yaml:"offset"`
+}
+
+type BootAssetFiles struct {
+	Path   string `yaml:"path"`
+	Target string `yaml:"target,omitempty"`
+}
+
+type BootAssets struct {
+	Files    []BootAssetFiles    `yaml:"files,omitempty"`
+	RawFiles []BootAssetRawFiles `yaml:"raw-files,omitempty"`
+}
+
 type OemDescription struct {
 	Name    string `yaml:"name"`
 	Version string `yaml:"version"`
 
 	OEM *struct {
 		Hardware *struct {
-			Bootloader      string `yaml:"bootloader"`
-			PartitionLayout string `yaml:"partition-layout"`
-			Dtb             string `yaml:"dtb,omitempty"`
-			Platform        string `yaml:"platform"`
-			Architecture    string `yaml:"architecture"`
+			Bootloader      string      `yaml:"bootloader"`
+			PartitionLayout string      `yaml:"partition-layout"`
+			Dtb             string      `yaml:"dtb,omitempty"`
+			Platform        string      `yaml:"platform"`
+			Architecture    string      `yaml:"architecture"`
+			BootAssets      *BootAssets `yaml:"boot-assets,omitempty"`
 		} `yaml:"hardware,omitempty"`
 
 		Store *struct {
