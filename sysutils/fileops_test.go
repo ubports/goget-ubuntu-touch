@@ -31,8 +31,11 @@ func (s *FileOpsTestSuite) TestCopyModes(c *C) {
 
 	mode := stat.Mode()
 	c.Assert(mode.IsRegular(), Equals, true)
-
 	c.Assert(mode.String(), Equals, "-rwxr-xr-x")
+
+	contents, err := ioutil.ReadFile(s.dstPath)
+	c.Assert(err, IsNil)
+	c.Assert(string(contents), Equals, "src")
 }
 
 func (s *FileOpsTestSuite) TestCopyNoSourceFails(c *C) {
