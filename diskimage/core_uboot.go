@@ -11,7 +11,6 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -313,15 +312,15 @@ func (img CoreUBootImage) SetupBoot() error {
 			return err
 		}
 
-		if err := copyFile(hardwareYamlPath, filepath.Join(path, "hardware.yaml")); err != nil {
+		if err := sysutils.CopyFile(hardwareYamlPath, filepath.Join(path, "hardware.yaml")); err != nil {
 			return err
 		}
 
-		if err := copyFile(kernelPath, filepath.Join(path, filepath.Base(kernelPath))); err != nil {
+		if err := sysutils.CopyFile(kernelPath, filepath.Join(path, filepath.Base(kernelPath))); err != nil {
 			return err
 		}
 
-		if err := copyFile(initrdPath, filepath.Join(path, filepath.Base(initrdPath))); err != nil {
+		if err := sysutils.CopyFile(initrdPath, filepath.Join(path, filepath.Base(initrdPath))); err != nil {
 			return err
 		}
 
@@ -383,7 +382,7 @@ func (img CoreUBootImage) provisionUenv(bootuEnvPath string) error {
 	// if a uEnv.txt is provided in the flashtool-assets, use it
 	if _, err := os.Stat(uEnvPath); err == nil {
 		printOut("Adding uEnv.txt to", bootuEnvPath)
-		if err := copyFile(uEnvPath, bootuEnvPath); err != nil {
+		if err := sysutils.CopyFile(uEnvPath, bootuEnvPath); err != nil {
 			return err
 		}
 	} else {
@@ -414,19 +413,19 @@ func (img CoreUBootImage) provisionDtbs(bootDtbPath string) error {
 	if oemDtb := img.oem.OEM.Hardware.Dtb; oemDtb != "" && img.oem.Platform() != "" {
 		oemDtb := filepath.Join(img.System(), img.oem.InstallPath(), oemDtb)
 		dst := filepath.Join(bootDtbPath, filepath.Base(dtb))
-		if err := copyFile(oemDtb, dst); err != nil {
+		if err := sysutils.CopyFile(oemDtb, dst); err != nil {
 			return err
 		}
 	} else if _, err := os.Stat(dtb); err == nil {
 		dst := filepath.Join(bootDtbPath, filepath.Base(dtb))
-		if err := copyFile(dtb, dst); err != nil {
+		if err := sysutils.CopyFile(dtb, dst); err != nil {
 			return err
 		}
 	} else {
 		for _, dtbFi := range dtbFis {
 			src := filepath.Join(dtbsPath, dtbFi.Name())
 			dst := filepath.Join(bootDtbPath, dtbFi.Name())
-			if err := copyFile(src, dst); err != nil {
+			if err := sysutils.CopyFile(src, dst); err != nil {
 				return err
 			}
 		}
@@ -488,32 +487,5 @@ func (img *CoreUBootImage) FlashExtra(devicePart string) error {
 		}
 	}
 
-	return nil
-}
-
-func copyFile(src, dst string) error {
-	dstFile, err := os.Create(dst)
-	if err != nil {
-		return err
-	}
-	defer dstFile.Close()
-
-	srcFile, err := os.Open(src)
-	if err != nil {
-		return err
-	}
-	defer srcFile.Close()
-
-	reader := bufio.NewReader(srcFile)
-	writer := bufio.NewWriter(dstFile)
-	defer func() {
-		if err != nil {
-			writer.Flush()
-		}
-	}()
-	if _, err = io.Copy(writer, reader); err != nil {
-		return err
-	}
-	writer.Flush()
 	return nil
 }
