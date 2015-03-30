@@ -536,7 +536,7 @@ func (coreCmd *CoreCmd) extractOem(oemPackage string) error {
 		return err
 	}
 
-	// we need to fix the permissions for tempdir
+	// we need to fix the permissions for tempdir to  be seteuid friendly
 	if err := os.Chmod(tempDir, 0755); err != nil {
 		return err
 	}
