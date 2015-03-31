@@ -8,9 +8,10 @@ Build-Depends: debhelper (>= 9),
                golang-go,
                golang-go-flags-dev,
                golang-gocheck-dev,
+               golang-juju-loggo-dev,
                golang-pb-dev,
-               golang-goyaml-dev,
                golang-snappy-dev,
+               golang-yaml.v2-dev,
 Standards-Version: 3.9.5
 Homepage: https://launchpad.net/goget-ubuntu-touch
 Vcs-Browser: http://bazaar.launchpad.net/~phablet-team/goget-ubuntu-touch/trunk/files
