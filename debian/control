@@ -10,7 +10,6 @@ Build-Depends: debhelper (>= 9),
                golang-gocheck-dev,
                golang-juju-loggo-dev,
                golang-pb-dev,
-               golang-goyaml-dev,
                golang-snappy-dev,
                golang-yaml.v2-dev,
 Standards-Version: 3.9.5

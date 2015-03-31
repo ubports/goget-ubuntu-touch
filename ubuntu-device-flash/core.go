@@ -22,7 +22,7 @@ import (
 	"syscall"
 	"time"
 
-	"launchpad.net/goyaml"
+	"gopkg.in/yaml.v2"
 	"launchpad.net/snappy/snappy"
 
 	"launchpad.net/goget-ubuntu-touch/diskimage"
@@ -582,7 +582,7 @@ func (coreCmd CoreCmd) loadOem(systemPath string) (oem diskimage.OemDescription,
 		return oem, errors.New("failed to read oem yaml")
 	}
 
-	if err := goyaml.Unmarshal([]byte(f), &oem); err != nil {
+	if err := yaml.Unmarshal([]byte(f), &oem); err != nil {
 		return oem, errors.New("cannot decode oem yaml")
 	}
 
@@ -620,7 +620,7 @@ func extractHWDescription(path string) (hw diskimage.HardwareDescription, err er
 		return hw, err
 	}
 
-	err = goyaml.Unmarshal([]byte(data), &hw)
+	err = yaml.Unmarshal([]byte(data), &hw)
 
 	return hw, err
 }
