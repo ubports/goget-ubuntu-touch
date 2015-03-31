@@ -159,7 +159,7 @@ func mount(partitions []partition) (baseMount string, err error) {
 		if err := os.MkdirAll(mountpoint, 0777); err != nil {
 			return "", err
 		}
-		if out, err := exec.Command("mount", filepath.Join("/dev/mapper", part.loop), "-o", "user", mountpoint).CombinedOutput(); err != nil {
+		if out, err := exec.Command("mount", filepath.Join("/dev/mapper", part.loop), mountpoint).CombinedOutput(); err != nil {
 			return "", fmt.Errorf("unable to mount dir to create system image: %s", out)
 		}
 	}
