@@ -139,7 +139,7 @@ func mount(partitions []partition) (baseMount string, err error) {
 	}
 
 	// We change the mode so snappy can unpack as non root
-	if err := os.Chmod(baseMount, 0777); err != nil {
+	if err := os.Chmod(baseMount, 0755); err != nil {
 		return "", err
 	}
 
@@ -156,7 +156,7 @@ func mount(partitions []partition) (baseMount string, err error) {
 		}
 
 		mountpoint := filepath.Join(baseMount, string(part.dir))
-		if err := os.MkdirAll(mountpoint, 0777); err != nil {
+		if err := os.MkdirAll(mountpoint, 0755); err != nil {
 			return "", err
 		}
 		if out, err := exec.Command("mount", filepath.Join("/dev/mapper", part.loop), mountpoint).CombinedOutput(); err != nil {
