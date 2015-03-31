@@ -85,8 +85,8 @@ type OemDescription struct {
 	Name    string `yaml:"name"`
 	Version string `yaml:"version"`
 
-	OEM *struct {
-		Hardware *struct {
+	OEM struct {
+		Hardware struct {
 			Bootloader      string      `yaml:"bootloader"`
 			PartitionLayout string      `yaml:"partition-layout"`
 			Dtb             string      `yaml:"dtb,omitempty"`
