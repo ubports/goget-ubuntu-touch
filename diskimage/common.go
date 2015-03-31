@@ -151,6 +151,10 @@ func mount(partitions []partition) (baseMount string, err error) {
 	}()
 
 	for _, part := range partitions {
+		if part.fs == fsNone {
+			continue
+		}
+
 		mountpoint := filepath.Join(baseMount, string(part.dir))
 		if err := os.MkdirAll(mountpoint, 0777); err != nil {
 			return "", err
