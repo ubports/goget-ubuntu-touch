@@ -87,27 +87,12 @@ func NewCoreUBootImage(location string, size int64, hw HardwareDescription, oem 
 	}
 }
 
-func (img *CoreUBootImage) Mount() (err error) {
-	img.baseMount, err = ioutil.TempDir(os.TempDir(), "core-uboot-disk")
+func (img *CoreUBootImage) Mount() error {
+	baseMount, err := mount(img.parts)
 	if err != nil {
-		return errors.New(fmt.Sprintf("Unable to create temp dir to create system image: %s", err))
+		return err
 	}
-	//Remove Mountpoint if we fail along the way
-	defer func() {
-		if err != nil {
-			os.Remove(img.baseMount)
-		}
-	}()
-
-	for _, part := range img.parts {
-		mountpoint := filepath.Join(img.baseMount, string(part.dir))
-		if err := os.MkdirAll(mountpoint, 0755); err != nil {
-			return err
-		}
-		if out, err := exec.Command("mount", filepath.Join("/dev/mapper", part.loop), mountpoint).CombinedOutput(); err != nil {
-			return fmt.Errorf("unable to mount dir to create system image: %s", out)
-		}
-	}
+	img.baseMount = baseMount
 
 	return nil
 }

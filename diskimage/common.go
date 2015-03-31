@@ -9,6 +9,7 @@ package diskimage
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -129,6 +130,42 @@ func sectorSize(dev string) (string, error) {
 	}
 
 	return strings.TrimSpace(string(out)), err
+}
+
+func mount(partitions []partition) (baseMount string, err error) {
+	baseMount, err = ioutil.TempDir(os.TempDir(), "diskimage")
+	if err != nil {
+		return "", err
+	}
+
+	// We change the mode so snappy can unpack as non root
+	if err := os.Chmod(baseMount, 0777); err != nil {
+		return "", err
+	}
+
+	//Remove Mountpoint if we fail along the way
+	defer func() {
+		if err != nil {
+			os.Remove(baseMount)
+		}
+	}()
+
+	for _, part := range partitions {
+		if part.fs == fsNone {
+			continue
+		}
+
+		mountpoint := filepath.Join(baseMount, string(part.dir))
+		if err := os.MkdirAll(mountpoint, 0777); err != nil {
+			return "", err
+		}
+		if out, err := exec.Command("mount", filepath.Join("/dev/mapper", part.loop), "-o", "user", mountpoint).CombinedOutput(); err != nil {
+			return "", fmt.Errorf("unable to mount dir to create system image: %s", out)
+		}
+	}
+
+	return baseMount, nil
+
 }
 
 func printOut(args ...interface{}) {
