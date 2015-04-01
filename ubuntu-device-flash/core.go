@@ -414,7 +414,7 @@ func (coreCmd *CoreCmd) install(systemPath string) error {
 	for _, snap := range packageQueue {
 		fmt.Println("Installing", snap)
 
-		if err := snappy.Install(snap, flags); err != nil {
+		if _, err := snappy.Install(snap, flags); err != nil {
 			return err
 		}
 	}
@@ -551,7 +551,7 @@ func (coreCmd *CoreCmd) extractOem(oemPackage string) error {
 		flags |= snappy.AllowUnauthenticated
 	}
 
-	if err := snappy.Install(oemPackage, flags); err != nil {
+	if _, err := snappy.Install(oemPackage, flags); err != nil {
 		return err
 	}
 
