@@ -18,8 +18,8 @@ import (
 	"strings"
 	"text/template"
 
+	"gopkg.in/yaml.v2"
 	"launchpad.net/goget-ubuntu-touch/sysutils"
-	"launchpad.net/goyaml"
 )
 
 // This program is free software: you can redistribute it and/or modify it
@@ -470,7 +470,7 @@ func (img *CoreUBootImage) FlashExtra(oemRootPath, devicePart string) error {
 	}
 
 	var flash FlashInstructions
-	if err := goyaml.Unmarshal([]byte(data), &flash); err != nil {
+	if err := yaml.Unmarshal([]byte(data), &flash); err != nil {
 		return err
 	}
 
