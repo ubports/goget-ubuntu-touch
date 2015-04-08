@@ -95,6 +95,11 @@ type OemDescription struct {
 			BootAssets      *BootAssets `yaml:"boot-assets,omitempty"`
 		} `yaml:"hardware,omitempty"`
 
+		Software struct {
+			BuiltIn      []string `yaml:"built-in,omitempty"`
+			Preinstalled []string `yaml:"preinstalled,omitempty"`
+		} `yaml:"software,omitempty"`
+
 		Store *struct {
 			ID string `yaml:"id,omitempty"`
 		}

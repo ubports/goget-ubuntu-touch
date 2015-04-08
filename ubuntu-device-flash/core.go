@@ -394,7 +394,8 @@ func (coreCmd *CoreCmd) install(systemPath string) error {
 		flags |= snappy.AllowUnauthenticated
 	}
 
-	packageCount := len(coreCmd.Install) + len(coreCmd.oem.Config)
+	oemSoftware := coreCmd.oem.OEM.Software
+	packageCount := len(coreCmd.Install) + len(oemSoftware.BuiltIn) + len(oemSoftware.Preinstalled)
 	if coreCmd.Oem != "" {
 		packageCount += 1
 	}
@@ -403,12 +404,8 @@ func (coreCmd *CoreCmd) install(systemPath string) error {
 	if coreCmd.Oem != "" {
 		packageQueue = append(packageQueue, coreCmd.Oem)
 	}
-	for k := range coreCmd.oem.Config {
-		// ubuntu-core is not a real package
-		if k != "ubuntu-core" {
-			packageQueue = append(packageQueue, k)
-		}
-	}
+	packageQueue = append(packageQueue, oemSoftware.BuiltIn...)
+	packageQueue = append(packageQueue, oemSoftware.Preinstalled...)
 	packageQueue = append(packageQueue, coreCmd.Install...)
 
 	for _, snap := range packageQueue {
