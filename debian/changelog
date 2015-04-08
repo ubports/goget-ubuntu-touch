@@ -1,3 +1,9 @@
+goget-ubuntu-touch (0.20-0ubuntu1) UNRELEASED; urgency=medium
+
+  * In development.
+
+ -- Sergio Schvezov <sergio.schvezov@canonical.com>  Wed, 01 Apr 2015 15:03:46 -0300
+
 goget-ubuntu-touch (0.19-0ubuntu1) vivid; urgency=medium
 
   * ubuntu-device-flash: For core images, take into account that the real size
