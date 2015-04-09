@@ -50,14 +50,10 @@ func init() {
 }
 
 type CoreCmd struct {
-	Channel  string   `long:"channel" description:"Specify the channel to use" default:"ubuntu-core/devel"`
-	Device   string   `long:"device" description:"Specify the device to use" default:"generic_amd64"`
-	Output   string   `long:"output" short:"o" description:"Name of the image file to create" required:"true"`
-	Size     int64    `long:"size" short:"s" description:"Size of image file to create in GB (min 4)" default:"4"`
-	Cloud    bool     `long:"cloud" description:"Generate a pure cloud image without setting up cloud-init"`
-	Platform string   `long:"platform" description:"specify the boards platform"`
-	Install  []string `long:"install" description:"install additional packages (can be called multiple times)"`
-	Oem      string   `long:"oem" descripion:"the snappy oem package to base the image out of"`
+	Channel string `long:"channel" description:"Specify the channel to use" default:"ubuntu-core/devel"`
+	Output  string `long:"output" short:"o" description:"Name of the image file to create" required:"true"`
+	Size    int64  `long:"size" short:"s" description:"Size of image file to create in GB (min 4)" default:"4"`
+	Oem     string `long:"oem" description:"The snappy oem package to base the image out of"`
 
 	Development struct {
 		DevicePart    string `long:"device-part" description:"Specify a local device part to override the one from the server"`
@@ -65,6 +61,13 @@ type CoreCmd struct {
 		EnableSsh     bool   `long:"enable-ssh" description:"Enable ssh on the image through cloud-init(not needed with developer mode)"`
 		Keyboard      string `long:"keyboard-layout" description:"Specify the keyboard layout" default:"us"`
 	} `group:"Development"`
+
+	Deprecated struct {
+		Install  []string `long:"install" description:"Install additional packages (can be called multiple times)"`
+		Platform string   `long:"platform" description:"Specify the boards platform"`
+		Device   string   `long:"device" description:"Specify the device to use" default:"generic_amd64"`
+		Cloud    bool     `long:"cloud" description:"Generate a pure cloud image without setting up cloud-init"`
+	} `group:"Deprecated"`
 
 	hardware        diskimage.HardwareDescription
 	oem             diskimage.OemDescription
@@ -84,7 +87,7 @@ ssh_genkeytypes: ['rsa', 'dsa', 'ecdsa', 'ed25519']
 `
 
 func (coreCmd *CoreCmd) Execute(args []string) error {
-	if coreCmd.Development.EnableSsh && coreCmd.Cloud {
+	if coreCmd.Development.EnableSsh && coreCmd.Deprecated.Cloud {
 		return errors.New("--cloud and --enable-ssh cannot be used together")
 	}
 
@@ -129,7 +132,7 @@ func (coreCmd *CoreCmd) Execute(args []string) error {
 	if coreCmd.oem.Architecture() != "" {
 		device = systemImageDeviceChannel(coreCmd.oem.Architecture())
 	} else {
-		device = systemImageDeviceChannel(coreCmd.Device)
+		device = systemImageDeviceChannel(coreCmd.Deprecated.Device)
 	}
 
 	deviceChannel, err := channels.GetDeviceChannel(globalArgs.Server, channel, device)
@@ -356,7 +359,7 @@ func (coreCmd *CoreCmd) setup(img diskimage.CoreImage, filePathChan <-chan strin
 		return err
 	}
 
-	if !coreCmd.Cloud {
+	if !coreCmd.Deprecated.Cloud {
 		cloudBaseDir := filepath.Join("var", "lib", "cloud")
 
 		if err := os.MkdirAll(filepath.Join(systemPath, cloudBaseDir), 0755); err != nil {
@@ -395,7 +398,7 @@ func (coreCmd *CoreCmd) install(systemPath string) error {
 	}
 
 	oemSoftware := coreCmd.oem.OEM.Software
-	packageCount := len(coreCmd.Install) + len(oemSoftware.BuiltIn) + len(oemSoftware.Preinstalled)
+	packageCount := len(coreCmd.Deprecated.Install) + len(oemSoftware.BuiltIn) + len(oemSoftware.Preinstalled)
 	if coreCmd.Oem != "" {
 		packageCount += 1
 	}
@@ -406,7 +409,7 @@ func (coreCmd *CoreCmd) install(systemPath string) error {
 	}
 	packageQueue = append(packageQueue, oemSoftware.BuiltIn...)
 	packageQueue = append(packageQueue, oemSoftware.Preinstalled...)
-	packageQueue = append(packageQueue, coreCmd.Install...)
+	packageQueue = append(packageQueue, coreCmd.Deprecated.Install...)
 
 	for _, snap := range packageQueue {
 		fmt.Println("Installing", snap)
@@ -584,7 +587,7 @@ func (coreCmd CoreCmd) loadOem(systemPath string) (oem diskimage.OemDescription,
 	}
 
 	if oem.Platform() == "" {
-		oem.SetPlatform(coreCmd.Platform)
+		oem.SetPlatform(coreCmd.Deprecated.Platform)
 	}
 
 	return oem, nil
