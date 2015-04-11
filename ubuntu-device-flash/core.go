@@ -90,7 +90,7 @@ ssh_genkeytypes: ['rsa', 'dsa', 'ecdsa', 'ed25519']
 func (coreCmd *CoreCmd) Execute(args []string) error {
 	// we don't want to overwrite the output, people might get angry :-)
 	if helpers.FileExists(coreCmd.Output) {
-		return fmt.Errorf("The target output '%s' as it already exists", coreCmd.Output)
+		return fmt.Errorf("Giving up, the desired target output file '%s' already exists", coreCmd.Output)
 	}
 
 	if coreCmd.Development.EnableSsh && coreCmd.Deprecated.Cloud {
