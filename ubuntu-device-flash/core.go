@@ -292,7 +292,13 @@ func (coreCmd *CoreCmd) Execute(args []string) error {
 	}
 
 	fmt.Println("New image complete")
-	if coreCmd.oem.OEM.Hardware.Architecture != "armhf" {
+	fmt.Println("Summary")
+	fmt.Println("\tOutput:", coreCmd.Output)
+	fmt.Println("\tArchitecture:", coreCmd.oem.Architecture())
+	fmt.Println("\tChannel:", coreCmd.Channel)
+	fmt.Println("\tVersion:", image.Version)
+
+	if coreCmd.oem.Architecture() != "armhf" {
 		fmt.Println("Launch by running: kvm -m 768", coreCmd.Output)
 	}
 
