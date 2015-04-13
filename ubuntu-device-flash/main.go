@@ -59,24 +59,11 @@ func main() {
 		return
 	}
 
-	if _, err := parser.ParseArgs(args); err != nil && parser.Active == nil {
-		if e, ok := err.(*flags.Error); ok {
-			if e.Type == flags.ErrHelp {
-				fmt.Println(err)
-				os.Exit(0)
-			}
-		}
-
-		fmt.Println("DEPRECATED: Implicit 'touch' subcommand assumed")
-		args = append(args[:1], append([]string{"touch"}, args[1:]...)...)
-		if _, err := parser.ParseArgs(args); err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
-	} else if err != nil {
+	if _, err := parser.ParseArgs(args); err != nil {
 		fmt.Println(err)
-		os.Exit(1)
+		return
 	}
+
 }
 
 func printOut(args ...interface{}) {
