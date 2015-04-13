@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"gopkg.in/yaml.v2"
+	"launchpad.net/snappy/helpers"
 	"launchpad.net/snappy/snappy"
 
 	"launchpad.net/goget-ubuntu-touch/diskimage"
@@ -87,6 +88,11 @@ ssh_genkeytypes: ['rsa', 'dsa', 'ecdsa', 'ed25519']
 `
 
 func (coreCmd *CoreCmd) Execute(args []string) error {
+	// we don't want to overwrite the output, people might get angry :-)
+	if helpers.FileExists(coreCmd.Output) {
+		return fmt.Errorf("Giving up, the desired target output file %#v already exists", coreCmd.Output)
+	}
+
 	if coreCmd.Development.EnableSsh && coreCmd.Deprecated.Cloud {
 		return errors.New("--cloud and --enable-ssh cannot be used together")
 	}
