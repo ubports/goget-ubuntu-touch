@@ -187,10 +187,13 @@ func (coreCmd *CoreCmd) Execute(args []string) error {
 		close(hwChan)
 	}()
 
+	sideLoaded := false
+
 	for _, f := range image.Files {
 		if devicePart != "" && isDevicePart(f.Path) {
 			printOut("Using a custom device tarball")
 			filesChan <- Files{FilePath: devicePart}
+			sideLoaded = true
 		} else {
 			go bitDownloader(f, filesChan, globalArgs.Server, cacheDir)
 		}
@@ -276,7 +279,7 @@ func (coreCmd *CoreCmd) Execute(args []string) error {
 			return err
 		}
 
-		if err := coreCmd.setup(img, filePathChan, len(image.Files)); err != nil {
+		if err := coreCmd.setup(img, filePathChan, len(image.Files), sideLoaded); err != nil {
 			return err
 		}
 
@@ -316,7 +319,7 @@ func format(img diskimage.Image) error {
 	return img.Format()
 }
 
-func (coreCmd *CoreCmd) setup(img diskimage.CoreImage, filePathChan <-chan string, fileCount int) error {
+func (coreCmd *CoreCmd) setup(img diskimage.CoreImage, filePathChan <-chan string, fileCount int, sideLoaded bool) error {
 	printOut("Mapping...")
 	if err := img.Map(); err != nil {
 		return err
@@ -394,6 +397,13 @@ func (coreCmd *CoreCmd) setup(img diskimage.CoreImage, filePathChan <-chan strin
 		cmd := exec.Command("cp", "-r", "--preserve=all", src, dst)
 		if out, err := cmd.CombinedOutput(); err != nil {
 			return fmt.Errorf("failed to replicate image contents: %s", out)
+		}
+	}
+
+	if sideLoaded {
+		err := recordSideloaded(img.Writable())
+		if err != nil {
+			return err
 		}
 	}
 
@@ -635,4 +645,24 @@ func extractHWDescription(path string) (hw diskimage.HardwareDescription, err er
 	err = yaml.Unmarshal([]byte(data), &hw)
 
 	return hw, err
+}
+
+// Create a stamp file to mark the image as being non-updatable.
+//
+// Used when a device part is specified to ensure that "snappy update"
+// will not attempt to update the system (since it cannot update the
+// custom components), since attempting to do so may lead to an
+// unbootable system).
+func recordSideloaded(writablePath string) error {
+	baseDir := filepath.Join("var", "lib", "snappy")
+
+	full := filepath.Join(writablePath, baseDir)
+
+	if err := os.MkdirAll(full, 0755); err != nil {
+		return err
+	}
+
+	stampFile := filepath.Join(full, "sideloaded")
+
+	return ioutil.WriteFile(stampFile, []byte(""), 0640)
 }
