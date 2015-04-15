@@ -116,6 +116,10 @@ func (o OemDescription) Architecture() string {
 	return o.OEM.Hardware.Architecture
 }
 
+func (o *OemDescription) SetArchitecture(architecture string) {
+	o.OEM.Hardware.Architecture = architecture
+}
+
 func (o OemDescription) PartitionLayout() string {
 	return o.OEM.Hardware.PartitionLayout
 }
