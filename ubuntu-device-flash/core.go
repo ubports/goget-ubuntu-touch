@@ -25,6 +25,7 @@ import (
 	"gopkg.in/yaml.v2"
 	"launchpad.net/snappy/helpers"
 	"launchpad.net/snappy/snappy"
+	"launchpad.net/snappy/progress"
 
 	"launchpad.net/goget-ubuntu-touch/diskimage"
 	"launchpad.net/goget-ubuntu-touch/sysutils"
@@ -187,13 +188,10 @@ func (coreCmd *CoreCmd) Execute(args []string) error {
 		close(hwChan)
 	}()
 
-	sideLoaded := false
-
 	for _, f := range image.Files {
 		if devicePart != "" && isDevicePart(f.Path) {
 			printOut("Using a custom device tarball")
 			filesChan <- Files{FilePath: devicePart}
-			sideLoaded = true
 		} else {
 			go bitDownloader(f, filesChan, globalArgs.Server, cacheDir)
 		}
@@ -279,7 +277,7 @@ func (coreCmd *CoreCmd) Execute(args []string) error {
 			return err
 		}
 
-		if err := coreCmd.setup(img, filePathChan, len(image.Files), sideLoaded); err != nil {
+		if err := coreCmd.setup(img, filePathChan, len(image.Files)); err != nil {
 			return err
 		}
 
@@ -319,7 +317,7 @@ func format(img diskimage.Image) error {
 	return img.Format()
 }
 
-func (coreCmd *CoreCmd) setup(img diskimage.CoreImage, filePathChan <-chan string, fileCount int, sideLoaded bool) error {
+func (coreCmd *CoreCmd) setup(img diskimage.CoreImage, filePathChan <-chan string, fileCount int) error {
 	printOut("Mapping...")
 	if err := img.Map(); err != nil {
 		return err
@@ -400,8 +398,8 @@ func (coreCmd *CoreCmd) setup(img diskimage.CoreImage, filePathChan <-chan strin
 		}
 	}
 
-	if sideLoaded {
-		err := recordSideloaded(img.Writable())
+	if coreCmd.Development.DevicePart != "" {
+		err := recordSideloaded(img.Boot())
 		if err != nil {
 			return err
 		}
@@ -436,7 +434,7 @@ func (coreCmd *CoreCmd) install(systemPath string) error {
 	for _, snap := range packageQueue {
 		fmt.Println("Installing", snap)
 
-		if _, err := snappy.Install(snap, flags); err != nil {
+		if _, err := snappy.Install(snap, flags, &progress.NullProgress{}); err != nil {
 			return err
 		}
 	}
@@ -573,7 +571,7 @@ func (coreCmd *CoreCmd) extractOem(oemPackage string) error {
 		flags |= snappy.AllowUnauthenticated
 	}
 
-	if _, err := snappy.Install(oemPackage, flags); err != nil {
+	if _, err := snappy.Install(oemPackage, flags, &progress.NullProgress{}); err != nil {
 		return err
 	}
 
@@ -653,16 +651,11 @@ func extractHWDescription(path string) (hw diskimage.HardwareDescription, err er
 // will not attempt to update the system (since it cannot update the
 // custom components), since attempting to do so may lead to an
 // unbootable system).
-func recordSideloaded(writablePath string) error {
-	baseDir := filepath.Join("var", "lib", "snappy")
-
-	full := filepath.Join(writablePath, baseDir)
-
-	if err := os.MkdirAll(full, 0755); err != nil {
-		return err
-	}
-
-	stampFile := filepath.Join(full, "sideloaded")
+//
+// XXX: Note that the method used to record the sideload must be
+// factory-reset-safe!
+func recordSideloaded(baseDir string) error {
+	stampFile := filepath.Join(baseDir, ".sideloaded")
 
 	return ioutil.WriteFile(stampFile, []byte(""), 0640)
 }

@@ -253,6 +253,19 @@ func (img *CoreUBootImage) Writable() string {
 	return filepath.Join(img.baseMount, string(writableDir))
 }
 
+// Boot returns the system-boot path
+func (img *CoreUBootImage) Boot() string {
+	if img.parts == nil {
+		panic("img is not setup with partitions")
+	}
+
+	if img.baseMount == "" {
+		panic("img not mounted")
+	}
+
+	return filepath.Join(img.baseMount, string(bootDir))
+}
+
 //System returns the system path
 func (img *CoreUBootImage) System() string {
 	if img.parts == nil {
