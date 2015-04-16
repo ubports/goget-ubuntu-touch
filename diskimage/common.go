@@ -8,6 +8,7 @@
 package diskimage
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -108,8 +109,17 @@ type OemDescription struct {
 	Config map[string]interface{} `yaml:"config,omitempty"`
 }
 
-func (o OemDescription) InstallPath() string {
-	return filepath.Join("/oem", o.Name, o.Version)
+func (o OemDescription) InstallPath(rootPath string) (string, error) {
+	glob, err := filepath.Glob(fmt.Sprintf("/%s/oem/%s.*/%s", rootPath, o.Name, o.Version))
+	if err != nil {
+		return "", err
+	}
+
+	if len(glob) != 1 {
+		return "", errors.New("oem package not installed")
+	}
+
+	return glob[0], nil
 }
 
 func (o OemDescription) Architecture() string {

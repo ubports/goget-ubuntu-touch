@@ -404,7 +404,12 @@ func (img CoreUBootImage) provisionDtbs(bootDtbPath string) error {
 	// if there is a specific dtb for the platform, copy it.
 	// First look in oem and then in device.
 	if oemDtb := img.oem.OEM.Hardware.Dtb; oemDtb != "" && img.oem.Platform() != "" {
-		oemDtb := filepath.Join(img.System(), img.oem.InstallPath(), oemDtb)
+		oemInstallPath, err := img.oem.InstallPath(img.System())
+		if err != nil {
+			return err
+		}
+
+		oemDtb := filepath.Join(oemInstallPath, oemDtb)
 		dst := filepath.Join(bootDtbPath, filepath.Base(dtb))
 		if err := sysutils.CopyFile(oemDtb, dst); err != nil {
 			return err
