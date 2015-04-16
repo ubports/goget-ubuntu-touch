@@ -285,7 +285,11 @@ func (coreCmd *CoreCmd) Execute(args []string) error {
 		return err
 	}
 
-	oemRootPath := filepath.Join(coreCmd.stagingRootPath, coreCmd.oem.InstallPath())
+	oemRootPath, err := coreCmd.oem.InstallPath(coreCmd.stagingRootPath)
+	if err != nil {
+		return err
+	}
+
 	if err := img.FlashExtra(oemRootPath, devicePart); err != nil {
 		return err
 	}
@@ -361,7 +365,11 @@ func (coreCmd *CoreCmd) setup(img diskimage.CoreImage, filePathChan <-chan strin
 		return err
 	}
 
-	oemRootPath := filepath.Join(coreCmd.stagingRootPath, coreCmd.oem.InstallPath())
+	oemRootPath, err := coreCmd.oem.InstallPath(coreCmd.stagingRootPath)
+	if err != nil {
+		return err
+	}
+
 	if err := img.SetupBoot(oemRootPath); err != nil {
 		return err
 	}
