@@ -21,14 +21,14 @@ package main
 
 //Global constansts
 const (
-	kernelName  = "ubuntu-kernel"
-	dataImage   = "userdata.img"
-	sdcardImage = "sdcard.img"
-	systemImage = "system.img"
-	cacheImage  = "cache.img"
-	bootImage   = "boot.img"
-	bootRamdisk = "ramdisk.img"
-	recoveryImage = "recovery.img"
+	kernelName      = "ubuntu-kernel"
+	dataImage       = "userdata.img"
+	sdcardImage     = "sdcard.img"
+	systemImage     = "system.img"
+	cacheImage      = "cache.img"
+	bootImage       = "boot.img"
+	bootRamdisk     = "ramdisk.img"
+	recoveryImage   = "recovery.img"
 	recoveryRamdisk = "recovery-ramdisk.img"
 )
 

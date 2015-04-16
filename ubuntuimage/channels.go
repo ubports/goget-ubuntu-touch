@@ -25,8 +25,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"net/http"
 	"io/ioutil"
+	"net/http"
 )
 
 const (
@@ -106,7 +106,7 @@ func (deviceChannel *DeviceChannel) ListImageVersions() (err error) {
 		return err
 	}
 
-	if (resp.StatusCode != 200) {
+	if resp.StatusCode != 200 {
 		statusErr := errors.New(fmt.Sprintf("Invalid HTTP response: %d", resp.StatusCode))
 		return statusErr
 	}
