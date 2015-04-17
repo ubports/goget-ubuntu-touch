@@ -277,7 +277,7 @@ func (coreCmd *CoreCmd) Execute(args []string) error {
 			return err
 		}
 
-		if err := coreCmd.setup(img, filePathChan, len(image.Files)); err != nil {
+		if err := coreCmd.setup(img, filePathChan, len(image.Files), image.Version); err != nil {
 			return err
 		}
 
@@ -317,7 +317,7 @@ func format(img diskimage.Image) error {
 	return img.Format()
 }
 
-func (coreCmd *CoreCmd) setup(img diskimage.CoreImage, filePathChan <-chan string, fileCount int) error {
+func (coreCmd *CoreCmd) setup(img diskimage.CoreImage, filePathChan <-chan string, fileCount int, version int) error {
 	printOut("Mapping...")
 	if err := img.Map(); err != nil {
 		return err
@@ -398,14 +398,7 @@ func (coreCmd *CoreCmd) setup(img diskimage.CoreImage, filePathChan <-chan strin
 		}
 	}
 
-	if coreCmd.Development.DevicePart != "" {
-		err := recordSideloaded(img.Boot())
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
+	return coreCmd.writeInstallYaml(img.BaseMount(), version)
 }
 
 func (coreCmd *CoreCmd) install(systemPath string) error {
@@ -613,6 +606,47 @@ func (coreCmd CoreCmd) loadOem(systemPath string) (oem diskimage.OemDescription,
 	return oem, nil
 }
 
+// Creates a YAML file inside the image that contains metadata relating
+// to the installation.
+func (coreCmd CoreCmd) writeInstallYaml(baseDir string, version int) error {
+	path, err := exec.LookPath(os.Args[0])
+	if err != nil {
+		return err
+	}
+
+	file := filepath.Join(baseDir, snappy.InstallYamlFile)
+	i := snappy.InstallYaml{
+		InstallMeta: snappy.InstallMeta{
+			Timestamp: time.Now(),
+			InitialVersion: fmt.Sprintf("%d", version),
+			SystemImageServer: globalArgs.Server,
+		},
+		InstallTool: snappy.InstallTool{
+			// FIXME:
+			Name: "ubuntu-device-flash",
+			Path: path,
+			// FIXME:
+			Version: "0.20snappy3-0ubuntu1",
+		},
+		InstallOptions: snappy.InstallOptions{
+			Size: coreCmd.Size,
+			SizeUnit: "GB",
+			Output: coreCmd.Output,
+			Channel: coreCmd.Channel,
+			DevicePart: coreCmd.Development.DevicePart,
+			Oem: coreCmd.Oem,
+			DeveloperMode: coreCmd.Development.DeveloperMode,
+		},
+	}
+
+	data, err := yaml.Marshal(&i)
+	if err != nil {
+		return err
+	}
+
+	return ioutil.WriteFile(file, data, 0444)
+}
+
 func extractHWDescription(path string) (hw diskimage.HardwareDescription, err error) {
 	// hack to circumvent https://code.google.com/p/go/issues/detail?id=1435
 	if syscall.Getuid() == 0 {
@@ -643,19 +677,4 @@ func extractHWDescription(path string) (hw diskimage.HardwareDescription, err er
 	err = yaml.Unmarshal([]byte(data), &hw)
 
 	return hw, err
-}
-
-// Create a stamp file to mark the image as being non-updatable.
-//
-// Used when a device part is specified to ensure that "snappy update"
-// will not attempt to update the system (since it cannot update the
-// custom components), since attempting to do so may lead to an
-// unbootable system).
-//
-// XXX: Note that the method used to record the sideload must be
-// factory-reset-safe!
-func recordSideloaded(baseDir string) error {
-	stampFile := filepath.Join(baseDir, ".sideloaded")
-
-	return ioutil.WriteFile(stampFile, []byte(""), 0640)
 }

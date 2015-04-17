@@ -47,6 +47,7 @@ type Image interface {
 }
 
 type SystemImage interface {
+	Boot() string
 	System() string
 	Writable() string
 }
@@ -56,7 +57,6 @@ type CoreImage interface {
 	SystemImage
 	SetupBoot(oemRootPath string) error
 	FlashExtra(oemRootPath, devicePart string) error
-	Boot() string
 }
 
 type HardwareDescription struct {
