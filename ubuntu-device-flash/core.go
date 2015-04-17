@@ -24,8 +24,8 @@ import (
 
 	"gopkg.in/yaml.v2"
 	"launchpad.net/snappy/helpers"
-	"launchpad.net/snappy/snappy"
 	"launchpad.net/snappy/progress"
+	"launchpad.net/snappy/snappy"
 
 	"launchpad.net/goget-ubuntu-touch/diskimage"
 	"launchpad.net/goget-ubuntu-touch/sysutils"
@@ -135,13 +135,11 @@ func (coreCmd *CoreCmd) Execute(args []string) error {
 
 	channel := systemImageChannel(coreCmd.Channel)
 
-	var device string
-	if coreCmd.oem.Architecture() != "" {
-		device = systemImageDeviceChannel(coreCmd.oem.Architecture())
-	} else {
-		device = systemImageDeviceChannel(coreCmd.Deprecated.Device)
+	if coreCmd.oem.Architecture() == "" {
+		coreCmd.oem.SetArchitecture(coreCmd.Deprecated.Device)
 	}
 
+	device := systemImageDeviceChannel(coreCmd.oem.Architecture())
 	deviceChannel, err := channels.GetDeviceChannel(globalArgs.Server, channel, device)
 	if err != nil {
 		return err
@@ -287,17 +285,21 @@ func (coreCmd *CoreCmd) Execute(args []string) error {
 		return err
 	}
 
-	oemRootPath := filepath.Join(coreCmd.stagingRootPath, coreCmd.oem.InstallPath())
+	oemRootPath, err := coreCmd.oem.InstallPath(coreCmd.stagingRootPath)
+	if err != nil {
+		return err
+	}
+
 	if err := img.FlashExtra(oemRootPath, devicePart); err != nil {
 		return err
 	}
 
 	fmt.Println("New image complete")
-	fmt.Println("Summary")
-	fmt.Println("\tOutput:", coreCmd.Output)
-	fmt.Println("\tArchitecture:", coreCmd.oem.Architecture())
-	fmt.Println("\tChannel:", coreCmd.Channel)
-	fmt.Println("\tVersion:", image.Version)
+	fmt.Println("Summary:")
+	fmt.Println(" Output:", coreCmd.Output)
+	fmt.Println(" Architecture:", coreCmd.oem.Architecture())
+	fmt.Println(" Channel:", coreCmd.Channel)
+	fmt.Println(" Version:", image.Version)
 
 	if coreCmd.oem.Architecture() != "armhf" {
 		fmt.Println("Launch by running: kvm -m 768", coreCmd.Output)
@@ -363,7 +365,11 @@ func (coreCmd *CoreCmd) setup(img diskimage.CoreImage, filePathChan <-chan strin
 		return err
 	}
 
-	oemRootPath := filepath.Join(coreCmd.stagingRootPath, coreCmd.oem.InstallPath())
+	oemRootPath, err := coreCmd.oem.InstallPath(coreCmd.stagingRootPath)
+	if err != nil {
+		return err
+	}
+
 	if err := img.SetupBoot(oemRootPath); err != nil {
 		return err
 	}
@@ -427,7 +433,8 @@ func (coreCmd *CoreCmd) install(systemPath string) error {
 	for _, snap := range packageQueue {
 		fmt.Println("Installing", snap)
 
-		if _, err := snappy.Install(snap, flags, &progress.NullProgress{}); err != nil {
+		pb := progress.NewTextProgress(snap)
+		if _, err := snappy.Install(snap, flags, pb); err != nil {
 			return err
 		}
 	}
@@ -564,7 +571,8 @@ func (coreCmd *CoreCmd) extractOem(oemPackage string) error {
 		flags |= snappy.AllowUnauthenticated
 	}
 
-	if _, err := snappy.Install(oemPackage, flags, &progress.NullProgress{}); err != nil {
+	pb := progress.NewTextProgress(oemPackage)
+	if _, err := snappy.Install(oemPackage, flags, pb); err != nil {
 		return err
 	}
 

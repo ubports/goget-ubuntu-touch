@@ -171,7 +171,7 @@ func (s *BootAssetRawFilesTestSuite) TestRawWrite(c *C) {
 }
 
 func (s *BootAssetRawFilesTestSuite) TestRawWriteNoValidOffset(c *C) {
-	f := fmt.Sprintf(fileName)
+	f := fileName
 	fAbsolutePath := filepath.Join(s.oemRootPathDir, f)
 	c.Assert(ioutil.WriteFile(fAbsolutePath, []byte(f), 0644), IsNil)
 	offset := "NaN"
@@ -181,7 +181,7 @@ func (s *BootAssetRawFilesTestSuite) TestRawWriteNoValidOffset(c *C) {
 }
 
 func (s *BootAssetRawFilesTestSuite) TestRawWriteNoValidFile(c *C) {
-	f := fmt.Sprintf(fileName)
+	f := fileName
 	offset := "10"
 	s.files = []BootAssetRawFiles{BootAssetRawFiles{Path: f, Offset: offset}}
 

@@ -25,6 +25,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
 	. "launchpad.net/gocheck"
 )
 
