@@ -622,8 +622,7 @@ func (coreCmd CoreCmd) writeInstallYaml(baseDir string, version int) error {
 			SystemImageServer: globalArgs.Server,
 		},
 		InstallTool: snappy.InstallTool{
-			// FIXME:
-			Name: "ubuntu-device-flash",
+			Name: filepath.Base(path),
 			Path: path,
 			// FIXME:
 			Version: "0.20snappy3-0ubuntu1",
@@ -644,6 +643,7 @@ func (coreCmd CoreCmd) writeInstallYaml(baseDir string, version int) error {
 		return err
 	}
 
+	// the file isn't supposed to be modified, hence r/o.
 	return ioutil.WriteFile(file, data, 0444)
 }
 
