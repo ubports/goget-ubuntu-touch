@@ -23,10 +23,11 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"launchpad.net/goget-ubuntu-touch/bootimg"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"launchpad.net/goget-ubuntu-touch/bootimg"
 )
 
 func getDeviceTar(files []string) (string, error) {
@@ -52,7 +53,7 @@ func extractBoot(dataDir string, bootName string, ramdiskName string) error {
 	if err := boot.WriteRamdisk(ramdiskPath); err != nil {
 		return err
 	}
-	if (ramdiskName == bootRamdisk) {
+	if ramdiskName == bootRamdisk {
 		kernelPath := filepath.Join(dataDir, kernelName)
 		if boot.WriteKernel(kernelPath); err != nil {
 			return err

@@ -221,7 +221,7 @@ func (img DiskImage) ExtractFile(filePath string, dir string) error {
 			return err
 		}
 	} else if !fi.IsDir() {
-		return fmt.Errorf("extract dir %s is not a directory")
+		return fmt.Errorf("extract dir %s is not a directory", fi.Name())
 	}
 	dstFile, err := os.Create(filepath.Join(dir, filePath))
 	if err != nil {

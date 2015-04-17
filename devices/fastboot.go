@@ -76,7 +76,7 @@ func (fastboot Fastboot) GetDevice() (device string, err error) {
 	cmd := append(fastboot.params, []string{"getvar", "product"}...)
 	deviceOutput, err := exec.Command(fastbootCommand, cmd...).CombinedOutput()
 	lines := strings.Split(string(deviceOutput), "\n")
-	for _, line := range(lines) {
+	for _, line := range lines {
 		fields := strings.Split(line, ":")
 		if strings.Contains(fields[0], "product") {
 			device = strings.TrimSpace(fields[1])

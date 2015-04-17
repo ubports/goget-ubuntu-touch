@@ -331,7 +331,7 @@ func (img *CoreGrubImage) SetupBoot(oemRootPath string) error {
 	}
 	grubFile, err := os.Create(filepath.Join(grubDir, "50-system-image.cfg"))
 	if err != nil {
-		return fmt.Errorf("unable to create %s file: %s", grubFile, err)
+		return fmt.Errorf("unable to create %s file: %s", grubFile.Name(), err)
 	}
 	defer grubFile.Close()
 	if _, err := io.WriteString(grubFile, grubCfgContent); err != nil {

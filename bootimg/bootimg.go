@@ -22,8 +22,8 @@ package bootimg
 import (
 	"bytes"
 	"encoding/binary"
-	"io/ioutil"
 	"errors"
+	"io/ioutil"
 )
 
 type bootHeader map[uint]uint32
@@ -40,13 +40,13 @@ const (
 	pageSize
 )
 
-type AndroidBootImg struct{
+type AndroidBootImg struct {
 	kernelOffset, ramdiskOffset, secondOffset uint32
-	hdr bootHeader
-	img []byte
+	hdr                                       bootHeader
+	img                                       []byte
 }
 
-// readChunk reads a chunk o b []bytes returns it's Little Endian 
+// readChunk reads a chunk o b []bytes returns it's Little Endian
 // unsigned size(4) value
 func readChunk(b []byte) (value uint32, err error) {
 	if len(b) != 4 {
@@ -66,10 +66,10 @@ func New(img []byte) (boot AndroidBootImg, err error) {
 	if BOOT_MAGIC != string(magic) {
 		return boot, errors.New("This is not on an android bootimg")
 	}
-	
+
 	boot.hdr = make(bootHeader)
 	for i, start := kernelSize, len(BOOT_MAGIC); i <= pageSize; i++ {
-		if boot.hdr[uint(i)], err = readChunk(img[start:start + 4]); err != nil {
+		if boot.hdr[uint(i)], err = readChunk(img[start : start+4]); err != nil {
 			return boot, err
 		}
 		// sizeof(unsigned)
