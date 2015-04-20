@@ -8,6 +8,8 @@
 
 package main
 
+import "path"
+
 // This program is free software: you can redistribute it and/or modify it
 // under the terms of the GNU General Public License version 3, as published
 // by the Free Software Foundation.
@@ -20,26 +22,8 @@ package main
 // You should have received a copy of the GNU General Public License along
 // with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-const (
-	channelCoreEdge  = "edge"
-	channelCoreAlpha = "alpha"
-	channelCoreBeta  = "beta"
-)
-
-const (
-	channelCoreDevel         = "ubuntu-core/devel"
-	channelCoreDevelProposed = "ubuntu-core/devel-proposed"
-)
-
-func systemImageChannel(channel string) string {
-	switch channel {
-	case channelCoreEdge:
-		return channelCoreDevelProposed
-	case channelCoreAlpha:
-		return channelCoreDevel
-	}
-
-	return channel
+func systemImageChannel(flavor, release, channel string) string {
+	return path.Join(flavor, release, channel)
 }
 
 const (

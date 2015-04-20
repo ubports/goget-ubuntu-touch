@@ -25,6 +25,7 @@ import (
 	"gopkg.in/yaml.v2"
 	"launchpad.net/snappy/helpers"
 	"launchpad.net/snappy/progress"
+	"launchpad.net/snappy/release"
 	"launchpad.net/snappy/snappy"
 
 	"launchpad.net/goget-ubuntu-touch/diskimage"
@@ -52,7 +53,7 @@ func init() {
 }
 
 type CoreCmd struct {
-	Channel string `long:"channel" description:"Specify the channel to use" default:"ubuntu-core/devel"`
+	Channel string `long:"channel" description:"Specify the channel to use" default:"edge"`
 	Output  string `long:"output" short:"o" description:"Name of the image file to create" required:"true"`
 	Size    int64  `long:"size" short:"s" description:"Size of image file to create in GB (min 4)" default:"4"`
 	Oem     string `long:"oem" description:"The snappy oem package to base the image out of"`
@@ -70,6 +71,10 @@ type CoreCmd struct {
 		Device   string   `long:"device" description:"Specify the device to use" default:"generic_amd64"`
 		Cloud    bool     `long:"cloud" description:"Generate a pure cloud image without setting up cloud-init"`
 	} `group:"Deprecated"`
+
+	Positional struct {
+		Release string `positional-arg-name:"release" description:"The release to base the image out of" required:"true"`
+	} `positional-args:"yes"`
 
 	hardware        diskimage.HardwareDescription
 	oem             diskimage.OemDescription
@@ -133,7 +138,7 @@ func (coreCmd *CoreCmd) Execute(args []string) error {
 		return err
 	}
 
-	channel := systemImageChannel(coreCmd.Channel)
+	channel := systemImageChannel("ubuntu-core", coreCmd.Positional.Release, coreCmd.Channel)
 
 	if coreCmd.oem.Architecture() == "" {
 		coreCmd.oem.SetArchitecture(coreCmd.Deprecated.Device)
@@ -286,7 +291,7 @@ func (coreCmd *CoreCmd) Execute(args []string) error {
 	}
 
 	oemRootPath, err := coreCmd.oem.InstallPath(coreCmd.stagingRootPath)
-	if err != nil {
+	if coreCmd.Oem != "" && err != nil {
 		return err
 	}
 
@@ -366,7 +371,7 @@ func (coreCmd *CoreCmd) setup(img diskimage.CoreImage, filePathChan <-chan strin
 	}
 
 	oemRootPath, err := coreCmd.oem.InstallPath(coreCmd.stagingRootPath)
-	if err != nil {
+	if coreCmd.Oem != "" && err != nil {
 		return err
 	}
 
@@ -565,6 +570,11 @@ func (coreCmd *CoreCmd) extractOem(oemPackage string) error {
 
 	snappy.SetRootDir(tempDir)
 	defer snappy.SetRootDir("/")
+	release.Override(release.Release{
+		Flavor:  "core",
+		Series:  coreCmd.Positional.Release,
+		Channel: coreCmd.Channel,
+	})
 
 	flags := snappy.InhibitHooks
 	if coreCmd.Development.DeveloperMode {
