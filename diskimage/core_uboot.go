@@ -18,7 +18,6 @@ import (
 	"strings"
 	"text/template"
 
-	"gopkg.in/yaml.v2"
 	"launchpad.net/goget-ubuntu-touch/sysutils"
 )
 
@@ -437,59 +436,6 @@ func (img *CoreUBootImage) FlashExtra(oemRootPath, devicePart string) error {
 	// deprecated device part setup
 	if bootAssets := img.oem.OEM.Hardware.BootAssets; bootAssets != nil {
 		return setupBootAssetRawFiles(img.location, oemRootPath, bootAssets.RawFiles)
-	}
-
-	// this is for backwards compatibility
-	if img.oem.Platform() == "" {
-		return nil
-	}
-
-	tmpdir, err := ioutil.TempDir("", "device")
-	if err != nil {
-		return errors.New("cannot create tempdir to extract hardware.yaml from device part")
-	}
-	defer os.RemoveAll(tmpdir)
-
-	if out, err := exec.Command("tar", "xf", devicePart, "-C", tmpdir, "flashtool-assets").CombinedOutput(); err != nil {
-		fmt.Println("No flashtool-assets found, skipping...")
-		if debugPrint {
-			fmt.Println("device part:", devicePart)
-			fmt.Println("command output:", string(out))
-		}
-
-		return nil
-	}
-
-	flashAssetsPath := filepath.Join(tmpdir, "flashtool-assets", img.oem.Platform())
-	flashPath := filepath.Join(flashAssetsPath, "flash.yaml")
-
-	if _, err := os.Stat(flashPath); err != nil && os.IsNotExist(err) {
-		return nil
-	} else if err != nil {
-		return err
-	}
-
-	data, err := ioutil.ReadFile(flashPath)
-	if err != nil {
-		return err
-	}
-
-	var flash FlashInstructions
-	if err := yaml.Unmarshal([]byte(data), &flash); err != nil {
-		return err
-	}
-
-	fmt.Println("Running flashtool-asset commands")
-	for _, cmd := range flash.Bootloader {
-		cmd = fmt.Sprintf(cmd, flashAssetsPath, img.location)
-		cmdFields := strings.Fields(cmd)
-
-		if out, err := exec.Command(cmdFields[0], cmdFields[1:]...).CombinedOutput(); err != nil {
-			return fmt.Errorf("failed to run flash command: %s : %s", cmd, out)
-		} else {
-			fmt.Println(cmd)
-			fmt.Println(string(out))
-		}
 	}
 
 	return nil

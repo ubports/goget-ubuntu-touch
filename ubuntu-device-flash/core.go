@@ -56,20 +56,18 @@ type CoreCmd struct {
 	Channel string `long:"channel" description:"Specify the channel to use" default:"edge"`
 	Output  string `long:"output" short:"o" description:"Name of the image file to create" required:"true"`
 	Size    int64  `long:"size" short:"s" description:"Size of image file to create in GB (min 4)" default:"4"`
-	Oem     string `long:"oem" description:"The snappy oem package to base the image out of"`
+	Oem     string `long:"oem" description:"The snappy oem package to base the image out of" default:"amd64"`
 
 	Development struct {
 		DevicePart    string `long:"device-part" description:"Specify a local device part to override the one from the server"`
 		DeveloperMode bool   `long:"developer-mode" description:"Finds the latest public key in your ~/.ssh and sets it up using cloud-init"`
 		EnableSsh     bool   `long:"enable-ssh" description:"Enable ssh on the image through cloud-init(not needed with developer mode)"`
-		Keyboard      string `long:"keyboard-layout" description:"Specify the keyboard layout" default:"us"`
 	} `group:"Development"`
 
 	Deprecated struct {
-		Install  []string `long:"install" description:"Install additional packages (can be called multiple times)"`
-		Platform string   `long:"platform" description:"Specify the boards platform"`
-		Device   string   `long:"device" description:"Specify the device to use" default:"generic_amd64"`
-		Cloud    bool     `long:"cloud" description:"Generate a pure cloud image without setting up cloud-init"`
+		Install []string `long:"install" description:"Install additional packages (can be called multiple times)"`
+		Cloud   bool     `long:"cloud" description:"Generate a pure cloud image without setting up cloud-init"`
+		Device  string   `long:"device" description:"Specify the device to use"`
 	} `group:"Deprecated"`
 
 	Positional struct {
@@ -139,8 +137,9 @@ func (coreCmd *CoreCmd) Execute(args []string) error {
 	}
 
 	channel := systemImageChannel("ubuntu-core", coreCmd.Positional.Release, coreCmd.Channel)
-
-	if coreCmd.oem.Architecture() == "" {
+	// TODO: remove once azure channel is gone
+	if coreCmd.Deprecated.Device != "" {
+		fmt.Println("WARNING: this option should only be used to build azure images")
 		coreCmd.oem.SetArchitecture(coreCmd.Deprecated.Device)
 	}
 
@@ -231,18 +230,14 @@ func (coreCmd *CoreCmd) Execute(args []string) error {
 		return nil
 	}
 
-	// for backwards compatibility
-	if coreCmd.oem.OEM.Hardware.Bootloader == "" {
-		coreCmd.oem.OEM.Hardware.Bootloader = coreCmd.hardware.Bootloader
-	}
-
-	switch coreCmd.oem.OEM.Hardware.Bootloader {
+	loader := coreCmd.oem.OEM.Hardware.Bootloader
+	switch loader {
 	case "grub":
 		img = diskimage.NewCoreGrubImage(coreCmd.Output, coreCmd.Size)
 	case "u-boot":
 		img = diskimage.NewCoreUBootImage(coreCmd.Output, coreCmd.Size, coreCmd.hardware, coreCmd.oem)
 	default:
-		fmt.Printf("Bootloader set to '%s' in hardware description, assuming grub as a fallback\n", coreCmd.hardware.Bootloader)
+		fmt.Printf("Bootloader set to '%s' in hardware description, assuming grub as a fallback\n", loader)
 		img = diskimage.NewCoreGrubImage(coreCmd.Output, coreCmd.Size)
 	}
 
@@ -379,10 +374,6 @@ func (coreCmd *CoreCmd) setup(img diskimage.CoreImage, filePathChan <-chan strin
 		return err
 	}
 
-	if err := coreCmd.setupKeyboardLayout(systemPath); err != nil {
-		return err
-	}
-
 	if !coreCmd.Deprecated.Cloud {
 		cloudBaseDir := filepath.Join("var", "lib", "cloud")
 
@@ -501,25 +492,6 @@ func (coreCmd *CoreCmd) setupCloudInit(cloudBaseDir, systemData string) error {
 	return nil
 }
 
-func (coreCmd *CoreCmd) setupKeyboardLayout(systemPath string) error {
-	kbFilePath := filepath.Join(systemPath, "etc", "default", "keyboard")
-
-	// do not error if the image has no keyboard
-	if _, err := os.Stat(kbFilePath); err != nil && os.IsNotExist(err) {
-		return nil
-	}
-
-	kbFileContents, err := ioutil.ReadFile(kbFilePath)
-	if err != nil {
-		return err
-	}
-
-	r := strings.NewReplacer("XKBLAYOUT=\"us\"", fmt.Sprintf("XKBLAYOUT=\"%s\"", coreCmd.Development.Keyboard))
-	kbFileContents = []byte(r.Replace(string(kbFileContents)))
-
-	return ioutil.WriteFile(kbFilePath, kbFileContents, 0644)
-}
-
 func getAuthorizedSshKey() (string, error) {
 	sshDir := os.ExpandEnv("$HOME/.ssh")
 
@@ -615,10 +587,6 @@ func (coreCmd CoreCmd) loadOem(systemPath string) (oem diskimage.OemDescription,
 
 	if err := yaml.Unmarshal([]byte(f), &oem); err != nil {
 		return oem, errors.New("cannot decode oem yaml")
-	}
-
-	if oem.Platform() == "" {
-		oem.SetPlatform(coreCmd.Deprecated.Platform)
 	}
 
 	return oem, nil
