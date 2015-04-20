@@ -1,7 +1,7 @@
 //
 // diskimage - handles ubuntu disk images
 //
-// Copyright (c) 2013 Canonical Ltd.
+// Copyright (c) 2013-2015 Canonical Ltd.
 //
 // Written by Sergio Schvezov <sergio.schvezov@canonical.com>
 //
@@ -53,6 +53,10 @@ GRUB_CMDLINE_LINUX_DEFAULT="console=tty1 console=ttyS0 panic=-1"
 GRUB_TERMINAL=console
 # LP: #1035279
 GRUB_RECORDFAIL_TIMEOUT=0
+`
+
+const grubStubContent = `set prefix=($root)'/EFI/ubuntu/grub'
+configfile $prefix/grub.cfg
 `
 
 func (img *CoreGrubImage) Mount() error {
@@ -321,8 +325,27 @@ func (img *CoreGrubImage) SetupBoot(oemRootPath string) error {
 
 	// install grub
 	if out, err := exec.Command("chroot", img.System(), "grub-install", "/root_dev").CombinedOutput(); err != nil {
-		return fmt.Errorf("unable to install grub: %s", out)
+		return fmt.Errorf("unable to install grub (BIOS): %s", out)
 	}
+
+	// install grub
+	if out, err := exec.Command("chroot", img.System(), "grub-install", "--target=x86_64-efi", "--no-nvram", "--removable", "--efi-directory=/boot/efi").CombinedOutput(); err != nil {
+		return fmt.Errorf("unable to install grub (EFI): %s", out)
+	}
+	// tell our EFI grub where to find its full config
+	efiBootDir := filepath.Join(img.System(), "boot", "efi", "EFI", "BOOT")
+	if err := os.MkdirAll(efiBootDir, 0755); err != nil {
+		return fmt.Errorf("unable to create %s dir: %s", efiBootDir, err)
+	}
+	grubStub, err := os.Create(filepath.Join(efiBootDir, "grub.cfg"))
+	if err != nil {
+		return fmt.Errorf("unable to create %s file: %s", grubStub.Name(), err)
+	}
+	defer grubStub.Close()
+	if _, err := io.WriteString(grubStub, grubStubContent); err != nil {
+		return err
+	}
+
 
 	// ensure we run not into recordfail issue
 	grubDir := filepath.Join(img.System(), "etc", "default", "grub.d")
