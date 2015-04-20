@@ -28,6 +28,7 @@ Depends: android-tools-adb,
          fakeroot,
          kpartx,
          qemu-user-static,
+         ubuntu-snappy-cli,
          ${misc:Depends},
          ${shlibs:Depends},
 Built-Using: ${misc:Built-Using}
