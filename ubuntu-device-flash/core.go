@@ -56,7 +56,7 @@ type CoreCmd struct {
 	Channel string `long:"channel" description:"Specify the channel to use" default:"edge"`
 	Output  string `long:"output" short:"o" description:"Name of the image file to create" required:"true"`
 	Size    int64  `long:"size" short:"s" description:"Size of image file to create in GB (min 4)" default:"4"`
-	Oem     string `long:"oem" description:"The snappy oem package to base the image out of" default:"amd64"`
+	Oem     string `long:"oem" description:"The snappy oem package to base the image out of" default:"x86-amd64"`
 
 	Development struct {
 		DevicePart    string `long:"device-part" description:"Specify a local device part to override the one from the server"`
@@ -237,7 +237,7 @@ func (coreCmd *CoreCmd) Execute(args []string) error {
 	case "u-boot":
 		img = diskimage.NewCoreUBootImage(coreCmd.Output, coreCmd.Size, coreCmd.hardware, coreCmd.oem)
 	default:
-		fmt.Printf("Bootloader set to '%s' in hardware description, assuming grub as a fallback\n", loader)
+		fmt.Printf("Bootloader set to '%s' in oem hardware description, assuming grub as a fallback\n", loader)
 		img = diskimage.NewCoreGrubImage(coreCmd.Output, coreCmd.Size)
 	}
 
