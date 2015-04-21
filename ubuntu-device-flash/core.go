@@ -27,6 +27,7 @@ import (
 	"launchpad.net/snappy/progress"
 	"launchpad.net/snappy/release"
 	"launchpad.net/snappy/snappy"
+	"launchpad.net/snappy/provisioning"
 
 	"launchpad.net/goget-ubuntu-touch/diskimage"
 	"launchpad.net/goget-ubuntu-touch/sysutils"
@@ -275,7 +276,10 @@ func (coreCmd *CoreCmd) Execute(args []string) error {
 			return err
 		}
 
-		if err := coreCmd.setup(img, filePathChan, len(image.Files), image.Version); err != nil {
+		// avoid passing more args to setup()
+		globalArgs.Revision = image.Version
+
+		if err := coreCmd.setup(img, filePathChan, len(image.Files)); err != nil {
 			return err
 		}
 
@@ -319,7 +323,7 @@ func format(img diskimage.Image) error {
 	return img.Format()
 }
 
-func (coreCmd *CoreCmd) setup(img diskimage.CoreImage, filePathChan <-chan string, fileCount int, version int) error {
+func (coreCmd *CoreCmd) setup(img diskimage.CoreImage, filePathChan <-chan string, fileCount int) error {
 	printOut("Mapping...")
 	if err := img.Map(); err != nil {
 		return err
@@ -400,7 +404,7 @@ func (coreCmd *CoreCmd) setup(img diskimage.CoreImage, filePathChan <-chan strin
 		}
 	}
 
-	return coreCmd.writeInstallYaml(img.BaseMount(), version)
+	return coreCmd.writeInstallYaml(img.Boot())
 }
 
 func (coreCmd *CoreCmd) install(systemPath string) error {
@@ -594,26 +598,26 @@ func (coreCmd CoreCmd) loadOem(systemPath string) (oem diskimage.OemDescription,
 
 // Creates a YAML file inside the image that contains metadata relating
 // to the installation.
-func (coreCmd CoreCmd) writeInstallYaml(baseDir string, version int) error {
-	path, err := exec.LookPath(os.Args[0])
+func (coreCmd CoreCmd) writeInstallYaml(bootDir string) error {
+	selfPath, err := exec.LookPath(os.Args[0])
 	if err != nil {
 		return err
 	}
 
-	file := filepath.Join(baseDir, snappy.InstallYamlFile)
-	i := snappy.InstallYaml{
-		InstallMeta: snappy.InstallMeta{
+	installYamlFilePath := filepath.Join(bootDir, filepath.Base(provisioning.InstallYamlFile))
+	i := provisioning.InstallYaml{
+		InstallMeta: provisioning.InstallMeta{
 			Timestamp: time.Now(),
-			InitialVersion: fmt.Sprintf("%d", version),
+			InitialVersion: fmt.Sprintf("%s", globalArgs.Revision),
 			SystemImageServer: globalArgs.Server,
 		},
-		InstallTool: snappy.InstallTool{
-			Name: filepath.Base(path),
-			Path: path,
-			// FIXME:
-			Version: "0.20snappy3-0ubuntu1",
+		InstallTool: provisioning.InstallTool{
+			Name: filepath.Base(selfPath),
+			Path: selfPath,
+			// FIXME: we don't know our own version yet :)
+			// Version: "???",
 		},
-		InstallOptions: snappy.InstallOptions{
+		InstallOptions: provisioning.InstallOptions{
 			Size: coreCmd.Size,
 			SizeUnit: "GB",
 			Output: coreCmd.Output,
@@ -630,7 +634,7 @@ func (coreCmd CoreCmd) writeInstallYaml(baseDir string, version int) error {
 	}
 
 	// the file isn't supposed to be modified, hence r/o.
-	return ioutil.WriteFile(file, data, 0444)
+	return ioutil.WriteFile(installYamlFilePath, data, 0444)
 }
 
 func extractHWDescription(path string) (hw diskimage.HardwareDescription, err error) {
