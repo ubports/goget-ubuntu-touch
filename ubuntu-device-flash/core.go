@@ -138,12 +138,14 @@ func (coreCmd *CoreCmd) Execute(args []string) error {
 
 	channel := systemImageChannel("ubuntu-core", coreCmd.Positional.Release, coreCmd.Channel)
 	// TODO: remove once azure channel is gone
+	var device string
 	if coreCmd.Deprecated.Device != "" {
 		fmt.Println("WARNING: this option should only be used to build azure images")
-		coreCmd.oem.SetArchitecture(coreCmd.Deprecated.Device)
+		device = coreCmd.Deprecated.Device
+	} else {
+		device = systemImageDeviceChannel(coreCmd.oem.Architecture())
 	}
 
-	device := systemImageDeviceChannel(coreCmd.oem.Architecture())
 	deviceChannel, err := channels.GetDeviceChannel(globalArgs.Server, channel, device)
 	if err != nil {
 		return err
