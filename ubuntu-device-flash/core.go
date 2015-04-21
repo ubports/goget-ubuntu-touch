@@ -407,11 +407,7 @@ func (coreCmd *CoreCmd) install(systemPath string) error {
 	snappy.SetRootDir(systemPath)
 	defer snappy.SetRootDir("/")
 
-	flags := snappy.InhibitHooks
-	if coreCmd.Development.DeveloperMode {
-		flags |= snappy.AllowUnauthenticated
-	}
-
+	flags := coreCmd.installFlags()
 	oemSoftware := coreCmd.oem.OEM.Software
 	packageCount := len(coreCmd.Deprecated.Install) + len(oemSoftware.BuiltIn) + len(oemSoftware.Preinstalled)
 	if coreCmd.Oem != "" {
@@ -523,6 +519,16 @@ func getAuthorizedSshKey() (string, error) {
 	return string(pubKey), err
 }
 
+func (coreCmd *CoreCmd) installFlags() snappy.InstallFlags {
+	flags := snappy.InhibitHooks | snappy.AllowOEM
+
+	if coreCmd.Development.DeveloperMode {
+		flags |= snappy.AllowUnauthenticated
+	}
+
+	return flags
+}
+
 func (coreCmd *CoreCmd) extractOem(oemPackage string) error {
 	if oemPackage == "" {
 		return nil
@@ -548,11 +554,7 @@ func (coreCmd *CoreCmd) extractOem(oemPackage string) error {
 		Channel: coreCmd.Channel,
 	})
 
-	flags := snappy.InhibitHooks
-	if coreCmd.Development.DeveloperMode {
-		flags |= snappy.AllowUnauthenticated
-	}
-
+	flags := coreCmd.installFlags()
 	pb := progress.NewTextProgress(oemPackage)
 	if _, err := snappy.Install(oemPackage, flags, pb); err != nil {
 		return err
