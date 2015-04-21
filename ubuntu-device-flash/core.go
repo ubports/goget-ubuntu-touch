@@ -71,8 +71,8 @@ type CoreCmd struct {
 	} `group:"Deprecated"`
 
 	Positional struct {
-		Release string `positional-arg-name:"release" description:"The release to base the image out of" required:"true"`
-	} `positional-args:"yes"`
+		Release string `positional-arg-name:"release" description:"The release to base the image out of (15.04 or rolling)" required:"true"`
+	} `positional-args:"yes" required:"yes"`
 
 	hardware        diskimage.HardwareDescription
 	oem             diskimage.OemDescription
