@@ -30,6 +30,7 @@ Depends: android-tools-adb,
          kpartx,
          parted,
          qemu-user-static,
+         ubuntu-snappy-cli,
          ${misc:Depends},
          ${shlibs:Depends},
 Built-Using: ${misc:Built-Using}

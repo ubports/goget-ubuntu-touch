@@ -20,7 +20,6 @@ package diskimage
 // with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 
@@ -38,7 +37,7 @@ var _ = Suite(&CommonTestSuite{})
 func (s *CommonTestSuite) SetUpTest(c *C) {
 	s.tmpdir = c.MkDir()
 	s.oem = OemDescription{Name: "packagename", Version: "42"}
-	s.packageInst = fmt.Sprintf("%s.%s", s.oem.Name, "sideload")
+	s.packageInst = s.oem.Name
 }
 
 func (s *CommonTestSuite) TestOemInstallPath(c *C) {
@@ -48,7 +47,7 @@ func (s *CommonTestSuite) TestOemInstallPath(c *C) {
 	installPath, err := s.oem.InstallPath(s.tmpdir)
 
 	c.Assert(err, IsNil)
-	c.Assert(installPath, Equals, filepath.Join(s.tmpdir, "/oem/packagename.sideload/42"))
+	c.Assert(installPath, Equals, filepath.Join(s.tmpdir, "oem/packagename/42"))
 }
 
 func (s *CommonTestSuite) TestOemInstallPathNoOem(c *C) {

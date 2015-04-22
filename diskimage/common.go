@@ -108,7 +108,7 @@ type OemDescription struct {
 }
 
 func (o OemDescription) InstallPath(rootPath string) (string, error) {
-	glob, err := filepath.Glob(fmt.Sprintf("/%s/oem/%s.*/%s", rootPath, o.Name, o.Version))
+	glob, err := filepath.Glob(fmt.Sprintf("%s/oem/%s/%s", rootPath, o.Name, o.Version))
 	if err != nil {
 		return "", err
 	}

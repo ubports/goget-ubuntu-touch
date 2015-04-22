@@ -71,8 +71,8 @@ type CoreCmd struct {
 	} `group:"Deprecated"`
 
 	Positional struct {
-		Release string `positional-arg-name:"release" description:"The release to base the image out of" required:"true"`
-	} `positional-args:"yes"`
+		Release string `positional-arg-name:"release" description:"The release to base the image out of (15.04 or rolling)" required:"true"`
+	} `positional-args:"yes" required:"yes"`
 
 	hardware        diskimage.HardwareDescription
 	oem             diskimage.OemDescription
@@ -138,12 +138,14 @@ func (coreCmd *CoreCmd) Execute(args []string) error {
 
 	channel := systemImageChannel("ubuntu-core", coreCmd.Positional.Release, coreCmd.Channel)
 	// TODO: remove once azure channel is gone
+	var device string
 	if coreCmd.Deprecated.Device != "" {
 		fmt.Println("WARNING: this option should only be used to build azure images")
-		coreCmd.oem.SetArchitecture(coreCmd.Deprecated.Device)
+		device = coreCmd.Deprecated.Device
+	} else {
+		device = systemImageDeviceChannel(coreCmd.oem.Architecture())
 	}
 
-	device := systemImageDeviceChannel(coreCmd.oem.Architecture())
 	deviceChannel, err := channels.GetDeviceChannel(globalArgs.Server, channel, device)
 	if err != nil {
 		return err
@@ -407,11 +409,7 @@ func (coreCmd *CoreCmd) install(systemPath string) error {
 	snappy.SetRootDir(systemPath)
 	defer snappy.SetRootDir("/")
 
-	flags := snappy.InhibitHooks
-	if coreCmd.Development.DeveloperMode {
-		flags |= snappy.AllowUnauthenticated
-	}
-
+	flags := coreCmd.installFlags()
 	oemSoftware := coreCmd.oem.OEM.Software
 	packageCount := len(coreCmd.Deprecated.Install) + len(oemSoftware.BuiltIn) + len(oemSoftware.Preinstalled)
 	if coreCmd.Oem != "" {
@@ -523,6 +521,16 @@ func getAuthorizedSshKey() (string, error) {
 	return string(pubKey), err
 }
 
+func (coreCmd *CoreCmd) installFlags() snappy.InstallFlags {
+	flags := snappy.InhibitHooks | snappy.AllowOEM
+
+	if coreCmd.Development.DeveloperMode {
+		flags |= snappy.AllowUnauthenticated
+	}
+
+	return flags
+}
+
 func (coreCmd *CoreCmd) extractOem(oemPackage string) error {
 	if oemPackage == "" {
 		return nil
@@ -548,11 +556,7 @@ func (coreCmd *CoreCmd) extractOem(oemPackage string) error {
 		Channel: coreCmd.Channel,
 	})
 
-	flags := snappy.InhibitHooks
-	if coreCmd.Development.DeveloperMode {
-		flags |= snappy.AllowUnauthenticated
-	}
-
+	flags := coreCmd.installFlags()
 	pb := progress.NewTextProgress(oemPackage)
 	if _, err := snappy.Install(oemPackage, flags, pb); err != nil {
 		return err
