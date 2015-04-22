@@ -612,7 +612,7 @@ func (coreCmd CoreCmd) writeInstallYaml(bootDir string) error {
 	i := provisioning.InstallYaml{
 		InstallMeta: provisioning.InstallMeta{
 			Timestamp: time.Now(),
-			InitialVersion: fmt.Sprintf("%s", globalArgs.Revision),
+			InitialVersion: fmt.Sprintf("%d", globalArgs.Revision),
 			SystemImageServer: globalArgs.Server,
 		},
 		InstallTool: provisioning.InstallTool{
