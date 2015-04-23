@@ -602,13 +602,23 @@ func (coreCmd CoreCmd) loadOem(systemPath string) (oem diskimage.OemDescription,
 
 // Creates a YAML file inside the image that contains metadata relating
 // to the installation.
-func (coreCmd CoreCmd) writeInstallYaml(bootDir string) error {
+func (coreCmd CoreCmd) writeInstallYaml(bootMountpoint string) error {
 	selfPath, err := exec.LookPath(os.Args[0])
 	if err != nil {
 		return err
 	}
 
-	installYamlFilePath := filepath.Join(bootDir, filepath.Base(provisioning.InstallYamlFile))
+	bootDir := ""
+
+	switch coreCmd.oem.OEM.Hardware.Bootloader {
+		// Running systems use a bindmount for /boot/grub, but
+		// since the system isn't booted, create the file in the
+		// real location.
+		case "grub": bootDir = "/EFI/ubuntu/grub"
+	}
+
+	installYamlFilePath := filepath.Join(bootMountpoint, bootDir, provisioning.InstallYamlFile)
+
 	i := provisioning.InstallYaml{
 		InstallMeta: provisioning.InstallMeta{
 			Timestamp: time.Now(),
