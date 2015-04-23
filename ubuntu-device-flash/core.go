@@ -53,7 +53,7 @@ func init() {
 }
 
 type CoreCmd struct {
-	Channel string `long:"channel" description:"Specify the channel to use" default:"edge"`
+	Channel string `long:"channel" description:"Specify the channel to use" default:"stable"`
 	Output  string `long:"output" short:"o" description:"Name of the image file to create" required:"true"`
 	Size    int64  `long:"size" short:"s" description:"Size of image file to create in GB (min 4)" default:"4"`
 	Oem     string `long:"oem" description:"The snappy oem package to base the image out of" default:"generic-amd64"`
