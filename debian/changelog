@@ -1,6 +1,10 @@
-goget-ubuntu-touch (0.20-0ubuntu1) UNRELEASED; urgency=medium
+goget-ubuntu-touch (0.20-0ubuntu1) vivid; urgency=medium
 
-  * In development.
+  * ubuntu-device-flash: core enhancements:
+    - Using snappy go API for setup.
+    - oem package support.
+    - Ubuntu store integration with package installation.
+  * ubuntu-device-flash: removed implicit touch command.
 
  -- Sergio Schvezov <sergio.schvezov@canonical.com>  Wed, 01 Apr 2015 15:03:46 -0300
 
