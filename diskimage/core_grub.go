@@ -35,16 +35,20 @@ import (
 
 type CoreGrubImage struct {
 	CoreImage
+	hardware  HardwareDescription
+	oem       OemDescription
 	location  string
 	size      int64
 	baseMount string
 	parts     []partition
 }
 
-func NewCoreGrubImage(location string, size int64) *CoreGrubImage {
+func NewCoreGrubImage(location string, size int64, hw HardwareDescription, oem OemDescription) *CoreGrubImage {
 	return &CoreGrubImage{
 		location: location,
 		size:     size,
+		hardware: hw,
+		oem:      oem,
 	}
 }
 
@@ -323,20 +327,34 @@ func (img *CoreGrubImage) SetupBoot(oemRootPath string) error {
 	}
 	defer unmount(bootGrubDir)
 
-	// install grub
-	if out, err := exec.Command("chroot", img.System(), "grub-install", "/root_dev").CombinedOutput(); err != nil {
-		return fmt.Errorf("unable to install grub (BIOS): %s", out)
+	var grubTarget string
+
+	arch := img.oem.Architecture()
+
+	switch arch {
+	case "armhf":
+		grubTarget = "arm-efi"
+	case "amd64":
+		grubTarget = "x86_64-efi"
+	case "i386":
+		grubTarget = "i386-efi"
+	default:
+		return fmt.Errorf("unsupported architecture for GRUB on EFI: %s", arch)
 	}
 
-	// install grub
-	if out, err := exec.Command("chroot", img.System(), "grub-install", "--target=x86_64-efi", "--no-nvram", "--removable", "--efi-directory=/boot/efi").CombinedOutput(); err != nil {
+	if (arch == "amd64" || arch == "i386") {
+		// install grub BIOS support
+		if out, err := exec.Command("chroot", img.System(), "grub-install", "/root_dev").CombinedOutput(); err != nil {
+			return fmt.Errorf("unable to install grub (BIOS): %s", out)
+		}
+	}
+
+	// install grub EFI
+	if out, err := exec.Command("chroot", img.System(), "grub-install", fmt.Sprint("--target=" + grubTarget), "--no-nvram", "--removable", "--efi-directory=/boot/efi").CombinedOutput(); err != nil {
 		return fmt.Errorf("unable to install grub (EFI): %s", out)
 	}
 	// tell our EFI grub where to find its full config
 	efiBootDir := filepath.Join(img.System(), "boot", "efi", "EFI", "BOOT")
-	if err := os.MkdirAll(efiBootDir, 0755); err != nil {
-		return fmt.Errorf("unable to create %s dir: %s", efiBootDir, err)
-	}
 	grubStub, err := os.Create(filepath.Join(efiBootDir, "grub.cfg"))
 	if err != nil {
 		return fmt.Errorf("unable to create %s file: %s", grubStub.Name(), err)
