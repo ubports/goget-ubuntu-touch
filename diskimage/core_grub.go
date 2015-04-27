@@ -342,7 +342,7 @@ func (img *CoreGrubImage) SetupBoot(oemRootPath string) error {
 		return fmt.Errorf("unsupported architecture for GRUB on EFI: %s", arch)
 	}
 
-	if (arch == "amd64" || arch == "i386") {
+	if arch == "amd64" || arch == "i386" {
 		// install grub BIOS support
 		if out, err := exec.Command("chroot", img.System(), "grub-install", "/root_dev").CombinedOutput(); err != nil {
 			return fmt.Errorf("unable to install grub (BIOS): %s", out)
@@ -350,7 +350,7 @@ func (img *CoreGrubImage) SetupBoot(oemRootPath string) error {
 	}
 
 	// install grub EFI
-	if out, err := exec.Command("chroot", img.System(), "grub-install", fmt.Sprint("--target=" + grubTarget), "--no-nvram", "--removable", "--efi-directory=/boot/efi").CombinedOutput(); err != nil {
+	if out, err := exec.Command("chroot", img.System(), "grub-install", fmt.Sprint("--target="+grubTarget), "--no-nvram", "--removable", "--efi-directory=/boot/efi").CombinedOutput(); err != nil {
 		return fmt.Errorf("unable to install grub (EFI): %s", out)
 	}
 	// tell our EFI grub where to find its full config
@@ -363,7 +363,6 @@ func (img *CoreGrubImage) SetupBoot(oemRootPath string) error {
 	if _, err := io.WriteString(grubStub, grubStubContent); err != nil {
 		return err
 	}
-
 
 	// ensure we run not into recordfail issue
 	grubDir := filepath.Join(img.System(), "etc", "default", "grub.d")
