@@ -332,7 +332,7 @@ func (img CoreUBootImage) SetupBoot(oemRootPath string) error {
 	}
 
 	// create /boot/uboot
-	if err := os.MkdirAll(filepath.Join(img.System(), "boot", "uboot"), 755); err != nil {
+	if err := os.MkdirAll(filepath.Join(img.System(), "boot", "uboot"), 0755); err != nil {
 		return err
 	}
 
