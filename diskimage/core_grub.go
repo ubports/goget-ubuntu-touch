@@ -1,7 +1,7 @@
 //
 // diskimage - handles ubuntu disk images
 //
-// Copyright (c) 2013 Canonical Ltd.
+// Copyright (c) 2013-2015 Canonical Ltd.
 //
 // Written by Sergio Schvezov <sergio.schvezov@canonical.com>
 //
@@ -35,16 +35,20 @@ import (
 
 type CoreGrubImage struct {
 	CoreImage
+	hardware  HardwareDescription
+	oem       OemDescription
 	location  string
 	size      int64
 	baseMount string
 	parts     []partition
 }
 
-func NewCoreGrubImage(location string, size int64) *CoreGrubImage {
+func NewCoreGrubImage(location string, size int64, hw HardwareDescription, oem OemDescription) *CoreGrubImage {
 	return &CoreGrubImage{
 		location: location,
 		size:     size,
+		hardware: hw,
+		oem:      oem,
 	}
 }
 
@@ -53,6 +57,10 @@ GRUB_CMDLINE_LINUX_DEFAULT="console=tty1 console=ttyS0 panic=-1"
 GRUB_TERMINAL=console
 # LP: #1035279
 GRUB_RECORDFAIL_TIMEOUT=0
+`
+
+const grubStubContent = `set prefix=($root)'/EFI/ubuntu/grub'
+configfile $prefix/grub.cfg
 `
 
 func (img *CoreGrubImage) Mount() error {
@@ -319,9 +327,41 @@ func (img *CoreGrubImage) SetupBoot(oemRootPath string) error {
 	}
 	defer unmount(bootGrubDir)
 
-	// install grub
-	if out, err := exec.Command("chroot", img.System(), "grub-install", "/root_dev").CombinedOutput(); err != nil {
-		return fmt.Errorf("unable to install grub: %s", out)
+	var grubTarget string
+
+	arch := img.oem.Architecture()
+
+	switch arch {
+	case "armhf":
+		grubTarget = "arm-efi"
+	case "amd64":
+		grubTarget = "x86_64-efi"
+	case "i386":
+		grubTarget = "i386-efi"
+	default:
+		return fmt.Errorf("unsupported architecture for GRUB on EFI: %s", arch)
+	}
+
+	if arch == "amd64" || arch == "i386" {
+		// install grub BIOS support
+		if out, err := exec.Command("chroot", img.System(), "grub-install", "/root_dev").CombinedOutput(); err != nil {
+			return fmt.Errorf("unable to install grub (BIOS): %s", out)
+		}
+	}
+
+	// install grub EFI
+	if out, err := exec.Command("chroot", img.System(), "grub-install", fmt.Sprint("--target="+grubTarget), "--no-nvram", "--removable", "--efi-directory=/boot/efi").CombinedOutput(); err != nil {
+		return fmt.Errorf("unable to install grub (EFI): %s", out)
+	}
+	// tell our EFI grub where to find its full config
+	efiBootDir := filepath.Join(img.System(), "boot", "efi", "EFI", "BOOT")
+	grubStub, err := os.Create(filepath.Join(efiBootDir, "grub.cfg"))
+	if err != nil {
+		return fmt.Errorf("unable to create %s file: %s", grubStub.Name(), err)
+	}
+	defer grubStub.Close()
+	if _, err := io.WriteString(grubStub, grubStubContent); err != nil {
+		return err
 	}
 
 	// ensure we run not into recordfail issue

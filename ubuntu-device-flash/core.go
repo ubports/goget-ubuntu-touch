@@ -235,12 +235,12 @@ func (coreCmd *CoreCmd) Execute(args []string) error {
 	loader := coreCmd.oem.OEM.Hardware.Bootloader
 	switch loader {
 	case "grub":
-		img = diskimage.NewCoreGrubImage(coreCmd.Output, coreCmd.Size)
+		img = diskimage.NewCoreGrubImage(coreCmd.Output, coreCmd.Size, coreCmd.hardware, coreCmd.oem)
 	case "u-boot":
 		img = diskimage.NewCoreUBootImage(coreCmd.Output, coreCmd.Size, coreCmd.hardware, coreCmd.oem)
 	default:
 		fmt.Printf("Bootloader set to '%s' in oem hardware description, assuming grub as a fallback\n", loader)
-		img = diskimage.NewCoreGrubImage(coreCmd.Output, coreCmd.Size)
+		img = diskimage.NewCoreGrubImage(coreCmd.Output, coreCmd.Size, coreCmd.hardware, coreCmd.oem)
 	}
 
 	printOut("Partitioning...")
