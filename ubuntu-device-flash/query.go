@@ -47,6 +47,10 @@ type QueryCmd struct {
 var queryCmd QueryCmd
 
 func (queryCmd *QueryCmd) Execute(args []string) error {
+	if globalArgs.TLSSkipVerify {
+		ubuntuimage.TLSSkipVerify()
+	}
+
 	if queryCmd.ListChannels {
 		return queryCmd.printChannelList()
 	}
