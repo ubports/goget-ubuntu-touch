@@ -88,6 +88,10 @@ func (queryCmd *QueryCmd) printChannelList() error {
 	}
 
 	for k, v := range channels {
+		if _, ok := v.Devices[queryCmd.Device]; !ok {
+			continue
+		}
+
 		if !v.Hidden {
 			if v.Alias != "" {
 				fmt.Printf("%s (alias to %s)\n", k, v.Alias)
