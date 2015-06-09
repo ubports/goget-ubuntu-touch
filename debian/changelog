@@ -1,6 +1,7 @@
 goget-ubuntu-touch (0.23-0ubuntu1) UNRELEASED; urgency=medium
 
   * Update to us the latest snappy API.
+  * Updating manpage
 
  -- Sergio Schvezov <sergio.schvezov@canonical.com>  Tue, 09 Jun 2015 10:57:15 -0300
 

@@ -1,4 +1,4 @@
-.TH ubuntu-device-flash 1 "19 January 2015"
+.TH ubuntu-device-flash 1 "9 June 2015"
 .SH NAME
 ubuntu-device-flash \- 
 .SH SYNOPSIS
@@ -34,17 +34,17 @@ Creates ubuntu core images
 \fB--channel\fP
 Specify the channel to use
 .TP
-\fB--device\fP
-Specify the device to use
-.TP
-\fB--keyboard-layout\fP
-Specify the keyboard layout
-.TP
 \fB-o, --output\fP
 Name of the image file to create
 .TP
 \fB-s, --size\fP
 Size of image file to create in GB (min 4)
+.TP
+\fB--oem\fP
+The snappy oem package to base the image out of
+.TP
+\fB--device-part\fP
+Specify a local device part to override the one from the server
 .TP
 \fB--developer-mode\fP
 Finds the latest public key in your ~/.ssh and sets it up using cloud-init
@@ -52,17 +52,14 @@ Finds the latest public key in your ~/.ssh and sets it up using cloud-init
 \fB--enable-ssh\fP
 Enable ssh on the image through cloud-init(not needed with developer mode)
 .TP
+\fB--install\fP
+Install additional packages (can be called multiple times)
+.TP
 \fB--cloud\fP
 Generate a pure cloud image without setting up cloud-init
 .TP
-\fB--platform\fP
-specify the boards platform
-.TP
-\fB--install\fP
-install additional packages (can be called multiple times)
-.TP
-\fB--device-part\fP
-Specify a local device part to override the one from the server
+\fB--device\fP
+Specify the device to use
 .SS query
 Run queries against the image server
 
