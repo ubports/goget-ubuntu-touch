@@ -14,6 +14,7 @@ Build-Depends: debhelper (>= 9),
                golang-pb-dev,
                golang-snappy-dev,
                golang-yaml.v2-dev,
+               ubuntu-snappy-cli,
 Standards-Version: 3.9.5
 Homepage: https://launchpad.net/goget-ubuntu-touch
 Vcs-Browser: http://bazaar.launchpad.net/~phablet-team/goget-ubuntu-touch/trunk/files
