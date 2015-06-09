@@ -427,7 +427,7 @@ func (coreCmd *CoreCmd) install(systemPath string) error {
 	for _, snap := range packageQueue {
 		fmt.Println("Installing", snap)
 
-		pb := progress.NewTextProgress(snap)
+		pb := progress.NewTextProgress()
 		if _, err := snappy.Install(snap, flags, pb); err != nil {
 			return err
 		}
@@ -557,7 +557,7 @@ func (coreCmd *CoreCmd) extractOem(oemPackage string) error {
 	})
 
 	flags := coreCmd.installFlags()
-	pb := progress.NewTextProgress(oemPackage)
+	pb := progress.NewTextProgress()
 	if _, err := snappy.Install(oemPackage, flags, pb); err != nil {
 		return err
 	}
