@@ -89,7 +89,7 @@ func (img *CoreGrubImage) Unmount() (err error) {
 		}
 
 		mountpoint := filepath.Join(img.baseMount, string(part.dir))
-		if out, err := exec.Command("umount", mountpoint).CombinedOutput(); err != nil {
+		if out, err := exec.Command("umount", "-l", mountpoint).CombinedOutput(); err != nil {
 			return fmt.Errorf("unable to unmount dir for image: %s", out)
 		} else {
 		}
