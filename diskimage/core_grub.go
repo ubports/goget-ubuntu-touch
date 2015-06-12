@@ -90,14 +90,14 @@ func (img *CoreGrubImage) SetupBoot(oemRootPath string) error {
 		if err := bindMount(src, dst); err != nil {
 			return err
 		}
-		defer unmountPath(dst)
+		defer unmount(dst)
 	}
 
 	firmwarePath := filepath.Join(img.System(), "sys", "firmware")
 	if err := bindMount(filepath.Join(img.System(), "mnt"), firmwarePath); err != nil {
 		return err
 	}
-	defer unmountPath(firmwarePath)
+	defer unmount(firmwarePath)
 
 	outputPath, err := filepath.Abs(img.location)
 	if err != nil {
@@ -116,7 +116,7 @@ func (img *CoreGrubImage) SetupBoot(oemRootPath string) error {
 	if err := bindMount(outputPath, rootDevPath); err != nil {
 		return err
 	}
-	defer unmountPath(rootDevPath)
+	defer unmount(rootDevPath)
 
 	efiDir := filepath.Join(img.System(), "boot", "efi")
 	if err := os.MkdirAll(efiDir, 0755); err != nil {
@@ -126,7 +126,7 @@ func (img *CoreGrubImage) SetupBoot(oemRootPath string) error {
 	if err := bindMount(img.Boot(), efiDir); err != nil {
 		return err
 	}
-	defer unmountPath(efiDir)
+	defer unmount(efiDir)
 
 	// create efi layout
 	efiGrubDir := filepath.Join(img.System(), "boot", "efi", "EFI", "ubuntu", "grub")
@@ -139,7 +139,7 @@ func (img *CoreGrubImage) SetupBoot(oemRootPath string) error {
 	if err := bindMount(efiGrubDir, bootGrubDir); err != nil {
 		return err
 	}
-	defer unmountPath(bootGrubDir)
+	defer unmount(bootGrubDir)
 
 	var grubTarget string
 
@@ -214,7 +214,7 @@ func bindMount(src, dst string) error {
 	return nil
 }
 
-func unmountPath(dst string) error {
+func unmount(dst string) error {
 	if out, err := exec.Command("umount", dst).CombinedOutput(); err != nil {
 		return fmt.Errorf("issues while unmounting: %s", out)
 	}
