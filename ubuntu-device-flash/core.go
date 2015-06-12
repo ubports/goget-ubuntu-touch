@@ -27,6 +27,7 @@ import (
 	"launchpad.net/snappy/progress"
 	"launchpad.net/snappy/release"
 	"launchpad.net/snappy/snappy"
+	"launchpad.net/snappy/provisioning"
 
 	"launchpad.net/goget-ubuntu-touch/diskimage"
 	"launchpad.net/goget-ubuntu-touch/sysutils"
@@ -277,6 +278,9 @@ func (coreCmd *CoreCmd) Execute(args []string) error {
 			return err
 		}
 
+		// avoid passing more args to setup()
+		globalArgs.Revision = image.Version
+
 		if err := coreCmd.setup(img, filePathChan, len(image.Files)); err != nil {
 			return err
 		}
@@ -392,7 +396,7 @@ func (coreCmd *CoreCmd) setup(img diskimage.CoreImage, filePathChan <-chan strin
 		}
 	}
 
-	return nil
+	return coreCmd.writeInstallYaml(img.Boot())
 }
 
 func (coreCmd *CoreCmd) install(systemPath string) error {
@@ -584,6 +588,57 @@ func (coreCmd CoreCmd) loadOem(systemPath string) (oem diskimage.OemDescription,
 	}
 
 	return oem, nil
+}
+
+// Creates a YAML file inside the image that contains metadata relating
+// to the installation.
+func (coreCmd CoreCmd) writeInstallYaml(bootMountpoint string) error {
+	selfPath, err := exec.LookPath(os.Args[0])
+	if err != nil {
+		return err
+	}
+
+	bootDir := ""
+
+	switch coreCmd.oem.OEM.Hardware.Bootloader {
+		// Running systems use a bindmount for /boot/grub, but
+		// since the system isn't booted, create the file in the
+		// real location.
+		case "grub": bootDir = "/EFI/ubuntu/grub"
+	}
+
+	installYamlFilePath := filepath.Join(bootMountpoint, bootDir, provisioning.InstallYamlFile)
+
+	i := provisioning.InstallYaml{
+		InstallMeta: provisioning.InstallMeta{
+			Timestamp: time.Now(),
+			InitialVersion: fmt.Sprintf("%d", globalArgs.Revision),
+			SystemImageServer: globalArgs.Server,
+		},
+		InstallTool: provisioning.InstallTool{
+			Name: filepath.Base(selfPath),
+			Path: selfPath,
+			// FIXME: we don't know our own version yet :)
+			// Version: "???",
+		},
+		InstallOptions: provisioning.InstallOptions{
+			Size: coreCmd.Size,
+			SizeUnit: "GB",
+			Output: coreCmd.Output,
+			Channel: coreCmd.Channel,
+			DevicePart: coreCmd.Development.DevicePart,
+			Oem: coreCmd.Oem,
+			DeveloperMode: coreCmd.Development.DeveloperMode,
+		},
+	}
+
+	data, err := yaml.Marshal(&i)
+	if err != nil {
+		return err
+	}
+
+	// the file isn't supposed to be modified, hence r/o.
+	return ioutil.WriteFile(installYamlFilePath, data, 0444)
 }
 
 func extractHWDescription(path string) (hw diskimage.HardwareDescription, err error) {
