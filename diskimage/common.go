@@ -150,6 +150,7 @@ func sectorSize(dev string) (string, error) {
 	return strings.TrimSpace(string(out)), err
 }
 
+// BaseImage implements the basic primitives to manage images.
 type BaseImage struct {
 	baseMount string
 	hardware  HardwareDescription
@@ -160,7 +161,12 @@ type BaseImage struct {
 	size      int64
 }
 
+// Mount mounts the image. This also maps the loop device.
 func (img *BaseImage) Mount() error {
+	if err := img.Map(); err != nil {
+		return err
+	}
+
 	baseMount, err := ioutil.TempDir(os.TempDir(), "diskimage")
 	if err != nil {
 		return err
@@ -197,6 +203,7 @@ func (img *BaseImage) Mount() error {
 
 }
 
+// Unmount unmounts the image. This also unmaps the loop device.
 func (img *BaseImage) Unmount() error {
 	if img.baseMount == "" {
 		panic("No base mountpoint set")
@@ -224,9 +231,10 @@ func (img *BaseImage) Unmount() error {
 	}
 	img.baseMount = ""
 
-	return nil
+	return img.Unmap()
 }
 
+// Map maps the image to loop devices
 func (img *BaseImage) Map() error {
 	if isMapped(img.parts) {
 		panic("cannot double map partitions")
@@ -291,6 +299,8 @@ func (img *BaseImage) Unmap() error {
 	return nil
 }
 
+// Format formats the image following the partition types and labels them
+// accordingly.
 func (img BaseImage) Format() error {
 	for _, part := range img.parts {
 		dev := filepath.Join("/dev/mapper", part.loop)
@@ -361,6 +371,7 @@ func (img BaseImage) Boot() string {
 	return filepath.Join(img.baseMount, string(bootDir))
 }
 
+// BaseMount returns the base directory used to mount the image partitions.
 func (img BaseImage) BaseMount() string {
 	if img.baseMount == "" {
 		panic("image needs to be mounted")
