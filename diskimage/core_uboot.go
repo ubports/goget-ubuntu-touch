@@ -111,7 +111,7 @@ func (img *CoreUBootImage) Unmount() (err error) {
 
 	for _, part := range img.parts {
 		mountpoint := filepath.Join(img.baseMount, string(part.dir))
-		if out, err := exec.Command("umount", mountpoint).CombinedOutput(); err != nil {
+		if out, err := exec.Command("umount", "-l", mountpoint).CombinedOutput(); err != nil {
 			panic(fmt.Sprintf("unable to unmount dir for image: %s", out))
 		}
 	}
