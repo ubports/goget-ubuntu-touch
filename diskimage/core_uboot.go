@@ -96,25 +96,11 @@ func (img *CoreUBootImage) Mount() error {
 	return nil
 }
 
-func (img *CoreUBootImage) Unmount() (err error) {
-	if img.baseMount == "" {
-		panic("No base mountpoint set")
+func (img *CoreUBootImage) Unmount() error {
+	if err := unmount(img.baseMount, img.parts); err != nil {
+		return err
 	}
-	defer func() {
-		os.Remove(img.baseMount)
-		img.baseMount = ""
-	}()
-
-	if out, err := exec.Command("sync").CombinedOutput(); err != nil {
-		return fmt.Errorf("Failed to sync filesystems before unmounting: %s", out)
-	}
-
-	for _, part := range img.parts {
-		mountpoint := filepath.Join(img.baseMount, string(part.dir))
-		if out, err := exec.Command("umount", "-l", mountpoint).CombinedOutput(); err != nil {
-			panic(fmt.Sprintf("unable to unmount dir for image: %s", out))
-		}
-	}
+	img.baseMount = ""
 
 	return nil
 }

@@ -326,20 +326,26 @@ func (coreCmd *CoreCmd) setup(img diskimage.CoreImage, filePathChan <-chan strin
 	if err := img.Map(); err != nil {
 		return err
 	}
+	var unmountErr error
 	defer func() {
 		printOut("Unmapping...")
-		defer img.Unmap()
+		if unmountErr == nil {
+			if err := img.Unmap(); err != nil {
+				fmt.Println("WARNING: unexpected issue while unmounting:", err)
+			}
+		} else {
+			fmt.Println("WARNING: Unmounting failed, leaving partitions mapped.")
+		}
 	}()
 
 	printOut("Mounting...")
 	if err := img.Mount(); err != nil {
-		fmt.Println(err)
 		return err
 	}
 	defer func() {
 		printOut("Unmounting...")
-		if err := img.Unmount(); err != nil {
-			fmt.Println(err)
+		if unmountErr = img.Unmount(); unmountErr != nil {
+			fmt.Println("WARNING: unexpected issue:", unmountErr)
 		}
 	}()
 

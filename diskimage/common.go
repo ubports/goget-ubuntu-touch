@@ -185,6 +185,32 @@ func mount(partitions []partition) (baseMount string, err error) {
 
 }
 
+func unmount(baseMount string, partitions []partition) error {
+	if baseMount == "" {
+		panic("No base mountpoint set")
+	}
+	defer os.RemoveAll(baseMount)
+
+	if out, err := exec.Command("sync").CombinedOutput(); err != nil {
+		return fmt.Errorf("Failed to sync filesystems before unmounting: %s", out)
+	}
+
+	for _, part := range partitions {
+		if part.fs == fsNone {
+			continue
+		}
+
+		mountpoint := filepath.Join(baseMount, string(part.dir))
+		if out, err := exec.Command("umount", mountpoint).CombinedOutput(); err != nil {
+			lsof, _ := exec.Command("lsof", "-w", mountpoint).CombinedOutput()
+			printOut(string(lsof))
+			return fmt.Errorf("unable to unmount dir for image: %s", out)
+		}
+	}
+
+	return nil
+}
+
 func printOut(args ...interface{}) {
 	if debugPrint {
 		fmt.Println(args...)
