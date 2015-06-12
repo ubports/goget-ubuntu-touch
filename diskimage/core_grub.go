@@ -8,14 +8,12 @@
 package diskimage
 
 import (
-	"bufio"
 	"errors"
 	"fmt"
 	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"launchpad.net/goget-ubuntu-touch/sysutils"
@@ -34,21 +32,18 @@ import (
 // with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 type CoreGrubImage struct {
-	CoreImage
-	hardware  HardwareDescription
-	oem       OemDescription
-	location  string
-	size      int64
-	baseMount string
-	parts     []partition
+	BaseImage
 }
 
 func NewCoreGrubImage(location string, size int64, hw HardwareDescription, oem OemDescription) *CoreGrubImage {
 	return &CoreGrubImage{
-		location: location,
-		size:     size,
-		hardware: hw,
-		oem:      oem,
+		BaseImage{
+			location:  location,
+			size:      size,
+			hardware:  hw,
+			oem:       oem,
+			partCount: 5,
+		},
 	}
 }
 
@@ -62,25 +57,6 @@ GRUB_RECORDFAIL_TIMEOUT=0
 const grubStubContent = `set prefix=($root)'/EFI/ubuntu/grub'
 configfile $prefix/grub.cfg
 `
-
-func (img *CoreGrubImage) Mount() error {
-	baseMount, err := mount(img.parts)
-	if err != nil {
-		return err
-	}
-	img.baseMount = baseMount
-
-	return nil
-}
-
-func (img *CoreGrubImage) Unmount() (err error) {
-	if err := unmount(img.baseMount, img.parts); err != nil {
-		return err
-	}
-	img.baseMount = ""
-
-	return nil
-}
 
 //Partition creates a partitioned image from an img
 func (img *CoreGrubImage) Partition() error {
@@ -105,150 +81,6 @@ func (img *CoreGrubImage) Partition() error {
 	img.parts = parted.parts
 
 	return parted.create(img.location)
-}
-
-//Map creates loop devices for the partitions
-func (img *CoreGrubImage) Map() error {
-	if isMapped(img.parts) {
-		panic("cannot double map partitions")
-	}
-
-	kpartxCmd := exec.Command("kpartx", "-avs", img.location)
-	stdout, err := kpartxCmd.StdoutPipe()
-	if err != nil {
-		return err
-	}
-
-	if err := kpartxCmd.Start(); err != nil {
-		return err
-	}
-
-	loops := make([]string, 0, 4)
-	scanner := bufio.NewScanner(stdout)
-	for scanner.Scan() {
-		fields := strings.Fields(scanner.Text())
-
-		if len(fields) > 2 {
-			loops = append(loops, fields[2])
-		} else {
-			return errors.New("issues while determining drive mappings")
-		}
-	}
-	if err := scanner.Err(); err != nil {
-		return err
-	}
-
-	// there are 5 partitions, so there should be five loop mounts
-	if len(loops) != 5 {
-		return errors.New("more partitions then expected while creating loop mapping")
-	}
-
-	mapPartitions(img.parts, loops)
-
-	if err := kpartxCmd.Wait(); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-//Unmap destroys loop devices for the partitions
-func (img *CoreGrubImage) Unmap() error {
-	if img.baseMount != "" {
-		panic("cannot unmap mounted partitions")
-	}
-
-	for _, part := range img.parts {
-		if err := exec.Command("dmsetup", "clear", part.loop).Run(); err != nil {
-			return err
-		}
-	}
-
-	if err := exec.Command("kpartx", "-ds", img.location).Run(); err != nil {
-		return err
-	}
-
-	unmapPartitions(img.parts)
-
-	return nil
-}
-
-func (img CoreGrubImage) Format() error {
-	for _, part := range img.parts {
-		dev := filepath.Join("/dev/mapper", part.loop)
-
-		if part.fs == fsFat32 {
-			cmd := []string{"-F", "32", "-n", string(part.label)}
-
-			size, err := sectorSize(dev)
-			if err != nil {
-				return err
-			}
-
-			if size != "512" {
-				cmd = append(cmd, "-s", "1")
-			}
-
-			cmd = append(cmd, "-S", size, dev)
-
-			if out, err := exec.Command("mkfs.vfat", cmd...).CombinedOutput(); err != nil {
-				return fmt.Errorf("unable to create filesystem: %s", out)
-			}
-		} else if part.fs == fsExt4 {
-			if out, err := exec.Command("mkfs.ext4", "-F", "-L", string(part.label), dev).CombinedOutput(); err != nil {
-				return fmt.Errorf("unable to create filesystem: %s", out)
-			}
-		}
-	}
-
-	return nil
-}
-
-// User returns the writable path
-func (img CoreGrubImage) Writable() string {
-	if img.parts == nil {
-		panic("img is not setup with partitions")
-	}
-
-	if img.baseMount == "" {
-		panic("img not mounted")
-	}
-
-	return filepath.Join(img.baseMount, string(writableDir))
-}
-
-// Boot returns the system-boot path
-func (img CoreGrubImage) Boot() string {
-	if img.parts == nil {
-		panic("img is not setup with partitions")
-	}
-
-	if img.baseMount == "" {
-		panic("img not mounted")
-	}
-
-	return filepath.Join(img.baseMount, string(bootDir))
-}
-
-//System returns the system path
-func (img CoreGrubImage) System() string {
-	if img.parts == nil {
-		panic("img is not setup with partitions")
-	}
-
-	if img.baseMount == "" {
-		panic("img not mounted")
-	}
-
-	return filepath.Join(img.baseMount, string(systemADir))
-}
-
-func (img CoreGrubImage) BaseMount() string {
-	if img.baseMount == "" {
-		panic("image needs to be mounted")
-	}
-
-	return img.baseMount
 }
 
 func (img *CoreGrubImage) SetupBoot(oemRootPath string) error {
