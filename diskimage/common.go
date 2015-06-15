@@ -16,6 +16,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"syscall"
 )
 
 // This program is free software: you can redistribute it and/or modify it
@@ -37,6 +38,10 @@ func init() {
 		debugPrint = true
 	}
 }
+
+var (
+	syscallSync = syscall.Sync
+)
 
 type Image interface {
 	Mount() error
@@ -179,17 +184,19 @@ func (img *BaseImage) Mount() error {
 		return err
 	}
 
+	//Remove Mountpoint if we fail along the way
+	defer func() {
+		if err != nil {
+			if err := os.Remove(baseMount); err != nil {
+				fmt.Println("WARNING: cannot remove", baseMount, "due to", err)
+			}
+		}
+	}()
+
 	// We change the mode so snappy can unpack as non root
 	if err := os.Chmod(baseMount, 0755); err != nil {
 		return err
 	}
-
-	//Remove Mountpoint if we fail along the way
-	defer func() {
-		if err != nil {
-			os.RemoveAll(baseMount)
-		}
-	}()
 
 	for _, part := range img.parts {
 		if part.fs == fsNone {
@@ -200,9 +207,25 @@ func (img *BaseImage) Mount() error {
 		if err := os.MkdirAll(mountpoint, 0755); err != nil {
 			return err
 		}
-		if out, err := exec.Command("mount", filepath.Join("/dev/mapper", part.loop), mountpoint).CombinedOutput(); err != nil {
-			return fmt.Errorf("unable to mount dir to create system image: %s", out)
+
+		dev := filepath.Join("/dev/mapper", part.loop)
+		printOut("Mounting", dev, part.fs, "to", mountpoint)
+		if out, errMount := exec.Command("mount", filepath.Join("/dev/mapper", part.loop), mountpoint).CombinedOutput(); errMount != nil {
+			return ErrMount{dev: dev, mountpoint: mountpoint, fs: part.fs, out: out}
 		}
+		// this is cleanup in case one of the mounts fail
+		defer func() {
+			if err != nil {
+				if err := exec.Command("umount", mountpoint).Run(); err != nil {
+					fmt.Println("WARNING:", mountpoint, "could not be unmounted")
+					return
+				}
+
+				if err := os.Remove(mountpoint); err != nil {
+					fmt.Println("WARNING: could not remove ", mountpoint)
+				}
+			}
+		}()
 	}
 	img.baseMount = baseMount
 
@@ -216,9 +239,7 @@ func (img *BaseImage) Unmount() error {
 		panic("No base mountpoint set")
 	}
 
-	if out, err := exec.Command("sync").CombinedOutput(); err != nil {
-		return fmt.Errorf("Failed to sync filesystems before unmounting: %s", out)
-	}
+	syscallSync()
 
 	for _, part := range img.parts {
 		if part.fs == fsNone {
@@ -229,7 +250,8 @@ func (img *BaseImage) Unmount() error {
 		if out, err := exec.Command("umount", mountpoint).CombinedOutput(); err != nil {
 			lsof, _ := exec.Command("lsof", "-w", mountpoint).CombinedOutput()
 			printOut(string(lsof))
-			return fmt.Errorf("unable to unmount dir for image: %s", out)
+			dev := filepath.Join("/dev/mapper", part.loop)
+			return ErrMount{dev: dev, mountpoint: mountpoint, fs: part.fs, out: out}
 		}
 	}
 
@@ -265,7 +287,7 @@ func (img *BaseImage) Map() error {
 		if len(fields) > 2 {
 			loops = append(loops, fields[2])
 		} else {
-			return errors.New("issues while determining drive mappings")
+			return fmt.Errorf("issues while determining drive mappings (%q)", fields)
 		}
 	}
 	if err := scanner.Err(); err != nil {
@@ -273,7 +295,7 @@ func (img *BaseImage) Map() error {
 	}
 
 	if len(loops) != img.partCount {
-		return errors.New("more partitions then expected while creating loop mapping")
+		return ErrMapCount{expectedParts: img.partCount, foundParts: len(loops)}
 	}
 
 	mapPartitions(img.parts, loops)
@@ -352,8 +374,7 @@ func (img BaseImage) Writable() string {
 	return filepath.Join(img.baseMount, string(writableDir))
 }
 
-//System returns the system path
-func (img BaseImage) System() string {
+func (img BaseImage) pathToMount(dir directory) string {
 	if img.parts == nil {
 		panic("img is not setup with partitions")
 	}
@@ -362,20 +383,17 @@ func (img BaseImage) System() string {
 		panic("img not mounted")
 	}
 
-	return filepath.Join(img.baseMount, string(systemADir))
+	return filepath.Join(img.baseMount, string(dir))
+}
+
+//System returns the system path
+func (img BaseImage) System() string {
+	return img.pathToMount(systemADir)
 }
 
 // Boot returns the system-boot path
 func (img BaseImage) Boot() string {
-	if img.parts == nil {
-		panic("img is not setup with partitions")
-	}
-
-	if img.baseMount == "" {
-		panic("img not mounted")
-	}
-
-	return filepath.Join(img.baseMount, string(bootDir))
+	return img.pathToMount(bootDir)
 }
 
 // BaseMount returns the base directory used to mount the image partitions.
