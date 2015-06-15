@@ -367,8 +367,7 @@ func (img BaseImage) Writable() string {
 	return filepath.Join(img.baseMount, string(writableDir))
 }
 
-//System returns the system path
-func (img BaseImage) System() string {
+func (img BaseImage) pathToMount(dir directory) string {
 	if img.parts == nil {
 		panic("img is not setup with partitions")
 	}
@@ -377,20 +376,17 @@ func (img BaseImage) System() string {
 		panic("img not mounted")
 	}
 
-	return filepath.Join(img.baseMount, string(systemADir))
+	return filepath.Join(img.baseMount, string(dir))
+}
+
+//System returns the system path
+func (img BaseImage) System() string {
+	return img.pathToMount(systemADir)
 }
 
 // Boot returns the system-boot path
 func (img BaseImage) Boot() string {
-	if img.parts == nil {
-		panic("img is not setup with partitions")
-	}
-
-	if img.baseMount == "" {
-		panic("img not mounted")
-	}
-
-	return filepath.Join(img.baseMount, string(bootDir))
+	return img.pathToMount(bootDir)
 }
 
 // BaseMount returns the base directory used to mount the image partitions.
