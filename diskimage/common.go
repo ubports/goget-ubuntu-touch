@@ -193,9 +193,25 @@ func (img *BaseImage) Mount() error {
 		if err := os.MkdirAll(mountpoint, 0755); err != nil {
 			return err
 		}
-		if out, err := exec.Command("mount", filepath.Join("/dev/mapper", part.loop), mountpoint).CombinedOutput(); err != nil {
-			return fmt.Errorf("unable to mount dir to create system image: %s", out)
+
+		dev := filepath.Join("/dev/mapper", part.loop)
+		printOut("Mounting", dev, part.fs, "to", mountpoint)
+		if out, errMount := exec.Command("mount", filepath.Join("/dev/mapper", part.loop), mountpoint).CombinedOutput(); errMount != nil {
+			return ErrMount{dev: dev, mountpoint: mountpoint, fs: part.fs, out: out}
 		}
+		// this is cleanup in case one of the mounts fail
+		defer func() {
+			if err != nil {
+				if err := exec.Command("umount", mountpoint).Run(); err != nil {
+					fmt.Println("WARNING:", mountpoint, "could not be unmounted")
+					return
+				}
+
+				if err := os.Remove(mountpoint); err != nil {
+					fmt.Println("WARNING: could not remove ", mountpoint)
+				}
+			}
+		}()
 	}
 	img.baseMount = baseMount
 
