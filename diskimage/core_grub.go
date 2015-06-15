@@ -83,7 +83,7 @@ func (img *CoreGrubImage) Partition() error {
 	return parted.create(img.location)
 }
 
-func (img *CoreGrubImage) SetupBoot(oemRootPath string) error {
+func (img *CoreGrubImage) SetupBoot() error {
 	for _, dev := range []string{"dev", "proc", "sys"} {
 		src := filepath.Join("/", dev)
 		dst := filepath.Join(img.System(), dev)
@@ -202,7 +202,7 @@ func (img *CoreGrubImage) SetupBoot(oemRootPath string) error {
 	return nil
 }
 
-func (img *CoreGrubImage) FlashExtra(oemRootPath, devicePart string) error {
+func (img *CoreGrubImage) FlashExtra() error {
 	return nil
 }
 

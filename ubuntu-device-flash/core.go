@@ -14,20 +14,12 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"os/exec"
 	"os/signal"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"syscall"
 	"time"
-
-	"gopkg.in/yaml.v2"
-	"launchpad.net/snappy/helpers"
-	"launchpad.net/snappy/progress"
-	"launchpad.net/snappy/release"
-	"launchpad.net/snappy/snappy"
-	"launchpad.net/snappy/provisioning"
 
 	"launchpad.net/goget-ubuntu-touch/diskimage"
 	"launchpad.net/goget-ubuntu-touch/sysutils"
@@ -54,11 +46,6 @@ func init() {
 }
 
 type CoreCmd struct {
-	Channel string `long:"channel" description:"Specify the channel to use" default:"stable"`
-	Output  string `long:"output" short:"o" description:"Name of the image file to create" required:"true"`
-	Size    int64  `long:"size" short:"s" description:"Size of image file to create in GB (min 4)" default:"4"`
-	Oem     string `long:"oem" description:"The snappy oem package to base the image out of" default:"generic-amd64"`
-
 	Development struct {
 		DevicePart    string `long:"device-part" description:"Specify a local device part to override the one from the server"`
 		DeveloperMode bool   `long:"developer-mode" description:"Finds the latest public key in your ~/.ssh and sets it up using cloud-init"`
@@ -71,13 +58,7 @@ type CoreCmd struct {
 		Device  string   `long:"device" description:"Specify the device to use"`
 	} `group:"Deprecated"`
 
-	Positional struct {
-		Release string `positional-arg-name:"release" description:"The release to base the image out of (15.04 or rolling)" required:"true"`
-	} `positional-args:"yes" required:"yes"`
-
-	hardware        diskimage.HardwareDescription
-	oem             diskimage.OemDescription
-	stagingRootPath string
+	Snapper
 }
 
 var coreCmd CoreCmd
@@ -93,9 +74,10 @@ ssh_genkeytypes: ['rsa', 'dsa', 'ecdsa', 'ed25519']
 `
 
 func (coreCmd *CoreCmd) Execute(args []string) error {
-	// we don't want to overwrite the output, people might get angry :-)
-	if helpers.FileExists(coreCmd.Output) {
-		return fmt.Errorf("Giving up, the desired target output file %#v already exists", coreCmd.Output)
+	coreCmd.flavor = flavorCore
+
+	if err := coreCmd.sanityCheck(); err != nil {
+		return err
 	}
 
 	if coreCmd.Development.EnableSsh && coreCmd.Deprecated.Cloud {
@@ -118,46 +100,20 @@ func (coreCmd *CoreCmd) Execute(args []string) error {
 	}
 	defer os.RemoveAll(coreCmd.stagingRootPath)
 
-	if !globalArgs.DownloadOnly {
-		if syscall.Getuid() != 0 {
-			return errors.New("command requires sudo/pkexec (root)")
-		}
-
-		// hack to circumvent https://code.google.com/p/go/issues/detail?id=1435
-		runtime.GOMAXPROCS(1)
-		runtime.LockOSThread()
-		if err := sysutils.DropPrivs(); err != nil {
-			return err
-		}
+	// hack to circumvent https://code.google.com/p/go/issues/detail?id=1435
+	runtime.GOMAXPROCS(1)
+	runtime.LockOSThread()
+	if err := sysutils.DropPrivs(); err != nil {
+		return err
 	}
 
 	fmt.Println("Fetching information from server...")
-	channels, err := ubuntuimage.NewChannels(globalArgs.Server)
+	systemImage, err := coreCmd.systemImage(coreCmd.Deprecated.Device)
 	if err != nil {
 		return err
 	}
 
-	channel := systemImageChannel("ubuntu-core", coreCmd.Positional.Release, coreCmd.Channel)
-	// TODO: remove once azure channel is gone
-	var device string
-	if coreCmd.Deprecated.Device != "" {
-		fmt.Println("WARNING: this option should only be used to build azure images")
-		device = coreCmd.Deprecated.Device
-	} else {
-		device = systemImageDeviceChannel(coreCmd.oem.Architecture())
-	}
-
-	deviceChannel, err := channels.GetDeviceChannel(globalArgs.Server, channel, device)
-	if err != nil {
-		return err
-	}
-
-	image, err := getImage(deviceChannel)
-	if err != nil {
-		return err
-	}
-
-	filesChan := make(chan Files, len(image.Files))
+	filesChan := make(chan Files, len(systemImage.Files))
 	defer close(filesChan)
 
 	sigFiles := ubuntuimage.GetGPGFiles()
@@ -170,11 +126,11 @@ func (coreCmd *CoreCmd) Execute(args []string) error {
 		go bitDownloader(f, sigFilesChan, globalArgs.Server, cacheDir)
 	}
 
-	filePathChan := make(chan string, len(image.Files))
+	filePathChan := make(chan string, len(systemImage.Files))
 	hwChan := make(chan diskimage.HardwareDescription)
 
 	go func() {
-		for i := 0; i < len(image.Files); i++ {
+		for i := 0; i < len(systemImage.Files); i++ {
 			f := <-filesChan
 
 			if isDevicePart(f.FilePath) {
@@ -193,7 +149,7 @@ func (coreCmd *CoreCmd) Execute(args []string) error {
 		close(hwChan)
 	}()
 
-	for _, f := range image.Files {
+	for _, f := range systemImage.Files {
 		if devicePart != "" && isDevicePart(f.Path) {
 			printOut("Using a custom device tarball")
 			filesChan <- Files{FilePath: devicePart}
@@ -202,55 +158,24 @@ func (coreCmd *CoreCmd) Execute(args []string) error {
 		}
 	}
 
-	coreCmd.hardware = <-hwChan
-
-	var img diskimage.CoreImage
-
-	if globalArgs.DownloadOnly {
-		workDir, err := os.Getwd()
-		if err != nil {
-			return err
-		}
-
-		downloadedFiles := make([]string, 0, len(image.Files))
-
-		for i := 0; i < len(image.Files); i++ {
-			f := <-filePathChan
-			baseFile := filepath.Base(f)
-
-			if err := sysutils.CopyFile(f, filepath.Join(workDir, baseFile)); err != nil {
-				return err
-			}
-			downloadedFiles = append(downloadedFiles, baseFile)
-		}
-
-		fmt.Println("Files downloaded to current directory: ")
-		for _, f := range downloadedFiles {
-			fmt.Println(" -", f)
-		}
-		fmt.Println()
-
-		return nil
-	}
-
 	loader := coreCmd.oem.OEM.Hardware.Bootloader
 	switch loader {
 	case "grub":
-		img = diskimage.NewCoreGrubImage(coreCmd.Output, coreCmd.Size, coreCmd.hardware, coreCmd.oem)
+		coreCmd.img = diskimage.NewCoreGrubImage(coreCmd.Output, coreCmd.Size, coreCmd.hardware, coreCmd.oem)
 	case "u-boot":
-		img = diskimage.NewCoreUBootImage(coreCmd.Output, coreCmd.Size, coreCmd.hardware, coreCmd.oem)
+		coreCmd.img = diskimage.NewCoreUBootImage(coreCmd.Output, coreCmd.Size, coreCmd.hardware, coreCmd.oem)
 	default:
 		fmt.Printf("Bootloader set to '%s' in oem hardware description, assuming grub as a fallback\n", loader)
-		img = diskimage.NewCoreGrubImage(coreCmd.Output, coreCmd.Size, coreCmd.hardware, coreCmd.oem)
+		coreCmd.img = diskimage.NewCoreGrubImage(coreCmd.Output, coreCmd.Size, coreCmd.hardware, coreCmd.oem)
 	}
 
 	printOut("Partitioning...")
-	if err := img.Partition(); err != nil {
+	if err := coreCmd.img.Partition(); err != nil {
 		return err
 	}
 	defer func() {
 		if err != nil {
-			//os.Remove(coreCmd.Output)
+			os.Remove(coreCmd.Output)
 		}
 	}()
 
@@ -264,168 +189,18 @@ func (coreCmd *CoreCmd) Execute(args []string) error {
 		}
 	}()
 
+	coreCmd.hardware = <-hwChan
+
 	// Execute the following code with escalated privs and drop them when done
-	err = func() error {
-		// hack to circumvent https://code.google.com/p/go/issues/detail?id=1435
-		runtime.GOMAXPROCS(1)
-		runtime.LockOSThread()
-		if err := sysutils.EscalatePrivs(); err != nil {
-			return err
-		}
-		defer sysutils.DropPrivs()
-
-		if err := format(img); err != nil {
-			return err
-		}
-
-		// avoid passing more args to setup()
-		globalArgs.Revision = image.Version
-
-		if err := coreCmd.setup(img, filePathChan, len(image.Files)); err != nil {
-			return err
-		}
-
-		return nil
-	}()
-	if err != nil {
+	if err := coreCmd.deploy(systemImage, filePathChan); err != nil {
 		return err
 	}
 
-	oemRootPath, err := coreCmd.oem.InstallPath(coreCmd.stagingRootPath)
-	if coreCmd.Oem != "" && err != nil {
+	if err := coreCmd.img.FlashExtra(); err != nil {
 		return err
 	}
 
-	if err := img.FlashExtra(oemRootPath, devicePart); err != nil {
-		return err
-	}
-
-	fmt.Println("New image complete")
-	fmt.Println("Summary:")
-	fmt.Println(" Output:", coreCmd.Output)
-	fmt.Println(" Architecture:", coreCmd.oem.Architecture())
-	fmt.Println(" Channel:", coreCmd.Channel)
-	fmt.Println(" Version:", image.Version)
-
-	if coreCmd.oem.Architecture() != "armhf" {
-		fmt.Println("Launch by running: kvm -m 768", coreCmd.Output)
-	}
-
-	return nil
-}
-
-func format(img diskimage.Image) error {
-	printOut("Mapping...")
-	if err := img.Map(); err != nil {
-		return fmt.Errorf("issue while mapping partitions: %s", err)
-	}
-	defer img.Unmap()
-
-	printOut("Formatting...")
-	return img.Format()
-}
-
-func (coreCmd *CoreCmd) setup(img diskimage.CoreImage, filePathChan <-chan string, fileCount int) error {
-	printOut("Mounting...")
-	if err := img.Mount(); err != nil {
-		return err
-	}
-	defer func() {
-		printOut("Unmounting...")
-		if err := img.Unmount(); err != nil {
-			fmt.Println("WARNING: unexpected issue:", err)
-		}
-	}()
-
-	printOut("Provisioning...")
-	for i := 0; i < fileCount; i++ {
-		f := <-filePathChan
-		if out, err := exec.Command("fakeroot", "tar", "--numeric-owner", "-axvf", f, "-C", img.BaseMount()).CombinedOutput(); err != nil {
-			fmt.Println(string(out))
-			return fmt.Errorf("issues while extracting: %s", out)
-		}
-	}
-
-	writablePath := img.Writable()
-
-	for _, dir := range []string{"system-data", "cache"} {
-		dirPath := filepath.Join(writablePath, dir)
-		if err := os.Mkdir(dirPath, 0755); err != nil {
-			return err
-		}
-	}
-
-	systemPath := img.System()
-
-	if err := coreCmd.install(systemPath); err != nil {
-		return err
-	}
-
-	oemRootPath, err := coreCmd.oem.InstallPath(coreCmd.stagingRootPath)
-	if coreCmd.Oem != "" && err != nil {
-		return err
-	}
-
-	if err := img.SetupBoot(oemRootPath); err != nil {
-		return err
-	}
-
-	if !coreCmd.Deprecated.Cloud {
-		cloudBaseDir := filepath.Join("var", "lib", "cloud")
-
-		if err := os.MkdirAll(filepath.Join(systemPath, cloudBaseDir), 0755); err != nil {
-			return err
-		}
-
-		if err := coreCmd.setupCloudInit(cloudBaseDir, filepath.Join(writablePath, "system-data")); err != nil {
-			return err
-		}
-	}
-
-	// if the device is armhf, we can't to make this copy here since it's faster
-	// than on the device.
-	if coreCmd.oem.Architecture() == archArmhf && coreCmd.oem.PartitionLayout() == "system-AB" {
-		printOut("Replicating system-a into system-b")
-
-		src := fmt.Sprintf("%s/.", systemPath)
-		dst := fmt.Sprintf("%s/system-b", img.BaseMount())
-
-		cmd := exec.Command("cp", "-r", "--preserve=all", src, dst)
-		if out, err := cmd.CombinedOutput(); err != nil {
-			return fmt.Errorf("failed to replicate image contents: %s", out)
-		}
-	}
-
-	return coreCmd.writeInstallYaml(img.Boot())
-}
-
-func (coreCmd *CoreCmd) install(systemPath string) error {
-	snappy.SetRootDir(systemPath)
-	defer snappy.SetRootDir("/")
-
-	flags := coreCmd.installFlags()
-	oemSoftware := coreCmd.oem.OEM.Software
-	packageCount := len(coreCmd.Deprecated.Install) + len(oemSoftware.BuiltIn) + len(oemSoftware.Preinstalled)
-	if coreCmd.Oem != "" {
-		packageCount += 1
-	}
-	packageQueue := make([]string, 0, packageCount)
-
-	if coreCmd.Oem != "" {
-		packageQueue = append(packageQueue, coreCmd.Oem)
-	}
-	packageQueue = append(packageQueue, oemSoftware.BuiltIn...)
-	packageQueue = append(packageQueue, oemSoftware.Preinstalled...)
-	packageQueue = append(packageQueue, coreCmd.Deprecated.Install...)
-
-	for _, snap := range packageQueue {
-		fmt.Println("Installing", snap)
-
-		pb := progress.NewTextProgress()
-		if _, err := snappy.Install(snap, flags, pb); err != nil {
-			return err
-		}
-	}
+	coreCmd.printSummary()
 
 	return nil
 }
@@ -513,162 +288,4 @@ func getAuthorizedSshKey() (string, error) {
 	pubKey, err := ioutil.ReadFile(filepath.Join(sshDir, preferredPubKey))
 
 	return string(pubKey), err
-}
-
-func (coreCmd *CoreCmd) installFlags() snappy.InstallFlags {
-	flags := snappy.InhibitHooks | snappy.AllowOEM
-
-	if coreCmd.Development.DeveloperMode {
-		flags |= snappy.AllowUnauthenticated
-	}
-
-	return flags
-}
-
-func (coreCmd *CoreCmd) extractOem(oemPackage string) error {
-	if oemPackage == "" {
-		return nil
-	}
-
-	tempDir, err := ioutil.TempDir("", "oem")
-	if err != nil {
-		return err
-	}
-
-	// we need to fix the permissions for tempdir to  be seteuid friendly
-	if err := os.Chmod(tempDir, 0755); err != nil {
-		return err
-	}
-
-	coreCmd.stagingRootPath = tempDir
-
-	snappy.SetRootDir(tempDir)
-	defer snappy.SetRootDir("/")
-	release.Override(release.Release{
-		Flavor:  "core",
-		Series:  coreCmd.Positional.Release,
-		Channel: coreCmd.Channel,
-	})
-
-	flags := coreCmd.installFlags()
-	pb := progress.NewTextProgress()
-	if _, err := snappy.Install(oemPackage, flags, pb); err != nil {
-		return err
-	}
-
-	oem, err := coreCmd.loadOem(tempDir)
-	if err != nil {
-		return err
-	}
-	coreCmd.oem = oem
-
-	return nil
-}
-
-func (coreCmd CoreCmd) loadOem(systemPath string) (oem diskimage.OemDescription, err error) {
-	pkgs, err := filepath.Glob(filepath.Join(systemPath, "/oem/*/*/meta/package.yaml"))
-	if err != nil {
-		return oem, err
-	}
-
-	// checking for len(pkgs) > 2 due to the 'current' symlink
-	if len(pkgs) == 0 {
-		return oem, nil
-	} else if len(pkgs) > 2 || err != nil {
-		return oem, errors.New("too many oem packages installed")
-	}
-
-	f, err := ioutil.ReadFile(pkgs[0])
-	if err != nil {
-		return oem, errors.New("failed to read oem yaml")
-	}
-
-	if err := yaml.Unmarshal([]byte(f), &oem); err != nil {
-		return oem, errors.New("cannot decode oem yaml")
-	}
-
-	return oem, nil
-}
-
-// Creates a YAML file inside the image that contains metadata relating
-// to the installation.
-func (coreCmd CoreCmd) writeInstallYaml(bootMountpoint string) error {
-	selfPath, err := exec.LookPath(os.Args[0])
-	if err != nil {
-		return err
-	}
-
-	bootDir := ""
-
-	switch coreCmd.oem.OEM.Hardware.Bootloader {
-		// Running systems use a bindmount for /boot/grub, but
-		// since the system isn't booted, create the file in the
-		// real location.
-		case "grub": bootDir = "/EFI/ubuntu/grub"
-	}
-
-	installYamlFilePath := filepath.Join(bootMountpoint, bootDir, provisioning.InstallYamlFile)
-
-	i := provisioning.InstallYaml{
-		InstallMeta: provisioning.InstallMeta{
-			Timestamp: time.Now(),
-			InitialVersion: fmt.Sprintf("%d", globalArgs.Revision),
-			SystemImageServer: globalArgs.Server,
-		},
-		InstallTool: provisioning.InstallTool{
-			Name: filepath.Base(selfPath),
-			Path: selfPath,
-			// FIXME: we don't know our own version yet :)
-			// Version: "???",
-		},
-		InstallOptions: provisioning.InstallOptions{
-			Size: coreCmd.Size,
-			SizeUnit: "GB",
-			Output: coreCmd.Output,
-			Channel: coreCmd.Channel,
-			DevicePart: coreCmd.Development.DevicePart,
-			Oem: coreCmd.Oem,
-			DeveloperMode: coreCmd.Development.DeveloperMode,
-		},
-	}
-
-	data, err := yaml.Marshal(&i)
-	if err != nil {
-		return err
-	}
-
-	// the file isn't supposed to be modified, hence r/o.
-	return ioutil.WriteFile(installYamlFilePath, data, 0444)
-}
-
-func extractHWDescription(path string) (hw diskimage.HardwareDescription, err error) {
-	// hack to circumvent https://code.google.com/p/go/issues/detail?id=1435
-	if syscall.Getuid() == 0 {
-		runtime.GOMAXPROCS(1)
-		runtime.LockOSThread()
-
-		if err := sysutils.DropPrivs(); err != nil {
-			return hw, err
-		}
-	}
-
-	printOut("Searching for hardware.yaml in device part")
-	tmpdir, err := ioutil.TempDir("", "hardware")
-	if err != nil {
-		return hw, errors.New("cannot create tempdir to extract hardware.yaml from device part")
-	}
-	defer os.RemoveAll(tmpdir)
-
-	if out, err := exec.Command("tar", "xf", path, "-C", tmpdir, "hardware.yaml").CombinedOutput(); err != nil {
-		return hw, fmt.Errorf("failed to extract a hardware.yaml from the device part: %s", out)
-	}
-
-	data, err := ioutil.ReadFile(filepath.Join(tmpdir, "hardware.yaml"))
-	if err != nil {
-		return hw, err
-	}
-
-	err = yaml.Unmarshal([]byte(data), &hw)
-
-	return hw, err
 }

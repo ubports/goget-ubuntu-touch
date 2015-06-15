@@ -101,7 +101,7 @@ func (img *CoreUBootImage) Partition() error {
 	return parted.create(img.location)
 }
 
-func (img CoreUBootImage) SetupBoot(oemRootPath string) error {
+func (img CoreUBootImage) SetupBoot() error {
 	// destinations
 	bootPath := filepath.Join(img.baseMount, string(bootDir))
 	bootAPath := filepath.Join(bootPath, "a")
@@ -150,7 +150,7 @@ func (img CoreUBootImage) SetupBoot(oemRootPath string) error {
 	// if the oem package provides BootAssets use it directly, if not
 	// provisionUenv for backwards compatibility.
 	if bootAssets := img.oem.OEM.Hardware.BootAssets; bootAssets != nil {
-		if err := setupBootAssetFiles(bootPath, oemRootPath, bootAssets.Files); err != nil {
+		if err := setupBootAssetFiles(bootPath, img.oem.rootDir, bootAssets.Files); err != nil {
 			return err
 		}
 	} else {
@@ -231,7 +231,7 @@ func (img CoreUBootImage) provisionDtbs(bootDtbPath string) error {
 	// if there is a specific dtb for the platform, copy it.
 	// First look in oem and then in device.
 	if oemDtb := img.oem.OEM.Hardware.Dtb; oemDtb != "" && img.oem.Platform() != "" {
-		oemInstallPath, err := img.oem.InstallPath(img.System())
+		oemInstallPath, err := img.oem.InstallPath()
 		if err != nil {
 			return err
 		}
@@ -259,11 +259,9 @@ func (img CoreUBootImage) provisionDtbs(bootDtbPath string) error {
 	return nil
 }
 
-func (img *CoreUBootImage) FlashExtra(oemRootPath, devicePart string) error {
-	// if the oem package has bootloader assets use this and skip the
-	// deprecated device part setup
+func (img *CoreUBootImage) FlashExtra() error {
 	if bootAssets := img.oem.OEM.Hardware.BootAssets; bootAssets != nil {
-		return setupBootAssetRawFiles(img.location, oemRootPath, bootAssets.RawFiles)
+		return setupBootAssetRawFiles(img.location, img.oem.rootDir, bootAssets.RawFiles)
 	}
 
 	return nil
