@@ -180,7 +180,9 @@ func (img *BaseImage) Mount() error {
 	//Remove Mountpoint if we fail along the way
 	defer func() {
 		if err != nil {
-			os.RemoveAll(baseMount)
+			if err := os.Remove(baseMount); err != nil {
+				fmt.Println("WARNING: cannot remove", baseMount, "due to", err)
+			}
 		}
 	}()
 
