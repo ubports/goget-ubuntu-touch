@@ -243,7 +243,8 @@ func (img *BaseImage) Unmount() error {
 		if out, err := exec.Command("umount", mountpoint).CombinedOutput(); err != nil {
 			lsof, _ := exec.Command("lsof", "-w", mountpoint).CombinedOutput()
 			printOut(string(lsof))
-			return fmt.Errorf("unable to unmount dir for image: %s", out)
+			dev := filepath.Join("/dev/mapper", part.loop)
+			return ErrMount{dev: dev, mountpoint: mountpoint, fs: part.fs, out: out}
 		}
 	}
 
