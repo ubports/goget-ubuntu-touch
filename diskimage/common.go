@@ -16,6 +16,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"syscall"
 )
 
 // This program is free software: you can redistribute it and/or modify it
@@ -37,6 +38,10 @@ func init() {
 		debugPrint = true
 	}
 }
+
+var (
+	syscallSync = syscall.Sync
+)
 
 type Image interface {
 	Mount() error
@@ -227,9 +232,7 @@ func (img *BaseImage) Unmount() error {
 		panic("No base mountpoint set")
 	}
 
-	if out, err := exec.Command("sync").CombinedOutput(); err != nil {
-		return fmt.Errorf("Failed to sync filesystems before unmounting: %s", out)
-	}
+	syscallSync()
 
 	for _, part := range img.parts {
 		if part.fs == fsNone {
