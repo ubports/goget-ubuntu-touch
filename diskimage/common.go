@@ -280,7 +280,7 @@ func (img *BaseImage) Map() error {
 		if len(fields) > 2 {
 			loops = append(loops, fields[2])
 		} else {
-			return errors.New("issues while determining drive mappings")
+			return fmt.Errorf("issues while determining drive mappings (%q)", fields)
 		}
 	}
 	if err := scanner.Err(); err != nil {
@@ -288,7 +288,7 @@ func (img *BaseImage) Map() error {
 	}
 
 	if len(loops) != img.partCount {
-		return errors.New("more partitions then expected while creating loop mapping")
+		return ErrMapCount{expectedParts: img.partCount, foundParts: len(loops)}
 	}
 
 	mapPartitions(img.parts, loops)
