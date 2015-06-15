@@ -177,11 +177,6 @@ func (img *BaseImage) Mount() error {
 		return err
 	}
 
-	// We change the mode so snappy can unpack as non root
-	if err := os.Chmod(baseMount, 0755); err != nil {
-		return err
-	}
-
 	//Remove Mountpoint if we fail along the way
 	defer func() {
 		if err != nil {
@@ -190,6 +185,11 @@ func (img *BaseImage) Mount() error {
 			}
 		}
 	}()
+
+	// We change the mode so snappy can unpack as non root
+	if err := os.Chmod(baseMount, 0755); err != nil {
+		return err
+	}
 
 	for _, part := range img.parts {
 		if part.fs == fsNone {
