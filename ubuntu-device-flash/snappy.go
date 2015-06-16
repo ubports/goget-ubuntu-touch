@@ -65,8 +65,9 @@ type Snapper struct {
 	Oem     string `long:"oem" description:"The snappy oem package to base the image out of" default:"generic-amd64"`
 
 	Development struct {
-		DevicePart    string `long:"device-part" description:"Specify a local device part to override the one from the server"`
-		DeveloperMode bool   `long:"developer-mode" description:"Finds the latest public key in your ~/.ssh and sets it up using cloud-init"`
+		Install       []string `long:"install" description:"Install additional packages (can be called multiple times)"`
+		DevicePart    string   `long:"device-part" description:"Specify a local device part to override the one from the server"`
+		DeveloperMode bool     `long:"developer-mode" description:"Finds the latest public key in your ~/.ssh and sets it up using cloud-init"`
 	} `group:"Development"`
 
 	Positional struct {
@@ -110,7 +111,7 @@ func (s *Snapper) systemImage() (*ubuntuimage.Image, error) {
 	channel := systemImageChannel(s.flavor.Channel(), s.Positional.Release, s.Channel)
 	// TODO: remove once azure channel is gone
 	if s.device == "" {
-		s.device = systemImageDeviceChannel(coreCmd.oem.Architecture())
+		s.device = systemImageDeviceChannel(s.oem.Architecture())
 	}
 
 	deviceChannel, err := channels.GetDeviceChannel(globalArgs.Server, channel, s.device)
@@ -132,7 +133,7 @@ func (s *Snapper) systemImage() (*ubuntuimage.Image, error) {
 func (s *Snapper) installFlags() snappy.InstallFlags {
 	flags := snappy.InhibitHooks | snappy.AllowOEM
 
-	if coreCmd.Development.DeveloperMode {
+	if s.Development.DeveloperMode {
 		flags |= snappy.AllowUnauthenticated
 	}
 
@@ -143,20 +144,20 @@ func (s *Snapper) install(systemPath string) error {
 	snappy.SetRootDir(systemPath)
 	defer snappy.SetRootDir("/")
 
-	flags := coreCmd.installFlags()
-	oemSoftware := coreCmd.oem.OEM.Software
-	packageCount := len(coreCmd.Deprecated.Install) + len(oemSoftware.BuiltIn) + len(oemSoftware.Preinstalled)
-	if coreCmd.Oem != "" {
+	flags := s.installFlags()
+	oemSoftware := s.oem.OEM.Software
+	packageCount := len(s.Development.Install) + len(oemSoftware.BuiltIn) + len(oemSoftware.Preinstalled)
+	if s.Oem != "" {
 		packageCount += 1
 	}
 	packageQueue := make([]string, 0, packageCount)
 
-	if coreCmd.Oem != "" {
-		packageQueue = append(packageQueue, coreCmd.Oem)
+	if s.Oem != "" {
+		packageQueue = append(packageQueue, s.Oem)
 	}
 	packageQueue = append(packageQueue, oemSoftware.BuiltIn...)
 	packageQueue = append(packageQueue, oemSoftware.Preinstalled...)
-	packageQueue = append(packageQueue, coreCmd.Deprecated.Install...)
+	packageQueue = append(packageQueue, s.Development.Install...)
 
 	for _, snap := range packageQueue {
 		fmt.Println("Installing", snap)
@@ -185,23 +186,23 @@ func (s *Snapper) extractOem(oemPackage string) error {
 		return err
 	}
 
-	coreCmd.stagingRootPath = tempDir
+	s.stagingRootPath = tempDir
 
 	snappy.SetRootDir(tempDir)
 	defer snappy.SetRootDir("/")
 	release.Override(release.Release{
 		Flavor:  string(s.flavor),
-		Series:  coreCmd.Positional.Release,
-		Channel: coreCmd.Channel,
+		Series:  s.Positional.Release,
+		Channel: s.Channel,
 	})
 
-	flags := coreCmd.installFlags()
+	flags := s.installFlags()
 	pb := progress.NewTextProgress()
 	if _, err := snappy.Install(oemPackage, flags, pb); err != nil {
 		return err
 	}
 
-	if err := coreCmd.loadOem(tempDir); err != nil {
+	if err := s.loadOem(tempDir); err != nil {
 		return err
 	}
 
@@ -246,7 +247,7 @@ func (s Snapper) writeInstallYaml(bootMountpoint string) error {
 
 	bootDir := ""
 
-	switch coreCmd.oem.OEM.Hardware.Bootloader {
+	switch s.oem.OEM.Hardware.Bootloader {
 	// Running systems use a bindmount for /boot/grub, but
 	// since the system isn't booted, create the file in the
 	// real location.
@@ -269,13 +270,13 @@ func (s Snapper) writeInstallYaml(bootMountpoint string) error {
 			// Version: "???",
 		},
 		InstallOptions: provisioning.InstallOptions{
-			Size:          coreCmd.Size,
+			Size:          s.Size,
 			SizeUnit:      "GB",
-			Output:        coreCmd.Output,
-			Channel:       coreCmd.Channel,
-			DevicePart:    coreCmd.Development.DevicePart,
-			Oem:           coreCmd.Oem,
-			DeveloperMode: coreCmd.Development.DeveloperMode,
+			Output:        s.Output,
+			Channel:       s.Channel,
+			DevicePart:    s.Development.DevicePart,
+			Oem:           s.Oem,
+			DeveloperMode: s.Development.DeveloperMode,
 		},
 	}
 
@@ -343,7 +344,7 @@ func (s *Snapper) setup(filePathChan <-chan string, fileCount int) error {
 
 	systemPath := s.img.System()
 
-	if err := coreCmd.install(systemPath); err != nil {
+	if err := s.install(systemPath); err != nil {
 		return err
 	}
 
@@ -421,7 +422,7 @@ func (s *Snapper) create() error {
 	}
 
 	fmt.Println("Determining oem configuration")
-	if err := coreCmd.extractOem(s.Oem); err != nil {
+	if err := s.extractOem(s.Oem); err != nil {
 		return err
 	}
 	defer os.RemoveAll(s.stagingRootPath)
@@ -434,8 +435,8 @@ func (s *Snapper) create() error {
 	}
 
 	var devicePart string
-	if coreCmd.Development.DevicePart != "" {
-		p, err := expandFile(coreCmd.Development.DevicePart)
+	if s.Development.DevicePart != "" {
+		p, err := expandFile(s.Development.DevicePart)
 		if err != nil {
 			return err
 		}
@@ -497,9 +498,9 @@ func (s *Snapper) create() error {
 	loader := s.oem.OEM.Hardware.Bootloader
 	switch loader {
 	case "grub":
-		s.img = diskimage.NewCoreGrubImage(coreCmd.Output, coreCmd.Size, coreCmd.hardware, coreCmd.oem)
+		s.img = diskimage.NewCoreGrubImage(s.Output, s.Size, s.hardware, s.oem)
 	case "u-boot":
-		s.img = diskimage.NewCoreUBootImage(coreCmd.Output, coreCmd.Size, coreCmd.hardware, coreCmd.oem)
+		s.img = diskimage.NewCoreUBootImage(s.Output, s.Size, s.hardware, s.oem)
 	default:
 		return errors.New("no hardware description in OEM snap")
 	}
@@ -531,11 +532,11 @@ func (s *Snapper) create() error {
 		return err
 	}
 
-	if err := coreCmd.img.FlashExtra(); err != nil {
+	if err := s.img.FlashExtra(); err != nil {
 		return err
 	}
 
-	coreCmd.printSummary()
+	s.printSummary()
 
 	return nil
 }
