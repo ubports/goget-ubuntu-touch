@@ -42,9 +42,8 @@ type CoreCmd struct {
 	EnableSsh bool `long:"enable-ssh" description:"Enable ssh on the image through cloud-init(not needed with developer mode)"`
 
 	Deprecated struct {
-		Install []string `long:"install" description:"Install additional packages (can be called multiple times)"`
-		Cloud   bool     `long:"cloud" description:"Generate a pure cloud image without setting up cloud-init"`
-		Device  string   `long:"device" description:"Specify the device to use"`
+		Cloud  bool   `long:"cloud" description:"Generate a pure cloud image without setting up cloud-init"`
+		Device string `long:"device" description:"Specify the device to use"`
 	} `group:"Deprecated"`
 
 	Snapper
