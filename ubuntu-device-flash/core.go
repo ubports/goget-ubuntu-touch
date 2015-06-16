@@ -14,16 +14,9 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"os/signal"
 	"path/filepath"
-	"runtime"
 	"strings"
-	"syscall"
 	"time"
-
-	"launchpad.net/goget-ubuntu-touch/diskimage"
-	"launchpad.net/goget-ubuntu-touch/sysutils"
-	"launchpad.net/goget-ubuntu-touch/ubuntuimage"
 )
 
 // This program is free software: you can redistribute it and/or modify it
@@ -46,11 +39,7 @@ func init() {
 }
 
 type CoreCmd struct {
-	Development struct {
-		DevicePart    string `long:"device-part" description:"Specify a local device part to override the one from the server"`
-		DeveloperMode bool   `long:"developer-mode" description:"Finds the latest public key in your ~/.ssh and sets it up using cloud-init"`
-		EnableSsh     bool   `long:"enable-ssh" description:"Enable ssh on the image through cloud-init(not needed with developer mode)"`
-	} `group:"Development"`
+	EnableSsh bool `long:"enable-ssh" description:"Enable ssh on the image through cloud-init(not needed with developer mode)"`
 
 	Deprecated struct {
 		Install []string `long:"install" description:"Install additional packages (can be called multiple times)"`
@@ -76,138 +65,35 @@ ssh_genkeytypes: ['rsa', 'dsa', 'ecdsa', 'ed25519']
 func (coreCmd *CoreCmd) Execute(args []string) error {
 	coreCmd.flavor = flavorCore
 
-	if err := coreCmd.sanityCheck(); err != nil {
-		return err
-	}
-
-	if coreCmd.Development.EnableSsh && coreCmd.Deprecated.Cloud {
+	if coreCmd.EnableSsh && coreCmd.Deprecated.Cloud {
 		return errors.New("--cloud and --enable-ssh cannot be used together")
 	}
 
-	var devicePart string
-	if coreCmd.Development.DevicePart != "" {
-		p, err := expandFile(coreCmd.Development.DevicePart)
-		if err != nil {
-			return err
-		}
-
-		devicePart = p
+	if coreCmd.Deprecated.Device != "" {
+		fmt.Println("WARNING: this option should only be used to build azure images")
+		coreCmd.device = coreCmd.Deprecated.Device
 	}
 
-	fmt.Println("Determining oem configuration")
-	if err := coreCmd.extractOem(coreCmd.Oem); err != nil {
-		return err
-	}
-	defer os.RemoveAll(coreCmd.stagingRootPath)
-
-	// hack to circumvent https://code.google.com/p/go/issues/detail?id=1435
-	runtime.GOMAXPROCS(1)
-	runtime.LockOSThread()
-	if err := sysutils.DropPrivs(); err != nil {
-		return err
+	if !coreCmd.Deprecated.Cloud {
+		coreCmd.customizationFunc = append(coreCmd.customizationFunc, coreCmd.setupCloudInit)
 	}
 
-	fmt.Println("Fetching information from server...")
-	systemImage, err := coreCmd.systemImage(coreCmd.Deprecated.Device)
-	if err != nil {
-		return err
-	}
-
-	filesChan := make(chan Files, len(systemImage.Files))
-	defer close(filesChan)
-
-	sigFiles := ubuntuimage.GetGPGFiles()
-	sigFilesChan := make(chan Files, len(sigFiles))
-	defer close(sigFilesChan)
-
-	fmt.Println("Downloading and setting up...")
-
-	for _, f := range sigFiles {
-		go bitDownloader(f, sigFilesChan, globalArgs.Server, cacheDir)
-	}
-
-	filePathChan := make(chan string, len(systemImage.Files))
-	hwChan := make(chan diskimage.HardwareDescription)
-
-	go func() {
-		for i := 0; i < len(systemImage.Files); i++ {
-			f := <-filesChan
-
-			if isDevicePart(f.FilePath) {
-				devicePart = f.FilePath
-
-				if hardware, err := extractHWDescription(f.FilePath); err != nil {
-					fmt.Println("Failed to read harware.yaml from device part, provisioning may fail:", err)
-				} else {
-					hwChan <- hardware
-				}
-			}
-
-			printOut("Download finished for", f.FilePath)
-			filePathChan <- f.FilePath
-		}
-		close(hwChan)
-	}()
-
-	for _, f := range systemImage.Files {
-		if devicePart != "" && isDevicePart(f.Path) {
-			printOut("Using a custom device tarball")
-			filesChan <- Files{FilePath: devicePart}
-		} else {
-			go bitDownloader(f, filesChan, globalArgs.Server, cacheDir)
-		}
-	}
-
-	loader := coreCmd.oem.OEM.Hardware.Bootloader
-	switch loader {
-	case "grub":
-		coreCmd.img = diskimage.NewCoreGrubImage(coreCmd.Output, coreCmd.Size, coreCmd.hardware, coreCmd.oem)
-	case "u-boot":
-		coreCmd.img = diskimage.NewCoreUBootImage(coreCmd.Output, coreCmd.Size, coreCmd.hardware, coreCmd.oem)
-	default:
-		fmt.Printf("Bootloader set to '%s' in oem hardware description, assuming grub as a fallback\n", loader)
-		coreCmd.img = diskimage.NewCoreGrubImage(coreCmd.Output, coreCmd.Size, coreCmd.hardware, coreCmd.oem)
-	}
-
-	printOut("Partitioning...")
-	if err := coreCmd.img.Partition(); err != nil {
-		return err
-	}
-	defer func() {
-		if err != nil {
-			os.Remove(coreCmd.Output)
-		}
-	}()
-
-	// Handle SIGINT and SIGTERM.
-	go func() {
-		ch := make(chan os.Signal)
-		signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM)
-
-		for sig := range ch {
-			printOut("Received", sig, "... ignoring")
-		}
-	}()
-
-	coreCmd.hardware = <-hwChan
-
-	// Execute the following code with escalated privs and drop them when done
-	if err := coreCmd.deploy(systemImage, filePathChan); err != nil {
-		return err
-	}
-
-	if err := coreCmd.img.FlashExtra(); err != nil {
-		return err
-	}
-
-	coreCmd.printSummary()
-
-	return nil
+	return coreCmd.create()
 }
 
-func (coreCmd *CoreCmd) setupCloudInit(cloudBaseDir, systemData string) error {
+// this function is a hack and should be part of first boot.
+func (coreCmd *CoreCmd) setupCloudInit() error {
+	systemPath := coreCmd.img.System()
+	writablePath := coreCmd.img.Writable()
+
+	cloudBaseDir := filepath.Join("var", "lib", "cloud")
+
+	if err := os.MkdirAll(filepath.Join(systemPath, cloudBaseDir), 0755); err != nil {
+		return err
+	}
+
 	// create a basic cloud-init seed
-	cloudDir := filepath.Join(systemData, cloudBaseDir, "seed", "nocloud-net")
+	cloudDir := filepath.Join(writablePath, "system-data", cloudBaseDir, "seed", "nocloud-net")
 	if err := os.MkdirAll(cloudDir, 0755); err != nil {
 		return err
 	}
@@ -250,7 +136,7 @@ func (coreCmd *CoreCmd) setupCloudInit(cloudBaseDir, systemData string) error {
 		return err
 	}
 
-	if coreCmd.Development.DeveloperMode || coreCmd.Development.EnableSsh {
+	if coreCmd.Development.DeveloperMode || coreCmd.EnableSsh {
 		if _, err := io.WriteString(userDataFile, "snappy:\n    ssh_enabled: True\n"); err != nil {
 			return err
 		}

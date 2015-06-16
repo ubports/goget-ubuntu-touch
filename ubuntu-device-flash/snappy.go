@@ -14,6 +14,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path/filepath"
 	"runtime"
 	"syscall"
@@ -47,6 +48,11 @@ type Snapper struct {
 	Size    int64  `long:"size" short:"s" description:"Size of image file to create in GB (min 4)" default:"4"`
 	Oem     string `long:"oem" description:"The snappy oem package to base the image out of" default:"generic-amd64"`
 
+	Development struct {
+		DevicePart    string `long:"device-part" description:"Specify a local device part to override the one from the server"`
+		DeveloperMode bool   `long:"developer-mode" description:"Finds the latest public key in your ~/.ssh and sets it up using cloud-init"`
+	} `group:"Development"`
+
 	Positional struct {
 		Release string `positional-arg-name:"release" description:"The release to base the image out of (15.04 or rolling)" required:"true"`
 	} `positional-args:"yes" required:"yes"`
@@ -57,6 +63,9 @@ type Snapper struct {
 	stagingRootPath string
 
 	flavor imageFlavor
+	device string
+
+	customizationFunc []func() error
 }
 
 func (s Snapper) sanityCheck() error {
@@ -72,7 +81,7 @@ func (s Snapper) sanityCheck() error {
 	return nil
 }
 
-func (s *Snapper) systemImage(deviceOverride string) (*ubuntuimage.Image, error) {
+func (s *Snapper) systemImage() (*ubuntuimage.Image, error) {
 	channels, err := ubuntuimage.NewChannels(globalArgs.Server)
 	if err != nil {
 		return nil, err
@@ -80,15 +89,11 @@ func (s *Snapper) systemImage(deviceOverride string) (*ubuntuimage.Image, error)
 
 	channel := systemImageChannel(s.flavor.Channel(), s.Positional.Release, s.Channel)
 	// TODO: remove once azure channel is gone
-	var device string
-	if deviceOverride != "" {
-		fmt.Println("WARNING: this option should only be used to build azure images")
-		device = coreCmd.Deprecated.Device
-	} else {
-		device = systemImageDeviceChannel(coreCmd.oem.Architecture())
+	if s.device == "" {
+		s.device = systemImageDeviceChannel(coreCmd.oem.Architecture())
 	}
 
-	deviceChannel, err := channels.GetDeviceChannel(globalArgs.Server, channel, device)
+	deviceChannel, err := channels.GetDeviceChannel(globalArgs.Server, channel, s.device)
 	if err != nil {
 		return nil, err
 	}
@@ -97,6 +102,7 @@ func (s *Snapper) systemImage(deviceOverride string) (*ubuntuimage.Image, error)
 	if err != nil {
 		return nil, err
 	}
+
 	// avoid passing more args to setup()
 	globalArgs.Revision = systemImage.Version
 
@@ -294,14 +300,14 @@ func extractHWDescription(path string) (hw diskimage.HardwareDescription, err er
 	return hw, err
 }
 
-func (s *Snapper) setup(img diskimage.CoreImage, filePathChan <-chan string, fileCount int) error {
+func (s *Snapper) setup(filePathChan <-chan string, fileCount int) error {
 	printOut("Mounting...")
-	if err := img.Mount(); err != nil {
+	if err := s.img.Mount(); err != nil {
 		return err
 	}
 	defer func() {
 		printOut("Unmounting...")
-		if err := img.Unmount(); err != nil {
+		if err := s.img.Unmount(); err != nil {
 			fmt.Println("WARNING: unexpected issue:", err)
 		}
 	}()
@@ -309,13 +315,13 @@ func (s *Snapper) setup(img diskimage.CoreImage, filePathChan <-chan string, fil
 	printOut("Provisioning...")
 	for i := 0; i < fileCount; i++ {
 		f := <-filePathChan
-		if out, err := exec.Command("fakeroot", "tar", "--numeric-owner", "-axvf", f, "-C", img.BaseMount()).CombinedOutput(); err != nil {
-			fmt.Println(string(out))
+		if out, err := exec.Command("fakeroot", "tar", "--numeric-owner", "-axvf", f, "-C", s.img.BaseMount()).CombinedOutput(); err != nil {
+			printOut(string(out))
 			return fmt.Errorf("issues while extracting: %s", out)
 		}
 	}
 
-	writablePath := img.Writable()
+	writablePath := s.img.Writable()
 
 	for _, dir := range []string{"system-data", "cache"} {
 		dirPath := filepath.Join(writablePath, dir)
@@ -324,35 +330,29 @@ func (s *Snapper) setup(img diskimage.CoreImage, filePathChan <-chan string, fil
 		}
 	}
 
-	systemPath := img.System()
+	systemPath := s.img.System()
 
 	if err := coreCmd.install(systemPath); err != nil {
 		return err
 	}
 
-	if err := img.SetupBoot(); err != nil {
+	if err := s.img.SetupBoot(); err != nil {
 		return err
 	}
 
-	if !coreCmd.Deprecated.Cloud {
-		cloudBaseDir := filepath.Join("var", "lib", "cloud")
-
-		if err := os.MkdirAll(filepath.Join(systemPath, cloudBaseDir), 0755); err != nil {
-			return err
-		}
-
-		if err := coreCmd.setupCloudInit(cloudBaseDir, filepath.Join(writablePath, "system-data")); err != nil {
+	for i := range s.customizationFunc {
+		if err := s.customizationFunc[i](); err != nil {
 			return err
 		}
 	}
 
 	// if the device is armhf, we can't to make this copy here since it's faster
 	// than on the device.
-	if coreCmd.oem.Architecture() == archArmhf && coreCmd.oem.PartitionLayout() == "system-AB" {
+	if s.oem.Architecture() == archArmhf && s.oem.PartitionLayout() == "system-AB" {
 		printOut("Replicating system-a into system-b")
 
 		src := fmt.Sprintf("%s/.", systemPath)
-		dst := fmt.Sprintf("%s/system-b", img.BaseMount())
+		dst := fmt.Sprintf("%s/system-b", s.img.BaseMount())
 
 		cmd := exec.Command("cp", "-r", "--preserve=all", src, dst)
 		if out, err := cmd.CombinedOutput(); err != nil {
@@ -360,7 +360,7 @@ func (s *Snapper) setup(img diskimage.CoreImage, filePathChan <-chan string, fil
 		}
 	}
 
-	return coreCmd.writeInstallYaml(img.Boot())
+	return s.writeInstallYaml(s.img.Boot())
 }
 
 // deploy orchestrates the priviledged part of the setup
@@ -402,4 +402,129 @@ func (s Snapper) printSummary() {
 	fmt.Println(" Architecture:", s.oem.Architecture())
 	fmt.Println(" Channel:", s.Channel)
 	fmt.Println(" Version:", globalArgs.Revision)
+}
+
+func (s *Snapper) create() error {
+	if err := s.sanityCheck(); err != nil {
+		return err
+	}
+
+	fmt.Println("Determining oem configuration")
+	if err := coreCmd.extractOem(s.Oem); err != nil {
+		return err
+	}
+	defer os.RemoveAll(s.stagingRootPath)
+
+	// hack to circumvent https://code.google.com/p/go/issues/detail?id=1435
+	runtime.GOMAXPROCS(1)
+	runtime.LockOSThread()
+	if err := sysutils.DropPrivs(); err != nil {
+		return err
+	}
+
+	var devicePart string
+	if coreCmd.Development.DevicePart != "" {
+		p, err := expandFile(coreCmd.Development.DevicePart)
+		if err != nil {
+			return err
+		}
+
+		devicePart = p
+	}
+
+	fmt.Println("Fetching information from server...")
+	systemImage, err := s.systemImage()
+	if err != nil {
+		return err
+	}
+
+	filesChan := make(chan Files, len(systemImage.Files))
+	defer close(filesChan)
+
+	sigFiles := ubuntuimage.GetGPGFiles()
+	sigFilesChan := make(chan Files, len(sigFiles))
+	defer close(sigFilesChan)
+
+	fmt.Println("Downloading and setting up...")
+
+	for _, f := range sigFiles {
+		go bitDownloader(f, sigFilesChan, globalArgs.Server, cacheDir)
+	}
+
+	filePathChan := make(chan string, len(systemImage.Files))
+	hwChan := make(chan diskimage.HardwareDescription)
+
+	go func() {
+		for i := 0; i < len(systemImage.Files); i++ {
+			f := <-filesChan
+
+			if isDevicePart(f.FilePath) {
+				devicePart = f.FilePath
+
+				if hardware, err := extractHWDescription(f.FilePath); err != nil {
+					fmt.Println("Failed to read harware.yaml from device part, provisioning may fail:", err)
+				} else {
+					hwChan <- hardware
+				}
+			}
+
+			printOut("Download finished for", f.FilePath)
+			filePathChan <- f.FilePath
+		}
+		close(hwChan)
+	}()
+
+	for _, f := range systemImage.Files {
+		if devicePart != "" && isDevicePart(f.Path) {
+			printOut("Using a custom device tarball")
+			filesChan <- Files{FilePath: devicePart}
+		} else {
+			go bitDownloader(f, filesChan, globalArgs.Server, cacheDir)
+		}
+	}
+
+	loader := s.oem.OEM.Hardware.Bootloader
+	switch loader {
+	case "grub":
+		s.img = diskimage.NewCoreGrubImage(coreCmd.Output, coreCmd.Size, coreCmd.hardware, coreCmd.oem)
+	case "u-boot":
+		s.img = diskimage.NewCoreUBootImage(coreCmd.Output, coreCmd.Size, coreCmd.hardware, coreCmd.oem)
+	default:
+		return errors.New("no hardware description in OEM snap")
+	}
+
+	printOut("Partitioning...")
+	if err := s.img.Partition(); err != nil {
+		return err
+	}
+	defer func() {
+		if err != nil {
+			os.Remove(s.Output)
+		}
+	}()
+
+	// Handle SIGINT and SIGTERM.
+	go func() {
+		ch := make(chan os.Signal)
+		signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM)
+
+		for sig := range ch {
+			printOut("Received", sig, "... ignoring")
+		}
+	}()
+
+	s.hardware = <-hwChan
+
+	// Execute the following code with escalated privs and drop them when done
+	if err := s.deploy(systemImage, filePathChan); err != nil {
+		return err
+	}
+
+	if err := coreCmd.img.FlashExtra(); err != nil {
+		return err
+	}
+
+	coreCmd.printSummary()
+
+	return nil
 }
