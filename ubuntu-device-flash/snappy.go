@@ -321,15 +321,6 @@ func (s *Snapper) setup(filePathChan <-chan string, fileCount int) error {
 		}
 	}
 
-	writablePath := s.img.Writable()
-
-	for _, dir := range []string{"system-data", "cache"} {
-		dirPath := filepath.Join(writablePath, dir)
-		if err := os.Mkdir(dirPath, 0755); err != nil {
-			return err
-		}
-	}
-
 	systemPath := s.img.System()
 
 	if err := coreCmd.install(systemPath); err != nil {
