@@ -377,7 +377,7 @@ func (s *Snapper) deploy(systemImage *ubuntuimage.Image, filePathChan <-chan str
 		return err
 	}
 
-	if err := s.setup(s.img, filePathChan, len(systemImage.Files)); err != nil {
+	if err := s.setup(filePathChan, len(systemImage.Files)); err != nil {
 		return err
 	}
 
