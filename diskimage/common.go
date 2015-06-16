@@ -8,6 +8,7 @@
 package diskimage
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -15,6 +16,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"syscall"
 )
 
 // This program is free software: you can redistribute it and/or modify it
@@ -36,6 +38,10 @@ func init() {
 		debugPrint = true
 	}
 }
+
+var (
+	syscallSync = syscall.Sync
+)
 
 type Image interface {
 	Mount() error
@@ -149,40 +155,247 @@ func sectorSize(dev string) (string, error) {
 	return strings.TrimSpace(string(out)), err
 }
 
-func mount(partitions []partition) (baseMount string, err error) {
-	baseMount, err = ioutil.TempDir(os.TempDir(), "diskimage")
-	if err != nil {
-		return "", err
+// BaseImage implements the basic primitives to manage images.
+type BaseImage struct {
+	baseMount string
+	hardware  HardwareDescription
+	location  string
+	oem       OemDescription
+	parts     []partition
+	partCount int
+	size      int64
+}
+
+// Mount mounts the image. This also maps the loop device.
+func (img *BaseImage) Mount() error {
+	if err := img.Map(); err != nil {
+		return err
 	}
 
-	// We change the mode so snappy can unpack as non root
-	if err := os.Chmod(baseMount, 0755); err != nil {
-		return "", err
+	baseMount, err := ioutil.TempDir(os.TempDir(), "diskimage")
+	if err != nil {
+		return err
 	}
 
 	//Remove Mountpoint if we fail along the way
 	defer func() {
 		if err != nil {
-			os.Remove(baseMount)
+			if err := os.Remove(baseMount); err != nil {
+				fmt.Println("WARNING: cannot remove", baseMount, "due to", err)
+			}
 		}
 	}()
 
-	for _, part := range partitions {
+	// We change the mode so snappy can unpack as non root
+	if err := os.Chmod(baseMount, 0755); err != nil {
+		return err
+	}
+
+	for _, part := range img.parts {
 		if part.fs == fsNone {
 			continue
 		}
 
 		mountpoint := filepath.Join(baseMount, string(part.dir))
 		if err := os.MkdirAll(mountpoint, 0755); err != nil {
-			return "", err
+			return err
 		}
-		if out, err := exec.Command("mount", filepath.Join("/dev/mapper", part.loop), mountpoint).CombinedOutput(); err != nil {
-			return "", fmt.Errorf("unable to mount dir to create system image: %s", out)
+
+		dev := filepath.Join("/dev/mapper", part.loop)
+		printOut("Mounting", dev, part.fs, "to", mountpoint)
+		if out, errMount := exec.Command("mount", filepath.Join("/dev/mapper", part.loop), mountpoint).CombinedOutput(); errMount != nil {
+			return ErrMount{dev: dev, mountpoint: mountpoint, fs: part.fs, out: out}
+		}
+		// this is cleanup in case one of the mounts fail
+		defer func() {
+			if err != nil {
+				if err := exec.Command("umount", mountpoint).Run(); err != nil {
+					fmt.Println("WARNING:", mountpoint, "could not be unmounted")
+					return
+				}
+
+				if err := os.Remove(mountpoint); err != nil {
+					fmt.Println("WARNING: could not remove ", mountpoint)
+				}
+			}
+		}()
+	}
+	img.baseMount = baseMount
+
+	return nil
+
+}
+
+// Unmount unmounts the image. This also unmaps the loop device.
+func (img *BaseImage) Unmount() error {
+	if img.baseMount == "" {
+		panic("No base mountpoint set")
+	}
+
+	syscallSync()
+
+	for _, part := range img.parts {
+		if part.fs == fsNone {
+			continue
+		}
+
+		mountpoint := filepath.Join(img.baseMount, string(part.dir))
+		if out, err := exec.Command("umount", mountpoint).CombinedOutput(); err != nil {
+			lsof, _ := exec.Command("lsof", "-w", mountpoint).CombinedOutput()
+			printOut(string(lsof))
+			dev := filepath.Join("/dev/mapper", part.loop)
+			return ErrMount{dev: dev, mountpoint: mountpoint, fs: part.fs, out: out}
 		}
 	}
 
-	return baseMount, nil
+	if err := os.RemoveAll(img.baseMount); err != nil {
+		return err
+	}
+	img.baseMount = ""
 
+	return img.Unmap()
+}
+
+// Map maps the image to loop devices
+func (img *BaseImage) Map() error {
+	if isMapped(img.parts) {
+		panic("cannot double map partitions")
+	}
+
+	kpartxCmd := exec.Command("kpartx", "-avs", img.location)
+	stdout, err := kpartxCmd.StdoutPipe()
+	if err != nil {
+		return err
+	}
+
+	if err := kpartxCmd.Start(); err != nil {
+		return err
+	}
+
+	loops := make([]string, 0, img.partCount)
+	scanner := bufio.NewScanner(stdout)
+	for scanner.Scan() {
+		fields := strings.Fields(scanner.Text())
+
+		if len(fields) > 2 {
+			loops = append(loops, fields[2])
+		} else {
+			return fmt.Errorf("issues while determining drive mappings (%q)", fields)
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		return err
+	}
+
+	if len(loops) != img.partCount {
+		return ErrMapCount{expectedParts: img.partCount, foundParts: len(loops)}
+	}
+
+	mapPartitions(img.parts, loops)
+
+	if err := kpartxCmd.Wait(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+//Unmap destroys loop devices for the partitions
+func (img *BaseImage) Unmap() error {
+	if img.baseMount != "" {
+		panic("cannot unmap mounted partitions")
+	}
+
+	for _, part := range img.parts {
+		if err := exec.Command("dmsetup", "clear", part.loop).Run(); err != nil {
+			return err
+		}
+	}
+
+	if err := exec.Command("kpartx", "-ds", img.location).Run(); err != nil {
+		return err
+	}
+
+	unmapPartitions(img.parts)
+
+	return nil
+}
+
+// Format formats the image following the partition types and labels them
+// accordingly.
+func (img BaseImage) Format() error {
+	for _, part := range img.parts {
+		dev := filepath.Join("/dev/mapper", part.loop)
+
+		if part.fs == fsFat32 {
+			cmd := []string{"-F", "32", "-n", string(part.label)}
+
+			size, err := sectorSize(dev)
+			if err != nil {
+				return err
+			}
+
+			if size != "512" {
+				cmd = append(cmd, "-s", "1")
+			}
+
+			cmd = append(cmd, "-S", size, dev)
+
+			if out, err := exec.Command("mkfs.vfat", cmd...).CombinedOutput(); err != nil {
+				return fmt.Errorf("unable to create filesystem: %s", out)
+			}
+		} else {
+			if out, err := exec.Command("mkfs.ext4", "-F", "-L", string(part.label), dev).CombinedOutput(); err != nil {
+				return fmt.Errorf("unable to create filesystem: %s", out)
+			}
+		}
+	}
+
+	return nil
+}
+
+// User returns the writable path
+func (img BaseImage) Writable() string {
+	if img.parts == nil {
+		panic("img is not setup with partitions")
+	}
+
+	if img.baseMount == "" {
+		panic("img not mounted")
+	}
+
+	return filepath.Join(img.baseMount, string(writableDir))
+}
+
+func (img BaseImage) pathToMount(dir directory) string {
+	if img.parts == nil {
+		panic("img is not setup with partitions")
+	}
+
+	if img.baseMount == "" {
+		panic("img not mounted")
+	}
+
+	return filepath.Join(img.baseMount, string(dir))
+}
+
+//System returns the system path
+func (img BaseImage) System() string {
+	return img.pathToMount(systemADir)
+}
+
+// Boot returns the system-boot path
+func (img BaseImage) Boot() string {
+	return img.pathToMount(bootDir)
+}
+
+// BaseMount returns the base directory used to mount the image partitions.
+func (img BaseImage) BaseMount() string {
+	if img.baseMount == "" {
+		panic("image needs to be mounted")
+	}
+
+	return img.baseMount
 }
 
 func printOut(args ...interface{}) {

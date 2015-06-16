@@ -322,24 +322,14 @@ func format(img diskimage.Image) error {
 }
 
 func (coreCmd *CoreCmd) setup(img diskimage.CoreImage, filePathChan <-chan string, fileCount int) error {
-	printOut("Mapping...")
-	if err := img.Map(); err != nil {
-		return err
-	}
-	defer func() {
-		printOut("Unmapping...")
-		defer img.Unmap()
-	}()
-
 	printOut("Mounting...")
 	if err := img.Mount(); err != nil {
-		fmt.Println(err)
 		return err
 	}
 	defer func() {
 		printOut("Unmounting...")
 		if err := img.Unmount(); err != nil {
-			fmt.Println(err)
+			fmt.Println("WARNING: unexpected issue:", err)
 		}
 	}()
 
