@@ -54,6 +54,7 @@ type Image interface {
 }
 
 type SystemImage interface {
+	Boot() string
 	System() string
 	Writable() string
 }
