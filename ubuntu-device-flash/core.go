@@ -39,7 +39,8 @@ func init() {
 }
 
 type CoreCmd struct {
-	EnableSsh bool `long:"enable-ssh" description:"Enable ssh on the image through cloud-init(not needed with developer mode)"`
+	EnableSsh bool  `long:"enable-ssh" description:"Enable ssh on the image through cloud-init(not needed with developer mode)"`
+	Size      int64 `long:"size" short:"s" description:"Size of image file to create in GB (min 4)" default:"4"`
 
 	Deprecated struct {
 		Cloud  bool   `long:"cloud" description:"Generate a pure cloud image without setting up cloud-init"`
@@ -63,6 +64,7 @@ ssh_genkeytypes: ['rsa', 'dsa', 'ecdsa', 'ed25519']
 
 func (coreCmd *CoreCmd) Execute(args []string) error {
 	coreCmd.flavor = flavorCore
+	coreCmd.size = coreCmd.Size
 
 	if coreCmd.EnableSsh && coreCmd.Deprecated.Cloud {
 		return errors.New("--cloud and --enable-ssh cannot be used together")

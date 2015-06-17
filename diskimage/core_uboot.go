@@ -66,13 +66,14 @@ type FlashInstructions struct {
 	Bootloader []string `yaml:"bootloader"`
 }
 
-func NewCoreUBootImage(location string, size int64, hw HardwareDescription, oem OemDescription) *CoreUBootImage {
+func NewCoreUBootImage(location string, size int64, rootSize int, hw HardwareDescription, oem OemDescription) *CoreUBootImage {
 	return &CoreUBootImage{
 		BaseImage{
 			hardware:  hw,
 			oem:       oem,
 			location:  location,
 			size:      size,
+			rootSize:  rootSize,
 			partCount: 4,
 		},
 	}

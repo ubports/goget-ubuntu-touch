@@ -35,11 +35,12 @@ type CoreGrubImage struct {
 	BaseImage
 }
 
-func NewCoreGrubImage(location string, size int64, hw HardwareDescription, oem OemDescription) *CoreGrubImage {
+func NewCoreGrubImage(location string, size int64, rootSize int, hw HardwareDescription, oem OemDescription) *CoreGrubImage {
 	return &CoreGrubImage{
 		BaseImage{
 			location:  location,
 			size:      size,
+			rootSize:  rootSize,
 			hardware:  hw,
 			oem:       oem,
 			partCount: 5,
@@ -71,8 +72,8 @@ func (img *CoreGrubImage) Partition() error {
 
 	parted.addPart(grubLabel, "", fsNone, 4)
 	parted.addPart(bootLabel, bootDir, fsFat32, 64)
-	parted.addPart(systemALabel, systemADir, fsExt4, 1024)
-	parted.addPart(systemBLabel, systemBDir, fsExt4, 1024)
+	parted.addPart(systemALabel, systemADir, fsExt4, img.rootSize)
+	parted.addPart(systemBLabel, systemBDir, fsExt4, img.rootSize)
 	parted.addPart(writableLabel, writableDir, fsExt4, -1)
 
 	parted.setBoot(2)
