@@ -25,9 +25,9 @@ import (
 	"gopkg.in/yaml.v2"
 	"launchpad.net/snappy/helpers"
 	"launchpad.net/snappy/progress"
+	"launchpad.net/snappy/provisioning"
 	"launchpad.net/snappy/release"
 	"launchpad.net/snappy/snappy"
-	"launchpad.net/snappy/provisioning"
 
 	"launchpad.net/goget-ubuntu-touch/diskimage"
 	"launchpad.net/goget-ubuntu-touch/sysutils"
@@ -601,18 +601,19 @@ func (coreCmd CoreCmd) writeInstallYaml(bootMountpoint string) error {
 	bootDir := ""
 
 	switch coreCmd.oem.OEM.Hardware.Bootloader {
-		// Running systems use a bindmount for /boot/grub, but
-		// since the system isn't booted, create the file in the
-		// real location.
-		case "grub": bootDir = "/EFI/ubuntu/grub"
+	// Running systems use a bindmount for /boot/grub, but
+	// since the system isn't booted, create the file in the
+	// real location.
+	case "grub":
+		bootDir = "/EFI/ubuntu/grub"
 	}
 
 	installYamlFilePath := filepath.Join(bootMountpoint, bootDir, provisioning.InstallYamlFile)
 
 	i := provisioning.InstallYaml{
 		InstallMeta: provisioning.InstallMeta{
-			Timestamp: time.Now(),
-			InitialVersion: fmt.Sprintf("%d", globalArgs.Revision),
+			Timestamp:         time.Now(),
+			InitialVersion:    fmt.Sprintf("%d", globalArgs.Revision),
 			SystemImageServer: globalArgs.Server,
 		},
 		InstallTool: provisioning.InstallTool{
@@ -622,12 +623,12 @@ func (coreCmd CoreCmd) writeInstallYaml(bootMountpoint string) error {
 			// Version: "???",
 		},
 		InstallOptions: provisioning.InstallOptions{
-			Size: coreCmd.Size,
-			SizeUnit: "GB",
-			Output: coreCmd.Output,
-			Channel: coreCmd.Channel,
-			DevicePart: coreCmd.Development.DevicePart,
-			Oem: coreCmd.Oem,
+			Size:          coreCmd.Size,
+			SizeUnit:      "GB",
+			Output:        coreCmd.Output,
+			Channel:       coreCmd.Channel,
+			DevicePart:    coreCmd.Development.DevicePart,
+			Oem:           coreCmd.Oem,
 			DeveloperMode: coreCmd.Development.DeveloperMode,
 		},
 	}
