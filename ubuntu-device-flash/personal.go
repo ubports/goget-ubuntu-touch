@@ -28,7 +28,7 @@ func init() {
 }
 
 type PersonalCmd struct {
-	Size int64 `long:"size" short:"s" description:"Size of image file to create in GB (min 8)" default:"8"`
+	Size int64 `long:"size" short:"s" description:"Size of image file to create in GB (min 10)" default:"10"`
 
 	Snapper
 }
