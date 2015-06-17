@@ -1,3 +1,12 @@
+goget-ubuntu-touch (0.24-0ubuntu1) wily; urgency=medium
+
+  * core:
+    - Stamp a yaml with install/setup information.
+    - Remove code duplication and manage mounting/unmounting better.
+  * Rebuild against latest ubuntu-snappy (LP: #1465879)
+
+ -- Sergio Schvezov <sergio.schvezov@canonical.com>  Wed, 17 Jun 2015 10:04:06 -0300
+
 goget-ubuntu-touch (0.23-0ubuntu2) wily; urgency=medium
 
   * No change rebuild for latest ubuntu-snappy
