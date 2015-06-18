@@ -29,6 +29,7 @@ import (
 )
 
 func setupBootAssetFiles(bootPath, oemRootPath string, files []BootAssetFiles) error {
+	printOut("Setting up boot asset files from", oemRootPath, "...")
 	for _, file := range files {
 		dst := filepath.Join(bootPath, filepath.Base(file.Path))
 		if file.Target != "" {
@@ -42,6 +43,7 @@ func setupBootAssetFiles(bootPath, oemRootPath string, files []BootAssetFiles) e
 		}
 
 		src := filepath.Join(oemRootPath, file.Path)
+		printOut("Copying", src, "to", dst)
 		if err := sysutils.CopyFile(src, dst); err != nil {
 			return err
 		}
@@ -51,6 +53,7 @@ func setupBootAssetFiles(bootPath, oemRootPath string, files []BootAssetFiles) e
 }
 
 func setupBootAssetRawFiles(imagePath, oemRootPath string, rawFiles []BootAssetRawFiles) error {
+	printOut("Setting up raw boot assets from", oemRootPath, "...")
 	img, err := os.OpenFile(imagePath, os.O_WRONLY, 0644)
 	if err != nil {
 		return err
@@ -63,7 +66,9 @@ func setupBootAssetRawFiles(imagePath, oemRootPath string, rawFiles []BootAssetR
 			return err
 		}
 
-		assetFile, err := os.Open(filepath.Join(oemRootPath, asset.Path))
+		src := filepath.Join(oemRootPath, asset.Path)
+		printOut("Writing", src)
+		assetFile, err := os.Open(src)
 		if err != nil {
 			return err
 		}
