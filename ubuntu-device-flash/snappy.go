@@ -458,6 +458,8 @@ func (s *Snapper) create() error {
 			return err
 		}
 
+		fmt.Println("Using a custom OS or Kernel part will prevent updates for these components")
+
 		devicePart = p
 	}
 
