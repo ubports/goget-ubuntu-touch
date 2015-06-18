@@ -514,6 +514,8 @@ func (s *Snapper) create() error {
 		}
 	}
 
+	s.hardware = <-hwChan
+
 	loader := s.oem.OEM.Hardware.Bootloader
 	switch loader {
 	case "grub":
@@ -543,8 +545,6 @@ func (s *Snapper) create() error {
 			printOut("Received", sig, "... ignoring")
 		}
 	}()
-
-	s.hardware = <-hwChan
 
 	// Execute the following code with escalated privs and drop them when done
 	if err := s.deploy(systemImage, filePathChan); err != nil {
