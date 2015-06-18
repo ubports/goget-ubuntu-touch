@@ -34,8 +34,13 @@ import (
 type imageFlavor string
 
 const (
-	minSizePersonal = 8
+	minSizePersonal = 10
 	minSizeCore     = 4
+)
+
+const (
+	rootSizePersonal = 4096
+	rootSizeCore     = 1024
 )
 
 const (
@@ -58,10 +63,20 @@ func (f imageFlavor) minSize() int64 {
 	}
 }
 
+func (f imageFlavor) rootSize() int {
+	switch f {
+	case flavorPersonal:
+		return rootSizePersonal
+	case flavorCore:
+		return rootSizeCore
+	default:
+		panic("invalid flavor")
+	}
+}
+
 type Snapper struct {
 	Channel string `long:"channel" description:"Specify the channel to use" default:"stable"`
 	Output  string `long:"output" short:"o" description:"Name of the image file to create" required:"true"`
-	Size    int64  `long:"size" short:"s" description:"Size of image file to create in GB (min 4)" default:"4"`
 	Oem     string `long:"oem" description:"The snappy oem package to base the image out of" default:"generic-amd64"`
 
 	Development struct {
@@ -79,6 +94,8 @@ type Snapper struct {
 	oem             diskimage.OemDescription
 	stagingRootPath string
 
+	size int64
+
 	flavor imageFlavor
 	device string
 
@@ -91,7 +108,7 @@ func (s Snapper) sanityCheck() error {
 		return fmt.Errorf("Giving up, the desired target output file %#v already exists", s.Output)
 	}
 
-	if s.Size < s.flavor.minSize() {
+	if s.size < s.flavor.minSize() {
 		return fmt.Errorf("minimum size for %s is %d", s.flavor, s.flavor.minSize())
 	}
 
@@ -270,7 +287,7 @@ func (s Snapper) writeInstallYaml(bootMountpoint string) error {
 			// Version: "???",
 		},
 		InstallOptions: provisioning.InstallOptions{
-			Size:          s.Size,
+			Size:          s.size,
 			SizeUnit:      "GB",
 			Output:        s.Output,
 			Channel:       s.Channel,
@@ -500,9 +517,9 @@ func (s *Snapper) create() error {
 	loader := s.oem.OEM.Hardware.Bootloader
 	switch loader {
 	case "grub":
-		s.img = diskimage.NewCoreGrubImage(s.Output, s.Size, s.hardware, s.oem)
+		s.img = diskimage.NewCoreGrubImage(s.Output, s.size, s.flavor.rootSize(), s.hardware, s.oem)
 	case "u-boot":
-		s.img = diskimage.NewCoreUBootImage(s.Output, s.Size, s.hardware, s.oem)
+		s.img = diskimage.NewCoreUBootImage(s.Output, s.size, s.flavor.rootSize(), s.hardware, s.oem)
 	default:
 		return errors.New("no hardware description in OEM snap")
 	}

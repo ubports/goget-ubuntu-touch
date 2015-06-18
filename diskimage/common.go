@@ -171,6 +171,7 @@ type BaseImage struct {
 	parts     []partition
 	partCount int
 	size      int64
+	rootSize  int
 }
 
 // Mount mounts the image. This also maps the loop device.
