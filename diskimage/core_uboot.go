@@ -121,6 +121,7 @@ func (img CoreUBootImage) SetupBoot() error {
 
 	// populate both A/B
 	for _, path := range []string{bootAPath, bootBPath} {
+		printOut("Setting up", path)
 		if err := os.MkdirAll(path, 0755); err != nil {
 			return err
 		}
@@ -148,10 +149,15 @@ func (img CoreUBootImage) SetupBoot() error {
 		}
 	}
 
+	oemRoot, err := img.oem.InstallPath()
+	if err != nil {
+		return err
+	}
+
 	// if the oem package provides BootAssets use it directly, if not
 	// provisionUenv for backwards compatibility.
 	if bootAssets := img.oem.OEM.Hardware.BootAssets; bootAssets != nil {
-		if err := setupBootAssetFiles(bootPath, img.oem.rootDir, bootAssets.Files); err != nil {
+		if err := setupBootAssetFiles(bootPath, oemRoot, bootAssets.Files); err != nil {
 			return err
 		}
 	} else {
@@ -232,12 +238,12 @@ func (img CoreUBootImage) provisionDtbs(bootDtbPath string) error {
 	// if there is a specific dtb for the platform, copy it.
 	// First look in oem and then in device.
 	if oemDtb := img.oem.OEM.Hardware.Dtb; oemDtb != "" && img.oem.Platform() != "" {
-		oemInstallPath, err := img.oem.InstallPath()
+		oemRoot, err := img.oem.InstallPath()
 		if err != nil {
 			return err
 		}
 
-		oemDtb := filepath.Join(oemInstallPath, oemDtb)
+		oemDtb := filepath.Join(oemRoot, oemDtb)
 		dst := filepath.Join(bootDtbPath, filepath.Base(dtb))
 		if err := sysutils.CopyFile(oemDtb, dst); err != nil {
 			return err
@@ -261,8 +267,13 @@ func (img CoreUBootImage) provisionDtbs(bootDtbPath string) error {
 }
 
 func (img *CoreUBootImage) FlashExtra() error {
+	oemRoot, err := img.oem.InstallPath()
+	if err != nil {
+		return err
+	}
+
 	if bootAssets := img.oem.OEM.Hardware.BootAssets; bootAssets != nil {
-		return setupBootAssetRawFiles(img.location, img.oem.rootDir, bootAssets.RawFiles)
+		return setupBootAssetRawFiles(img.location, oemRoot, bootAssets.RawFiles)
 	}
 
 	return nil
