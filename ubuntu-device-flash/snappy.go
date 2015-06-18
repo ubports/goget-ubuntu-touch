@@ -34,12 +34,28 @@ import (
 type imageFlavor string
 
 const (
+	minSizePersonal = 8
+	minSizeCore     = 4
+)
+
+const (
 	flavorPersonal imageFlavor = "personal"
 	flavorCore     imageFlavor = "core"
 )
 
 func (f imageFlavor) Channel() string {
 	return fmt.Sprintf("ubuntu-%s", f)
+}
+
+func (f imageFlavor) minSize() int64 {
+	switch f {
+	case flavorPersonal:
+		return minSizePersonal
+	case flavorCore:
+		return minSizeCore
+	default:
+		panic("invalid flavor")
+	}
 }
 
 type Snapper struct {
@@ -73,6 +89,10 @@ func (s Snapper) sanityCheck() error {
 	// we don't want to overwrite the output, people might get angry :-)
 	if helpers.FileExists(s.Output) {
 		return fmt.Errorf("Giving up, the desired target output file %#v already exists", s.Output)
+	}
+
+	if s.Size < s.flavor.minSize() {
+		return fmt.Errorf("minimum size for %s is %d", s.flavor, s.flavor.minSize())
 	}
 
 	if syscall.Getuid() != 0 {
