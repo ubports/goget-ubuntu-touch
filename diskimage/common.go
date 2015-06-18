@@ -62,8 +62,8 @@ type SystemImage interface {
 type CoreImage interface {
 	Image
 	SystemImage
-	SetupBoot(oemRootPath string) error
-	FlashExtra(oemRootPath, devicePart string) error
+	SetupBoot() error
+	FlashExtra() error
 }
 
 type HardwareDescription struct {
@@ -112,10 +112,16 @@ type OemDescription struct {
 	} `yaml:"oem,omitempty"`
 
 	Config map[string]interface{} `yaml:"config,omitempty"`
+
+	rootDir string
 }
 
-func (o OemDescription) InstallPath(rootPath string) (string, error) {
-	glob, err := filepath.Glob(fmt.Sprintf("%s/oem/%s/%s", rootPath, o.Name, o.Version))
+func (o *OemDescription) SetRoot(rootDir string) {
+	o.rootDir = rootDir
+}
+
+func (o OemDescription) InstallPath() (string, error) {
+	glob, err := filepath.Glob(fmt.Sprintf("%s/oem/%s/%s", o.rootDir, o.Name, o.Version))
 	if err != nil {
 		return "", err
 	}
