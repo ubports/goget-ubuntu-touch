@@ -203,10 +203,6 @@ func (img *CoreGrubImage) SetupBoot() error {
 	return nil
 }
 
-func (img *CoreGrubImage) FlashExtra() error {
-	return nil
-}
-
 func bindMount(src, dst string) error {
 	if out, err := exec.Command("mount", "--bind", src, dst).CombinedOutput(); err != nil {
 		return fmt.Errorf("issues while bind mounting: %s", out)
