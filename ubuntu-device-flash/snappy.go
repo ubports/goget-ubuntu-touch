@@ -519,7 +519,8 @@ func (s *Snapper) create() error {
 	loader := s.oem.OEM.Hardware.Bootloader
 	switch loader {
 	case "grub":
-		s.img = diskimage.NewCoreGrubImage(s.Output, s.size, s.flavor.rootSize(), s.hardware, s.oem)
+		legacyGrub := s.Positional.Release == "15.04"
+		s.img = diskimage.NewCoreGrubImage(s.Output, s.size, s.flavor.rootSize(), s.hardware, s.oem, legacyGrub)
 	case "u-boot":
 		s.img = diskimage.NewCoreUBootImage(s.Output, s.size, s.flavor.rootSize(), s.hardware, s.oem)
 	default:

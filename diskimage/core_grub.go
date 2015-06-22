@@ -33,11 +33,13 @@ import (
 
 type CoreGrubImage struct {
 	BaseImage
+
+	legacyGrub bool
 }
 
-func NewCoreGrubImage(location string, size int64, rootSize int, hw HardwareDescription, oem OemDescription) *CoreGrubImage {
+func NewCoreGrubImage(location string, size int64, rootSize int, hw HardwareDescription, oem OemDescription, updateGrub bool) *CoreGrubImage {
 	return &CoreGrubImage{
-		BaseImage{
+		BaseImage: BaseImage{
 			location:  location,
 			size:      size,
 			rootSize:  rootSize,
@@ -45,6 +47,7 @@ func NewCoreGrubImage(location string, size int64, rootSize int, hw HardwareDesc
 			oem:       oem,
 			partCount: 5,
 		},
+		legacyGrub: updateGrub,
 	}
 }
 
@@ -85,6 +88,10 @@ func (img *CoreGrubImage) Partition() error {
 }
 
 func (img *CoreGrubImage) SetupBoot() error {
+	return img.setupGrub()
+}
+
+func (img *CoreGrubImage) setupGrub() error {
 	for _, dev := range []string{"dev", "proc", "sys"} {
 		src := filepath.Join("/", dev)
 		dst := filepath.Join(img.System(), dev)
@@ -136,7 +143,6 @@ func (img *CoreGrubImage) SetupBoot() error {
 	}
 
 	bootGrubDir := filepath.Join(img.System(), "boot", "grub")
-
 	if err := bindMount(efiGrubDir, bootGrubDir); err != nil {
 		return err
 	}
@@ -179,6 +185,16 @@ func (img *CoreGrubImage) SetupBoot() error {
 		return err
 	}
 
+	if img.legacyGrub {
+		if err := img.updateGrub(); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (img *CoreGrubImage) updateGrub() error {
 	// ensure we run not into recordfail issue
 	grubDir := filepath.Join(img.System(), "etc", "default", "grub.d")
 	if err := os.MkdirAll(grubDir, 0755); err != nil {
