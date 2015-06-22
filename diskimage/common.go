@@ -39,6 +39,11 @@ func init() {
 	}
 }
 
+const (
+	kernelFileName = "vmlinuz"
+	initrdFileName = "initrd.img"
+)
+
 var (
 	syscallSync = syscall.Sync
 )
