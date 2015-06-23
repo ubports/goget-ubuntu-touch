@@ -103,63 +103,25 @@ func (img *CoreUBootImage) Partition() error {
 }
 
 func (img CoreUBootImage) SetupBoot() error {
+	var parts []string
+	if img.oem.OEM.Hardware.PartitionLayout == partLayoutSystemAB {
+		parts = append(parts, "a", "b")
+	}
+
 	// destinations
 	bootPath := filepath.Join(img.baseMount, string(bootDir))
-	bootAPath := filepath.Join(bootPath, "a")
-	bootBPath := filepath.Join(bootPath, "b")
 	bootSnappySystemPath := filepath.Join(bootPath, "snappy-system.txt")
 
-	// origins
-	hardwareYamlPath := filepath.Join(img.baseMount, "hardware.yaml")
-	kernelPath := filepath.Join(img.baseMount, img.hardware.Kernel)
-	initrdPath := filepath.Join(img.baseMount, img.hardware.Initrd)
-
-	if err := os.MkdirAll(bootBPath, 0755); err != nil {
+	if err := img.GenericBootSetup(bootPath, parts); err != nil {
 		return err
 	}
 
 	// populate both A/B
-	for _, path := range []string{bootAPath, bootBPath} {
-		printOut("Setting up", path)
-		if err := os.MkdirAll(path, 0755); err != nil {
-			return err
-		}
-
-		if err := sysutils.CopyFile(hardwareYamlPath, filepath.Join(path, "hardware.yaml")); err != nil {
-			return err
-		}
-
-		if err := sysutils.CopyFile(kernelPath, filepath.Join(path, kernelFileName)); err != nil {
-			return err
-		}
-
-		if err := sysutils.CopyFile(initrdPath, filepath.Join(path, initrdFileName)); err != nil {
-			return err
-		}
-
-		// create layout
-		bootDtbPath := filepath.Join(path, "dtbs")
-		if err := os.MkdirAll(bootDtbPath, 0755); err != nil {
-			return err
-		}
-
+	for _, part := range parts {
+		bootDtbPath := filepath.Join(bootPath, part, "dtbs")
 		if err := img.provisionDtbs(bootDtbPath); err != nil {
 			return err
 		}
-	}
-
-	oemRoot, err := img.oem.InstallPath()
-	if err != nil {
-		return err
-	}
-
-	if err := setupBootAssetFiles(bootPath, oemRoot, img.oem.OEM.Hardware.BootAssets.Files); err != nil {
-		return err
-	}
-
-	// create /boot/uboot
-	if err := os.MkdirAll(filepath.Join(img.System(), "boot", "uboot"), 0755); err != nil {
-		return err
 	}
 
 	snappySystemFile, err := os.Create(bootSnappySystemPath)
@@ -194,6 +156,10 @@ func (img CoreUBootImage) provisionDtbs(bootDtbPath string) error {
 
 	dtbFis, err := ioutil.ReadDir(dtbsPath)
 	if err != nil {
+		return err
+	}
+
+	if err := os.MkdirAll(bootDtbPath, 0755); err != nil {
 		return err
 	}
 
