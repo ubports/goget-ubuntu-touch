@@ -132,6 +132,18 @@ func (o *OemDescription) SetRoot(rootDir string) {
 	o.rootDir = rootDir
 }
 
+// SystemParts returns the system labels depending on the partition layout.
+//
+// The default is to return a flat structure for any unknown layout.
+func (o *OemDescription) SystemParts() []string {
+	switch o.OEM.Hardware.PartitionLayout {
+	case partLayoutSystemAB:
+		return []string{"a", "b"}
+	default:
+		return []string{""}
+	}
+}
+
 func (o OemDescription) InstallPath() (string, error) {
 	glob, err := filepath.Glob(fmt.Sprintf("%s/oem/%s/%s", o.rootDir, o.Name, o.Version))
 	if err != nil {
@@ -418,14 +430,14 @@ func (img BaseImage) BaseMount() string {
 	return img.baseMount
 }
 
-func (img *BaseImage) GenericBootSetup(bootPath string, parts []string) error {
+func (img *BaseImage) GenericBootSetup(bootPath string) error {
 	// origins
 	hardwareYamlPath := filepath.Join(img.baseMount, hardwareFileName)
 	kernelPath := filepath.Join(img.baseMount, img.hardware.Kernel)
 	initrdPath := filepath.Join(img.baseMount, img.hardware.Initrd)
 
 	// populate both A/B
-	for _, part := range parts {
+	for _, part := range img.oem.SystemParts() {
 		path := filepath.Join(bootPath, part)
 
 		printOut("Setting up", path)

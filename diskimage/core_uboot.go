@@ -103,21 +103,16 @@ func (img *CoreUBootImage) Partition() error {
 }
 
 func (img CoreUBootImage) SetupBoot() error {
-	var parts []string
-	if img.oem.OEM.Hardware.PartitionLayout == partLayoutSystemAB {
-		parts = append(parts, "a", "b")
-	}
-
 	// destinations
 	bootPath := filepath.Join(img.baseMount, string(bootDir))
 	bootSnappySystemPath := filepath.Join(bootPath, "snappy-system.txt")
 
-	if err := img.GenericBootSetup(bootPath, parts); err != nil {
+	if err := img.GenericBootSetup(bootPath); err != nil {
 		return err
 	}
 
 	// populate both A/B
-	for _, part := range parts {
+	for _, part := range img.oem.SystemParts() {
 		bootDtbPath := filepath.Join(bootPath, part, "dtbs")
 		if err := img.provisionDtbs(bootDtbPath); err != nil {
 			return err
