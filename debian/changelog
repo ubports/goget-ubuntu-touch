@@ -1,3 +1,12 @@
+goget-ubuntu-touch (0.25-0ubuntu1) wily; urgency=medium
+
+  * Removing unneeded logic for creating /writable.
+  * Add logic to prevent creating images lower than the unsupported size.
+  * Add the snappy personal target.
+  * Warn about the consequences of using --device-part for core and personal.
+
+ -- Sergio Schvezov <sergio.schvezov@canonical.com>  Tue, 23 Jun 2015 14:09:54 -0300
+
 goget-ubuntu-touch (0.24-0ubuntu2) wily; urgency=medium
 
   * Rebuild to use the latest ubuntu-snappy.
