@@ -131,7 +131,7 @@ func (img CoreUBootImage) SetupBoot() error {
 	}
 
 	templateData := struct{ Fdt, Kernel, Initrd string }{
-		fdtfile, kernelFileName, initrdFileName,
+		Fdt: fdtfile, Kernel: kernelFileName, Initrd: initrdFileName,
 	}
 
 	t := template.Must(template.New("snappy-system").Parse(snappySystemTemplate))
