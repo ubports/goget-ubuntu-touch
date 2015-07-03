@@ -107,7 +107,6 @@ func (img CoreUBootImage) SetupBoot() error {
 	bootPath := filepath.Join(img.baseMount, string(bootDir))
 	bootAPath := filepath.Join(bootPath, "a")
 	bootBPath := filepath.Join(bootPath, "b")
-	bootuEnvPath := filepath.Join(bootPath, "uEnv.txt")
 	bootSnappySystemPath := filepath.Join(bootPath, "snappy-system.txt")
 
 	// origins
@@ -154,16 +153,8 @@ func (img CoreUBootImage) SetupBoot() error {
 		return err
 	}
 
-	// if the oem package provides BootAssets use it directly, if not
-	// provisionUenv for backwards compatibility.
-	if bootAssets := img.oem.OEM.Hardware.BootAssets; bootAssets != nil {
-		if err := setupBootAssetFiles(bootPath, oemRoot, bootAssets.Files); err != nil {
-			return err
-		}
-	} else {
-		if err := img.provisionUenv(bootuEnvPath); err != nil {
-			return err
-		}
+	if err := setupBootAssetFiles(bootPath, oemRoot, img.oem.OEM.Hardware.BootAssets.Files); err != nil {
+		return err
 	}
 
 	// create /boot/uboot
@@ -188,37 +179,6 @@ func (img CoreUBootImage) SetupBoot() error {
 
 	t := template.Must(template.New("snappy-system").Parse(snappySystemTemplate))
 	t.Execute(snappySystemFile, templateData)
-
-	return nil
-}
-
-func (img CoreUBootImage) provisionUenv(bootuEnvPath string) error {
-	platform := img.oem.Platform()
-
-	if platform != "" {
-		printOut("No platform select, not searching for uEnv.txt")
-		return nil
-	}
-
-	flashAssetsPath := filepath.Join(img.baseMount, "flashtool-assets", platform)
-	uEnvPath := filepath.Join(flashAssetsPath, "uEnv.txt")
-
-	if _, err := os.Stat(flashAssetsPath); os.IsNotExist(err) {
-		printOut("No flash assets path available")
-		return nil
-	} else if err != nil {
-		return err
-	}
-
-	// if a uEnv.txt is provided in the flashtool-assets, use it
-	if _, err := os.Stat(uEnvPath); err == nil {
-		printOut("Adding uEnv.txt to", bootuEnvPath)
-		if err := sysutils.CopyFile(uEnvPath, bootuEnvPath); err != nil {
-			return err
-		}
-	} else {
-		printOut("Can't copy", uEnvPath, "to", bootuEnvPath, "due to:", err)
-	}
 
 	return nil
 }
