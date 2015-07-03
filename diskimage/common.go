@@ -17,6 +17,8 @@ import (
 	"path/filepath"
 	"strings"
 	"syscall"
+
+	"launchpad.net/goget-ubuntu-touch/sysutils"
 )
 
 // This program is free software: you can redistribute it and/or modify it
@@ -40,8 +42,13 @@ func init() {
 }
 
 const (
-	kernelFileName = "vmlinuz"
-	initrdFileName = "initrd.img"
+	hardwareFileName = "hardware.yaml"
+	kernelFileName   = "vmlinuz"
+	initrdFileName   = "initrd.img"
+)
+
+const (
+	partLayoutSystemAB = "system-AB"
 )
 
 var (
@@ -123,6 +130,18 @@ type OemDescription struct {
 
 func (o *OemDescription) SetRoot(rootDir string) {
 	o.rootDir = rootDir
+}
+
+// SystemParts returns the system labels depending on the partition layout.
+//
+// The default is to return a flat structure for any unknown layout.
+func (o *OemDescription) SystemParts() []string {
+	switch o.OEM.Hardware.PartitionLayout {
+	case partLayoutSystemAB:
+		return []string{"a", "b"}
+	default:
+		return []string{""}
+	}
 }
 
 func (o OemDescription) InstallPath() (string, error) {
@@ -409,6 +428,43 @@ func (img BaseImage) BaseMount() string {
 	}
 
 	return img.baseMount
+}
+
+func (img *BaseImage) GenericBootSetup(bootPath string) error {
+	// origins
+	hardwareYamlPath := filepath.Join(img.baseMount, hardwareFileName)
+	kernelPath := filepath.Join(img.baseMount, img.hardware.Kernel)
+	initrdPath := filepath.Join(img.baseMount, img.hardware.Initrd)
+
+	// populate both A/B
+	for _, part := range img.oem.SystemParts() {
+		path := filepath.Join(bootPath, part)
+
+		printOut("Setting up", path)
+
+		if err := os.MkdirAll(path, 0755); err != nil {
+			return err
+		}
+
+		if err := sysutils.CopyFile(hardwareYamlPath, filepath.Join(path, hardwareFileName)); err != nil {
+			return err
+		}
+
+		if err := sysutils.CopyFile(kernelPath, filepath.Join(path, kernelFileName)); err != nil {
+			return err
+		}
+
+		if err := sysutils.CopyFile(initrdPath, filepath.Join(path, initrdFileName)); err != nil {
+			return err
+		}
+	}
+
+	oemRoot, err := img.oem.InstallPath()
+	if err != nil {
+		return err
+	}
+
+	return setupBootAssetFiles(bootPath, oemRoot, img.oem.OEM.Hardware.BootAssets.Files)
 }
 
 func (img *BaseImage) FlashExtra() error {
