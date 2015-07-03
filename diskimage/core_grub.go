@@ -88,6 +88,14 @@ func (img *CoreGrubImage) Partition() error {
 }
 
 func (img *CoreGrubImage) SetupBoot() error {
+	if !img.legacyGrub {
+		// destinations
+		bootPath := filepath.Join(img.baseMount, string(bootDir), "EFI", "ubuntu", "grub")
+		if err := img.GenericBootSetup(bootPath); err != nil {
+			return err
+		}
+	}
+
 	return img.setupGrub()
 }
 
