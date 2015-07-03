@@ -43,9 +43,9 @@ loadinitrd=load mmc ${mmcdev}:${mmcpart} ${initrd_addr} ${snappy_ab}/${initrd_fi
 loadfdt=load mmc ${mmcdev}:${mmcpart} ${fdtaddr} ${snappy_ab}/dtbs/${fdtfile}
 
 # standard kernel and initrd file names; NB: fdtfile is set early from bootcmd
-kernel_file=vmlinuz
-initrd_file=initrd.img
-{{ . }}
+kernel_file={{ .Kernel }}
+initrd_file={{ .Initrd }}
+{{ .Fdt }}
 
 # extra kernel cmdline args, set via mmcroot
 snappy_cmdline=init=/lib/systemd/systemd ro panic=-1 fixrtc
@@ -130,11 +130,11 @@ func (img CoreUBootImage) SetupBoot() error {
 			return err
 		}
 
-		if err := sysutils.CopyFile(kernelPath, filepath.Join(path, filepath.Base(kernelPath))); err != nil {
+		if err := sysutils.CopyFile(kernelPath, filepath.Join(path, kernelFileName)); err != nil {
 			return err
 		}
 
-		if err := sysutils.CopyFile(initrdPath, filepath.Join(path, filepath.Base(initrdPath))); err != nil {
+		if err := sysutils.CopyFile(initrdPath, filepath.Join(path, initrdFileName)); err != nil {
 			return err
 		}
 
@@ -182,8 +182,12 @@ func (img CoreUBootImage) SetupBoot() error {
 		fdtfile = fmt.Sprintf("fdtfile=%s.dtb", platform)
 	}
 
+	templateData := struct{ Fdt, Kernel, Initrd string }{
+		Fdt: fdtfile, Kernel: kernelFileName, Initrd: initrdFileName,
+	}
+
 	t := template.Must(template.New("snappy-system").Parse(snappySystemTemplate))
-	t.Execute(snappySystemFile, fdtfile)
+	t.Execute(snappySystemFile, templateData)
 
 	return nil
 }
