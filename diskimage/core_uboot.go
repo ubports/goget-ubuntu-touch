@@ -265,16 +265,3 @@ func (img CoreUBootImage) provisionDtbs(bootDtbPath string) error {
 
 	return nil
 }
-
-func (img *CoreUBootImage) FlashExtra() error {
-	oemRoot, err := img.oem.InstallPath()
-	if err != nil {
-		return err
-	}
-
-	if bootAssets := img.oem.OEM.Hardware.BootAssets; bootAssets != nil {
-		return setupBootAssetRawFiles(img.location, oemRoot, bootAssets.RawFiles)
-	}
-
-	return nil
-}

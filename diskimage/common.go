@@ -406,6 +406,19 @@ func (img BaseImage) BaseMount() string {
 	return img.baseMount
 }
 
+func (img *BaseImage) FlashExtra() error {
+	oemRoot, err := img.oem.InstallPath()
+	if err != nil {
+		return err
+	}
+
+	if bootAssets := img.oem.OEM.Hardware.BootAssets; bootAssets != nil {
+		return setupBootAssetRawFiles(img.location, oemRoot, bootAssets.RawFiles)
+	}
+
+	return nil
+}
+
 func printOut(args ...interface{}) {
 	if debugPrint {
 		fmt.Println(args...)
