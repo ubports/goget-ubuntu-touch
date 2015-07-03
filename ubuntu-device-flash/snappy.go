@@ -470,17 +470,18 @@ func (s *Snapper) create() error {
 	}
 
 	filesChan := make(chan Files, len(systemImage.Files))
-	defer close(filesChan)
-
 	sigFiles := ubuntuimage.GetGPGFiles()
-	sigFilesChan := make(chan Files, len(sigFiles))
-	defer close(sigFilesChan)
 
 	fmt.Println("Downloading and setting up...")
 
-	for _, f := range sigFiles {
-		go bitDownloader(f, sigFilesChan, globalArgs.Server, cacheDir)
-	}
+	go func() {
+		sigFilesChan := make(chan Files, len(sigFiles))
+		defer close(sigFilesChan)
+
+		for _, f := range sigFiles {
+			bitDownloader(f, sigFilesChan, globalArgs.Server, cacheDir)
+		}
+	}()
 
 	filePathChan := make(chan string, len(systemImage.Files))
 	hwChan := make(chan diskimage.HardwareDescription)
@@ -503,6 +504,7 @@ func (s *Snapper) create() error {
 			filePathChan <- f.FilePath
 		}
 		close(hwChan)
+		close(filesChan)
 	}()
 
 	for _, f := range systemImage.Files {
