@@ -1,3 +1,16 @@
+goget-ubuntu-touch (0.26-0ubuntu1) wily; urgency=medium
+
+  * snappy:
+    - Avoid data races when downloading snappy assets.
+    - Use common code for setting up the snappy bootloader.
+    - Normalize kernel and initrd on deploy.
+  * debian/control:
+    - Add gettext dependency.
+  * debian/changelog:
+    - Remove extra whitespaces.
+
+ -- Sergio Schvezov <sergio.schvezov@canonical.com>  Mon, 06 Jul 2015 11:00:45 -0300
+
 goget-ubuntu-touch (0.25-0ubuntu1) wily; urgency=medium
 
   * Removing unneeded logic for creating /writable.
@@ -120,7 +133,7 @@ goget-ubuntu-touch (0.14-0ubuntu1) vivid; urgency=medium
 goget-ubuntu-touch (0.13-0ubuntu1) vivid; urgency=medium
 
   * Setting a fixed set of ssh host keys to create.
-  * Updating ubuntu-device-flash's manpage and code to generate it. 
+  * Updating ubuntu-device-flash's manpage and code to generate it.
 
  -- Sergio Schvezov <sergio.schvezov@canonical.com>  Mon, 19 Jan 2015 18:45:29 -0300
 
@@ -199,13 +212,13 @@ goget-ubuntu-touch (0.6+15.04.20141203-0ubuntu1) vivid; urgency=low
 
 goget-ubuntu-touch (0.6-0ubuntu1) vivid; urgency=medium
 
-  * ubuntu-device-flash: enable ssh on developer mode toggle for core. 
+  * ubuntu-device-flash: enable ssh on developer mode toggle for core.
 
  -- Sergio Schvezov <sergio.schvezov@canonical.com>  Tue, 02 Dec 2014 23:16:22 -0300
 
 goget-ubuntu-touch (0.5-0ubuntu1) vivid; urgency=medium
 
-  * ubuntu-device-flash: 
+  * ubuntu-device-flash:
     - adding a verbose flag and minimizing output using friendly messages
     - dual is the default for core
     - use system-a, system-b and writbale (instead of user-data) for labels
