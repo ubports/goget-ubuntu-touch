@@ -402,7 +402,8 @@ func (s *Snapper) deploy(systemImage *ubuntuimage.Image, filePathChan <-chan str
 	}
 	defer sysutils.DropPrivs()
 
-	if err := format(s.img); err != nil {
+	printOut("Formatting...")
+	if err := s.img.Format(); err != nil {
 		return err
 	}
 
@@ -411,17 +412,6 @@ func (s *Snapper) deploy(systemImage *ubuntuimage.Image, filePathChan <-chan str
 	}
 
 	return nil
-}
-
-func format(img diskimage.Image) error {
-	printOut("Mapping...")
-	if err := img.Map(); err != nil {
-		return fmt.Errorf("issue while mapping partitions: %s", err)
-	}
-	defer img.Unmap()
-
-	printOut("Formatting...")
-	return img.Format()
 }
 
 func (s Snapper) printSummary() {
