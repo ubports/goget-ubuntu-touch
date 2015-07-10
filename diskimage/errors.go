@@ -7,7 +7,10 @@
 //
 package diskimage
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 // ErrMount represents a mount error
 type ErrMount struct {
@@ -29,4 +32,14 @@ type ErrMapCount struct {
 
 func (e ErrMapCount) Error() string {
 	return fmt.Sprintf("expected %d partitons but found %d", e.expectedParts, e.foundParts)
+}
+
+// ErrExec is an error from an external command
+type ErrExec struct {
+	output  []byte
+	command []string
+}
+
+func (e ErrExec) Error() string {
+	return fmt.Sprintf("error while executing external command %s: %s", strings.Join(e.command, " "), e.output)
 }
