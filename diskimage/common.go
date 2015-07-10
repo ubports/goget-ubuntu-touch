@@ -343,13 +343,15 @@ func (img *BaseImage) doUnmap() error {
 	}
 
 	for _, part := range img.parts {
-		if err := exec.Command("dmsetup", "clear", part.loop).Run(); err != nil {
-			return err
+		dmsetupCmd := []string{"dmsetup", "clear", part.loop}
+		if out, err := exec.Command(dmsetupCmd[0], dmsetupCmd[1:]...).CombinedOutput(); err != nil {
+			return &ErrExec{command: dmsetupCmd, output: out}
 		}
 	}
 
-	if err := exec.Command("kpartx", "-ds", img.location).Run(); err != nil {
-		return err
+	kpartxCmd := []string{"kpartx", "-ds", img.location}
+	if out, err := exec.Command(kpartxCmd[0], kpartxCmd[1:]...).CombinedOutput(); err != nil {
+		return &ErrExec{command: kpartxCmd, output: out}
 	}
 
 	unmapPartitions(img.parts)
@@ -377,7 +379,7 @@ func (img BaseImage) Format() (err error) {
 		dev := filepath.Join("/dev/mapper", part.loop)
 
 		if part.fs == fsFat32 {
-			cmd := []string{"-F", "32", "-n", string(part.label)}
+			cmd := []string{"mkfs.vfat", "-F", "32", "-n", string(part.label)}
 
 			size, err := sectorSize(dev)
 			if err != nil {
@@ -390,12 +392,13 @@ func (img BaseImage) Format() (err error) {
 
 			cmd = append(cmd, "-S", size, dev)
 
-			if out, err := exec.Command("mkfs.vfat", cmd...).CombinedOutput(); err != nil {
-				return fmt.Errorf("unable to create filesystem: %s", out)
+			if out, err := exec.Command(cmd[0], cmd[1:]...).CombinedOutput(); err != nil {
+				return &ErrExec{command: cmd, output: out}
 			}
 		} else {
-			if out, err := exec.Command("mkfs.ext4", "-F", "-L", string(part.label), dev).CombinedOutput(); err != nil {
-				return fmt.Errorf("unable to create filesystem: %s", out)
+			cmd := []string{"mkfs.ext4", "-F", "-L", string(part.label), dev}
+			if out, err := exec.Command(cmd[0], cmd[1:]...).CombinedOutput(); err != nil {
+				return &ErrExec{command: cmd, output: out}
 			}
 		}
 	}
