@@ -60,8 +60,6 @@ type Image interface {
 	Unmount() error
 	Format() error
 	Partition() error
-	Map() error
-	Unmap() error
 	BaseMount() string
 }
 
@@ -200,7 +198,7 @@ type BaseImage struct {
 
 // Mount mounts the image. This also maps the loop device.
 func (img *BaseImage) Mount() error {
-	if err := img.Map(); err != nil {
+	if err := img.doMap(); err != nil {
 		return err
 	}
 
@@ -260,6 +258,12 @@ func (img *BaseImage) Mount() error {
 
 // Unmount unmounts the image. This also unmaps the loop device.
 func (img *BaseImage) Unmount() error {
+	defer func() {
+		if isMapped(img.parts) {
+			fmt.Println("WARNING: could not unmap partitions")
+		}
+	}()
+
 	if img.baseMount == "" {
 		panic("No base mountpoint set")
 	}
@@ -285,11 +289,11 @@ func (img *BaseImage) Unmount() error {
 	}
 	img.baseMount = ""
 
-	return img.Unmap()
+	return img.doUnmap()
 }
 
-// Map maps the image to loop devices
-func (img *BaseImage) Map() error {
+// doMap maps the image to loop devices
+func (img *BaseImage) doMap() error {
 	if isMapped(img.parts) {
 		panic("cannot double map partitions")
 	}
@@ -332,8 +336,8 @@ func (img *BaseImage) Map() error {
 	return nil
 }
 
-//Unmap destroys loop devices for the partitions
-func (img *BaseImage) Unmap() error {
+// doUnmap destroys loop devices for the partitions
+func (img *BaseImage) doUnmap() error {
 	if img.baseMount != "" {
 		panic("cannot unmap mounted partitions")
 	}
@@ -355,7 +359,20 @@ func (img *BaseImage) Unmap() error {
 
 // Format formats the image following the partition types and labels them
 // accordingly.
-func (img BaseImage) Format() error {
+func (img BaseImage) Format() (err error) {
+	if err := img.doMap(); err != nil {
+		return err
+	}
+	defer func() {
+		if errUnmap := img.doUnmap(); errUnmap != nil {
+			if err == nil {
+				err = errUnmap
+			} else {
+				fmt.Println("WARNING: could not unmap partitions after error:", errUnmap)
+			}
+		}
+	}()
+
 	for _, part := range img.parts {
 		dev := filepath.Join("/dev/mapper", part.loop)
 
