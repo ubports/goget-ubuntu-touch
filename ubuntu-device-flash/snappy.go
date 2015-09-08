@@ -78,6 +78,7 @@ type Snapper struct {
 	Channel string `long:"channel" description:"Specify the channel to use" default:"stable"`
 	Output  string `long:"output" short:"o" description:"Name of the image file to create" required:"true"`
 	Oem     string `long:"oem" description:"The snappy oem package to base the image out of" default:"generic-amd64"`
+	StoreID string `long:"store" description:"Set an alternate store id."`
 
 	Development struct {
 		Install       []string `long:"install" description:"Install additional packages (can be called multiple times)"`
@@ -426,6 +427,11 @@ func (s Snapper) printSummary() {
 func (s *Snapper) create() error {
 	if err := s.sanityCheck(); err != nil {
 		return err
+	}
+
+	if s.StoreID != "" {
+		fmt.Println("Setting store id to", s.StoreID)
+		os.Setenv("UBUNTU_STORE_ID", s.StoreID)
 	}
 
 	fmt.Println("Determining oem configuration")
