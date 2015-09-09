@@ -17,6 +17,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"launchpad.net/snappy/helpers"
 )
 
 // This program is free software: you can redistribute it and/or modify it
@@ -97,6 +99,12 @@ func (coreCmd *CoreCmd) setupOemConfigs() error {
 
 	modprobeDir := filepath.Join(writablePath, "system-data", "etc", "modprobe.d")
 	if err := os.MkdirAll(modprobeDir, 0755); err != nil {
+		return err
+	}
+
+	// first we need to copy all the files in modprobe.d
+	systemModprobeDir := filepath.Join(coreCmd.img.System(), "etc", "modprobe.d")
+	if err := helpers.RSyncWithDelete(systemModprobeDir, modprobeDir); err != nil {
 		return err
 	}
 
