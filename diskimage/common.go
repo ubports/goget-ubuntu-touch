@@ -121,7 +121,11 @@ type OemDescription struct {
 		}
 	} `yaml:"oem,omitempty"`
 
-	Config map[string]interface{} `yaml:"config,omitempty"`
+	Config struct {
+		UbuntuCore struct {
+			Modprobe *string `yaml:"modprobe,omitempty"`
+		} `yaml:"ubuntu-core,omitempty"`
+	} `yaml:"config,omitempty"`
 
 	rootDir string
 }
@@ -143,7 +147,7 @@ func (o *OemDescription) SystemParts() []string {
 }
 
 func (o OemDescription) InstallPath() (string, error) {
-	glob, err := filepath.Glob(fmt.Sprintf("%s/oem/%s/%s", o.rootDir, o.Name, o.Version))
+	glob, err := filepath.Glob(fmt.Sprintf("%s/oem/%s/current", o.rootDir, o.Name))
 	if err != nil {
 		return "", err
 	}
