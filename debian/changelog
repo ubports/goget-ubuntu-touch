@@ -1,3 +1,10 @@
+goget-ubuntu-touch (0.29-0ubuntu1) wily; urgency=medium
+
+  * Align core images to 512.
+  * Copy original modprobe.d for core.
+
+ -- Sergio Schvezov <sergio.schvezov@canonical.com>  Wed, 09 Sep 2015 17:44:05 -0300
+
 goget-ubuntu-touch (0.28-0ubuntu1) wily; urgency=medium
 
   * Support setting the store id.
