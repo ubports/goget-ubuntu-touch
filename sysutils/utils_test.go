@@ -38,7 +38,7 @@ func (s *UtilsTestSuite) TestCreateEmptyFileGB(c *C) {
 	fStat1, err := os.Stat(f1)
 	c.Assert(err, IsNil)
 
-	c.Assert(fStat1.Size(), Equals, int64(1000*1000*975))
+	c.Assert(fStat1.Size(), Equals, int64(974999552))
 
 	f2 := filepath.Join(s.tmpdir, "gb")
 	c.Assert(CreateEmptyFile(f2, 2, GB), IsNil)
@@ -46,5 +46,5 @@ func (s *UtilsTestSuite) TestCreateEmptyFileGB(c *C) {
 	fStat2, err := os.Stat(f2)
 	c.Assert(err, IsNil)
 
-	c.Assert(fStat2.Size(), Equals, int64(2*1000*1000*975))
+	c.Assert(fStat2.Size(), Equals, int64(1949999616))
 }
