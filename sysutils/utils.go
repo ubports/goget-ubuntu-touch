@@ -52,7 +52,9 @@ func CreateEmptyFile(path string, size int64, u unit) (err error) {
 	case GB:
 		// The image size will be reduced to fit commercial drives that are
 		// smaller than what they claim, 975 comes from 97.5% of the total size
-		size = size * 1000 * 1000 * 975
+		// but we want to be a multiple of 512 (and size is an int) we divide by
+		// 512 and multiply it again
+		size = size * 1000 * 1000 * 975 / 512 * 512
 	default:
 		panic("improper sizing unit used")
 	}
