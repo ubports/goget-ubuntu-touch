@@ -41,14 +41,14 @@ func (s *CommonTestSuite) SetUpTest(c *C) {
 }
 
 func (s *CommonTestSuite) TestOemInstallPath(c *C) {
-	err := os.MkdirAll(filepath.Join(s.tmpdir, "oem", s.packageInst, s.oem.Version), 0755)
+	err := os.MkdirAll(filepath.Join(s.tmpdir, "oem", s.packageInst, "current"), 0755)
 	c.Assert(err, IsNil)
 
 	s.oem.SetRoot(s.tmpdir)
 	installPath, err := s.oem.InstallPath()
 
 	c.Assert(err, IsNil)
-	c.Assert(installPath, Equals, filepath.Join(s.tmpdir, "oem/packagename/42"))
+	c.Assert(installPath, Equals, filepath.Join(s.tmpdir, "oem/packagename/current"))
 }
 
 func (s *CommonTestSuite) TestOemInstallPathNoOem(c *C) {

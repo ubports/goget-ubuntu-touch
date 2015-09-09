@@ -77,9 +77,41 @@ func (coreCmd *CoreCmd) Execute(args []string) error {
 
 	if !coreCmd.Deprecated.Cloud {
 		coreCmd.customizationFunc = append(coreCmd.customizationFunc, coreCmd.setupCloudInit)
+		coreCmd.customizationFunc = append(coreCmd.customizationFunc, coreCmd.setupOemConfigs)
 	}
 
 	return coreCmd.create()
+}
+
+// this is a hackish way to get the config in place
+func (coreCmd *CoreCmd) setupOemConfigs() error {
+	modprobeDContent := coreCmd.oem.Config.UbuntuCore.Modprobe
+	if modprobeDContent == nil {
+		printOut("no modprobe")
+		return nil
+	}
+
+	fmt.Println("Setting up oem hooks...")
+
+	writablePath := coreCmd.img.Writable()
+
+	modprobeDir := filepath.Join(writablePath, "system-data", "etc", "modprobe.d")
+	if err := os.MkdirAll(modprobeDir, 0755); err != nil {
+		return err
+	}
+
+	modprobeD := filepath.Join(modprobeDir, "ubuntu-core.conf")
+	modprobeDFile, err := os.Create(modprobeD)
+	if err != nil {
+		return err
+	}
+	defer modprobeDFile.Close()
+
+	if _, err := io.WriteString(modprobeDFile, *modprobeDContent); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // this function is a hack and should be part of first boot.
