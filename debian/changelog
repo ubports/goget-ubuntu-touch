@@ -1,3 +1,10 @@
+goget-ubuntu-touch (0.28-0ubuntu1) wily; urgency=medium
+
+  * Support setting the store id.
+  * Support modprobe.d config hooks from ubuntu-core.
+
+ -- Sergio Schvezov <sergio.schvezov@canonical.com>  Wed, 09 Sep 2015 13:59:52 -0300
+
 goget-ubuntu-touch (0.27-0ubuntu1) wily; urgency=medium
 
   * Avoid double unmap errors (LP: #1472516)
