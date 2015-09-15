@@ -14,7 +14,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"time"
 
 	"launchpad.net/goget-ubuntu-touch/sysutils"
 )
@@ -33,11 +32,9 @@ import (
 
 type CoreGrubImage struct {
 	BaseImage
-
-	legacyGrub bool
 }
 
-func NewCoreGrubImage(location string, size int64, rootSize int, hw HardwareDescription, oem OemDescription, updateGrub bool) *CoreGrubImage {
+func NewCoreGrubImage(location string, size int64, rootSize int, hw HardwareDescription, oem OemDescription) *CoreGrubImage {
 	return &CoreGrubImage{
 		BaseImage: BaseImage{
 			location:  location,
@@ -47,7 +44,6 @@ func NewCoreGrubImage(location string, size int64, rootSize int, hw HardwareDesc
 			oem:       oem,
 			partCount: 5,
 		},
-		legacyGrub: updateGrub,
 	}
 }
 
@@ -88,12 +84,10 @@ func (img *CoreGrubImage) Partition() error {
 }
 
 func (img *CoreGrubImage) SetupBoot() error {
-	if !img.legacyGrub {
-		// destinations
-		bootPath := filepath.Join(img.baseMount, string(bootDir), "EFI", "ubuntu", "grub")
-		if err := img.GenericBootSetup(bootPath); err != nil {
-			return err
-		}
+	// destinations
+	bootPath := filepath.Join(img.baseMount, string(bootDir), "EFI", "ubuntu", "grub")
+	if err := img.GenericBootSetup(bootPath); err != nil {
+		return err
 	}
 
 	return img.setupGrub()
@@ -191,37 +185,6 @@ func (img *CoreGrubImage) setupGrub() error {
 	defer grubStub.Close()
 	if _, err := io.WriteString(grubStub, grubStubContent); err != nil {
 		return err
-	}
-
-	if img.legacyGrub {
-		if err := img.updateGrub(); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (img *CoreGrubImage) updateGrub() error {
-	// ensure we run not into recordfail issue
-	grubDir := filepath.Join(img.System(), "etc", "default", "grub.d")
-	if err := os.MkdirAll(grubDir, 0755); err != nil {
-		return fmt.Errorf("unable to create %s dir: %s", grubDir, err)
-	}
-	grubFile, err := os.Create(filepath.Join(grubDir, "50-system-image.cfg"))
-	if err != nil {
-		return fmt.Errorf("unable to create %s file: %s", grubFile.Name(), err)
-	}
-	defer grubFile.Close()
-	if _, err := io.WriteString(grubFile, grubCfgContent); err != nil {
-		return err
-	}
-
-	// I don't know why this is needed, I just picked it up from the original implementation
-	time.Sleep(3 * time.Second)
-
-	if out, err := exec.Command("chroot", img.System(), "update-grub").CombinedOutput(); err != nil {
-		return fmt.Errorf("unable to update grub: %s", out)
 	}
 
 	return nil
