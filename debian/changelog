@@ -1,3 +1,9 @@
+goget-ubuntu-touch (0.31-0ubuntu1) wily; urgency=medium
+
+  * Discriminate legacy from non legacy grub setup required installs.
+
+ -- Sergio Schvezov <sergio.schvezov@canonical.com>  Wed, 16 Sep 2015 08:10:39 -0300
+
 goget-ubuntu-touch (0.30-0ubuntu4) wily; urgency=medium
 
   * debian/control: Adding golang-uboot-go-dev as a build dep. 
