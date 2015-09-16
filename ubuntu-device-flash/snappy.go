@@ -517,7 +517,12 @@ func (s *Snapper) create() error {
 	loader := s.oem.OEM.Hardware.Bootloader
 	switch loader {
 	case "grub":
-		s.img = diskimage.NewCoreGrubImage(s.Output, s.size, s.flavor.rootSize(), s.hardware, s.oem)
+		legacy := isLegacy(s.Positional.Release, s.Channel, globalArgs.Revision)
+		if legacy {
+			printOut("Using legacy setup")
+		}
+
+		s.img = diskimage.NewCoreGrubImage(s.Output, s.size, s.flavor.rootSize(), s.hardware, s.oem, legacy)
 	case "u-boot":
 		s.img = diskimage.NewCoreUBootImage(s.Output, s.size, s.flavor.rootSize(), s.hardware, s.oem)
 	default:
@@ -556,4 +561,21 @@ func (s *Snapper) create() error {
 	s.printSummary()
 
 	return nil
+}
+
+func isLegacy(release, channel string, revision int) bool {
+	if release != "15.04" {
+		return false
+	}
+
+	switch channel {
+	case "edge":
+		return revision <= 149
+	case "alpha":
+		return revision <= 9
+	case "stable":
+		return revision <= 4
+	}
+
+	return false
 }
