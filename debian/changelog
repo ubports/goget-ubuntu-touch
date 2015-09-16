@@ -1,3 +1,21 @@
+goget-ubuntu-touch (0.30-0ubuntu4) wily; urgency=medium
+
+  * debian/control: Adding golang-uboot-go-dev as a build dep. 
+
+ -- Sergio Schvezov <sergio.schvezov@canonical.com>  Tue, 15 Sep 2015 21:44:26 -0300
+
+goget-ubuntu-touch (0.30-0ubuntu3) wily; urgency=medium
+
+  * No change rebuild.
+
+ -- Sergio Schvezov <sergio.schvezov@canonical.com>  Tue, 15 Sep 2015 21:36:27 -0300
+
+goget-ubuntu-touch (0.30-0ubuntu2) wily; urgency=medium
+
+  * No change rebuild. 
+
+ -- Sergio Schvezov <sergio.schvezov@canonical.com>  Tue, 15 Sep 2015 21:22:34 -0300
+
 goget-ubuntu-touch (0.30-0ubuntu1) wily; urgency=medium
 
   * Remove grub legacy handling for core. 

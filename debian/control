@@ -14,6 +14,7 @@ Build-Depends: debhelper (>= 9),
                golang-juju-loggo-dev,
                golang-pb-dev,
                golang-snappy-dev,
+               golang-uboot-go-dev,
                golang-yaml.v2-dev,
                ubuntu-snappy-cli,
 Standards-Version: 3.9.5
