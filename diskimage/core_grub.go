@@ -74,7 +74,7 @@ func (img *CoreGrubImage) Partition() error {
 	}
 
 	parted.addPart(grubLabel, "", fsNone, 4)
-	parted.addPart(bootLabel, bootDir, fsFat32, 64)
+	parted.addPart(bootLabel, bootDir, fsFat32, 128)
 	parted.addPart(systemALabel, systemADir, fsExt4, img.rootSize)
 	parted.addPart(systemBLabel, systemBDir, fsExt4, img.rootSize)
 	parted.addPart(writableLabel, writableDir, fsExt4, -1)
