@@ -150,6 +150,12 @@ func (img *CoreGrubImage) setupGrub() error {
 		return fmt.Errorf("unable to create %s dir: %s", efiGrubDir, err)
 	}
 
+	// create fw update directory
+	fwDir := filepath.Join(img.System(), "boot", "efi", "EFI", "ubuntu", "fw")
+	if err := os.MkdirAll(fwDir, 0755); err != nil {
+		return fmt.Errorf("unable to create %s dir: %s", fwDir, err)
+	}
+
 	bootGrubDir := filepath.Join(img.System(), "boot", "grub")
 	if err := bindMount(efiGrubDir, bootGrubDir); err != nil {
 		return err
