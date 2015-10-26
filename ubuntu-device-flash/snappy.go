@@ -24,6 +24,7 @@ import (
 	"launchpad.net/goget-ubuntu-touch/diskimage"
 	"launchpad.net/goget-ubuntu-touch/sysutils"
 	"launchpad.net/goget-ubuntu-touch/ubuntuimage"
+	"launchpad.net/snappy/dirs"
 	"launchpad.net/snappy/helpers"
 	"launchpad.net/snappy/progress"
 	"launchpad.net/snappy/provisioning"
@@ -159,8 +160,8 @@ func (s *Snapper) installFlags() snappy.InstallFlags {
 }
 
 func (s *Snapper) install(systemPath string) error {
-	snappy.SetRootDir(systemPath)
-	defer snappy.SetRootDir("/")
+	dirs.SetRootDir(systemPath)
+	defer dirs.SetRootDir("/")
 
 	flags := s.installFlags()
 	oemSoftware := s.oem.OEM.Software
@@ -206,8 +207,8 @@ func (s *Snapper) extractOem(oemPackage string) error {
 
 	s.stagingRootPath = tempDir
 
-	snappy.SetRootDir(tempDir)
-	defer snappy.SetRootDir("/")
+	dirs.SetRootDir(tempDir)
+	defer dirs.SetRootDir("/")
 	release.Override(release.Release{
 		Flavor:  string(s.flavor),
 		Series:  s.Positional.Release,
