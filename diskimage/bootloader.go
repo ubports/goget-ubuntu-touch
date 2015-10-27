@@ -28,17 +28,19 @@ import (
 	"launchpad.net/goget-ubuntu-touch/sysutils"
 )
 
-func setupBootAssetFiles(bootPath, oemRootPath string, files []BootAssetFiles) error {
+func setupBootAssetFiles(bootMount, bootPath, oemRootPath string, files []BootAssetFiles) error {
 	printOut("Setting up boot asset files from", oemRootPath, "...")
 	for _, file := range files {
 		dst := filepath.Join(bootPath, filepath.Base(file.Path))
-		if file.Target != "" {
+		if file.Dst != "" {
+			dst = filepath.Join(bootMount, file.Dst)
+		} else if file.Target != "" {
 			dst = filepath.Join(bootPath, file.Target)
-			dstDir := filepath.Dir(dst)
-			if _, err := os.Stat(dstDir); os.IsNotExist(err) {
-				if err := os.MkdirAll(dstDir, 0755); err != nil {
-					return err
-				}
+		}
+		dstDir := filepath.Dir(dst)
+		if _, err := os.Stat(dstDir); os.IsNotExist(err) {
+			if err := os.MkdirAll(dstDir, 0755); err != nil {
+				return err
 			}
 		}
 
