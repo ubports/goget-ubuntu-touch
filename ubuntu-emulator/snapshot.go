@@ -77,7 +77,7 @@ func (snapshotCmd *SnapshotCmd) Execute(args []string) error {
 			}
 		}
 	} else {
-		errors.New("Command not implemented or supported")
+		return errors.New("Command not implemented or supported")
 	}
 
 	return nil
