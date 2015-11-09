@@ -18,7 +18,7 @@ import (
 	"strings"
 	"time"
 
-	"launchpad.net/snappy/helpers"
+	"github.com/ubuntu-core/snappy/helpers"
 )
 
 // This program is free software: you can redistribute it and/or modify it
