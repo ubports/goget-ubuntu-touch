@@ -74,7 +74,7 @@ func (img *CoreGrubImage) Partition() error {
 	}
 
 	parted.addPart(grubLabel, "", fsNone, 4)
-	parted.addPart(bootLabel, bootDir, fsFat32, 64)
+	parted.addPart(bootLabel, bootDir, fsFat32, 128)
 	parted.addPart(systemALabel, systemADir, fsExt4, img.rootSize)
 	parted.addPart(systemBLabel, systemBDir, fsExt4, img.rootSize)
 	parted.addPart(writableLabel, writableDir, fsExt4, -1)
@@ -148,6 +148,12 @@ func (img *CoreGrubImage) setupGrub() error {
 	efiGrubDir := filepath.Join(img.System(), "boot", "efi", "EFI", "ubuntu", "grub")
 	if err := os.MkdirAll(efiGrubDir, 0755); err != nil {
 		return fmt.Errorf("unable to create %s dir: %s", efiGrubDir, err)
+	}
+
+	// create fw update directory
+	fwDir := filepath.Join(img.System(), "boot", "efi", "EFI", "ubuntu", "fw")
+	if err := os.MkdirAll(fwDir, 0755); err != nil {
+		return fmt.Errorf("unable to create %s dir: %s", fwDir, err)
 	}
 
 	bootGrubDir := filepath.Join(img.System(), "boot", "grub")

@@ -90,7 +90,7 @@ func (img *CoreUBootImage) Partition() error {
 		return err
 	}
 
-	parted.addPart(bootLabel, bootDir, fsFat32, 64)
+	parted.addPart(bootLabel, bootDir, fsFat32, 128)
 	parted.addPart(systemALabel, systemADir, fsExt4, 1024)
 	parted.addPart(systemBLabel, systemBDir, fsExt4, 1024)
 	parted.addPart(writableLabel, writableDir, fsExt4, -1)
