@@ -88,8 +88,11 @@ type BootAssetRawFiles struct {
 }
 
 type BootAssetFiles struct {
-	Path   string `yaml:"path"`
+	Path string `yaml:"path"`
+	// Target is the deprecated target relative to $bootloader dir
 	Target string `yaml:"target,omitempty"`
+	// Dst is the destination relative to the actual boot partition
+	Dst string `yaml:"dst,omitempty"`
 }
 
 type BootAssets struct {
@@ -488,7 +491,7 @@ func (img *BaseImage) GenericBootSetup(bootPath string) error {
 		return err
 	}
 
-	return setupBootAssetFiles(bootPath, oemRoot, img.oem.OEM.Hardware.BootAssets.Files)
+	return setupBootAssetFiles(img.Boot(), bootPath, oemRoot, img.oem.OEM.Hardware.BootAssets.Files)
 }
 
 func (img *BaseImage) FlashExtra() error {

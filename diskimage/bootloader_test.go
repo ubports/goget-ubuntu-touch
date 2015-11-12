@@ -34,6 +34,7 @@ import (
 func Test(t *testing.T) { TestingT(t) }
 
 type BootAssetFilesTestSuite struct {
+	bootMountDir   string
 	bootPathDir    string
 	oemRootPathDir string
 	files          []BootAssetFiles
@@ -57,7 +58,9 @@ func (s *BootAssetFilesTestSuite) verifyTestFiles(c *C) {
 		f := fmt.Sprintf(fileName, i)
 
 		fAbsolutePath := filepath.Join(s.bootPathDir, f)
-		if s.files[i].Target != "" {
+		if s.files[i].Dst != "" {
+			fAbsolutePath = filepath.Join(s.bootMountDir, s.files[i].Dst)
+		} else if s.files[i].Target != "" {
 			fAbsolutePath = filepath.Join(s.bootPathDir, s.files[i].Target)
 		}
 
@@ -68,6 +71,7 @@ func (s *BootAssetFilesTestSuite) verifyTestFiles(c *C) {
 }
 
 func (s *BootAssetFilesTestSuite) SetUpTest(c *C) {
+	s.bootMountDir = c.MkDir()
 	s.bootPathDir = c.MkDir()
 	s.oemRootPathDir = c.MkDir()
 
@@ -79,7 +83,7 @@ func (s *BootAssetFilesTestSuite) TearDownTest(c *C) {
 }
 
 func (s *BootAssetFilesTestSuite) TestCopyFiles(c *C) {
-	c.Assert(setupBootAssetFiles(s.bootPathDir, s.oemRootPathDir, s.files), IsNil)
+	c.Assert(setupBootAssetFiles(s.bootMountDir, s.bootPathDir, s.oemRootPathDir, s.files), IsNil)
 
 	s.verifyTestFiles(c)
 }
@@ -90,7 +94,7 @@ func (s *BootAssetFilesTestSuite) TestCopyFilesWithTarget(c *C) {
 	c.Assert(ioutil.WriteFile(fAbsolutePath, []byte(f), 0644), IsNil)
 	s.files = append(s.files, BootAssetFiles{Path: f, Target: "otherpath"})
 
-	c.Assert(setupBootAssetFiles(s.bootPathDir, s.oemRootPathDir, s.files), IsNil)
+	c.Assert(setupBootAssetFiles(s.bootMountDir, s.bootPathDir, s.oemRootPathDir, s.files), IsNil)
 
 	s.verifyTestFiles(c)
 }
@@ -101,7 +105,29 @@ func (s *BootAssetFilesTestSuite) TestCopyFilesWithTargetInDir(c *C) {
 	c.Assert(ioutil.WriteFile(fAbsolutePath, []byte(f), 0644), IsNil)
 	s.files = append(s.files, BootAssetFiles{Path: f, Target: filepath.Join("subpath", "otherpath")})
 
-	c.Assert(setupBootAssetFiles(s.bootPathDir, s.oemRootPathDir, s.files), IsNil)
+	c.Assert(setupBootAssetFiles(s.bootMountDir, s.bootPathDir, s.oemRootPathDir, s.files), IsNil)
+
+	s.verifyTestFiles(c)
+}
+
+func (s *BootAssetFilesTestSuite) TestCopyFilesWithDst(c *C) {
+	f := fmt.Sprintf(fileName, len(s.files))
+	fAbsolutePath := filepath.Join(s.oemRootPathDir, f)
+	c.Assert(ioutil.WriteFile(fAbsolutePath, []byte(f), 0644), IsNil)
+	s.files = append(s.files, BootAssetFiles{Path: f, Dst: "otherpath"})
+
+	c.Assert(setupBootAssetFiles(s.bootMountDir, s.bootPathDir, s.oemRootPathDir, s.files), IsNil)
+
+	s.verifyTestFiles(c)
+}
+
+func (s *BootAssetFilesTestSuite) TestCopyFilesWithDstAndSubdir(c *C) {
+	f := fmt.Sprintf(fileName, len(s.files))
+	fAbsolutePath := filepath.Join(s.oemRootPathDir, f)
+	c.Assert(ioutil.WriteFile(fAbsolutePath, []byte(f), 0644), IsNil)
+	s.files = append(s.files, BootAssetFiles{Path: f, Dst: filepath.Join("path", "more-path", "otherpath")})
+
+	c.Assert(setupBootAssetFiles(s.bootMountDir, s.bootPathDir, s.oemRootPathDir, s.files), IsNil)
 
 	s.verifyTestFiles(c)
 }

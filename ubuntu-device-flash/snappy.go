@@ -20,16 +20,16 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/ubuntu-core/snappy/dirs"
+	"github.com/ubuntu-core/snappy/helpers"
+	"github.com/ubuntu-core/snappy/progress"
+	"github.com/ubuntu-core/snappy/provisioning"
+	"github.com/ubuntu-core/snappy/release"
+	"github.com/ubuntu-core/snappy/snappy"
 	"gopkg.in/yaml.v2"
 	"launchpad.net/goget-ubuntu-touch/diskimage"
 	"launchpad.net/goget-ubuntu-touch/sysutils"
 	"launchpad.net/goget-ubuntu-touch/ubuntuimage"
-	"launchpad.net/snappy/dirs"
-	"launchpad.net/snappy/helpers"
-	"launchpad.net/snappy/progress"
-	"launchpad.net/snappy/provisioning"
-	"launchpad.net/snappy/release"
-	"launchpad.net/snappy/snappy"
 )
 
 type imageFlavor string
@@ -167,7 +167,7 @@ func (s *Snapper) install(systemPath string) error {
 	oemSoftware := s.oem.OEM.Software
 	packageCount := len(s.Development.Install) + len(oemSoftware.BuiltIn) + len(oemSoftware.Preinstalled)
 	if s.Oem != "" {
-		packageCount += 1
+		packageCount++
 	}
 	packageQueue := make([]string, 0, packageCount)
 
