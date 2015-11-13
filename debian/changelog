@@ -1,3 +1,16 @@
+goget-ubuntu-touch (0.32-0ubuntu1) xenial; urgency=medium
+
+  [ Michael Vogt ]
+  * Increase the size of the boot partition to 128M
+  * create fw/ directory under the efi directory
+  * support 'dst' keyword in boot-assets
+  * update build-dep version for golang-snappy-dev
+
+  [ Sergio Schvezov ]
+  * updated for upstream snappy changes
+
+ -- Michael Vogt <michael.vogt@ubuntu.com>  Fri, 13 Nov 2015 10:21:18 +0100
+
 goget-ubuntu-touch (0.31-0ubuntu1) wily; urgency=medium
 
   * Discriminate legacy from non legacy grub setup required installs.
