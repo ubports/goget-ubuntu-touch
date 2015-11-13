@@ -43,8 +43,10 @@ var parser = flags.NewParser(&globalArgs, flags.HelpFlag)
 var cacheDir = ubuntuimage.GetCacheDir()
 
 func main() {
-	args := os.Args
+	execute(os.Args)
+}
 
+func execute(args []string) {
 	if v := os.Getenv("MANPAGE"); v != "" {
 		manpagePath := "/tmp/ubuntu-device-flash.manpage"
 		w, err := os.Create(manpagePath)
@@ -61,7 +63,7 @@ func main() {
 
 	if _, err := parser.ParseArgs(args); err != nil {
 		fmt.Println(err)
-		return
+		os.Exit(1)
 	}
 
 }
