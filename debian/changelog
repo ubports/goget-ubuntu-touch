@@ -1,3 +1,9 @@
+goget-ubuntu-touch (0.33-0ubuntu1) xenial; urgency=medium
+
+  * Exit 1 on parameter errors (LP: #1473333) 
+
+ -- Sergio Schvezov <sergio.schvezov@canonical.com>  Tue, 17 Nov 2015 16:56:44 -0300
+
 goget-ubuntu-touch (0.32-0ubuntu1) xenial; urgency=medium
 
   [ Michael Vogt ]
