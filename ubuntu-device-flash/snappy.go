@@ -523,9 +523,13 @@ func (s *Snapper) create() error {
 			printOut("Using legacy setup")
 		}
 
-		s.img = diskimage.NewCoreGrubImage(s.Output, s.size, s.flavor.rootSize(), s.hardware, s.oem, legacy)
+		s.img = diskimage.NewCoreGrubImage(s.Output, s.size, s.flavor.rootSize(), s.hardware, s.oem, legacy, "gpt")
 	case "u-boot":
-		s.img = diskimage.NewCoreUBootImage(s.Output, s.size, s.flavor.rootSize(), s.hardware, s.oem)
+		label := "msdos"
+		if s.oem.Architecture() == archArm64 {
+			label = "gpt"
+                }
+		s.img = diskimage.NewCoreUBootImage(s.Output, s.size, s.flavor.rootSize(), s.hardware, s.oem, label)
 	default:
 		return errors.New("no hardware description in OEM snap")
 	}

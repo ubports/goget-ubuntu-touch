@@ -22,8 +22,10 @@ package diskimage
 import (
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strconv"
+	"fmt"
 
 	"launchpad.net/goget-ubuntu-touch/sysutils"
 )
@@ -78,6 +80,46 @@ func setupBootAssetRawFiles(imagePath, oemRootPath string, rawFiles []BootAssetR
 		if err := rawwrite(img, assetFile, offsetBytes); err != nil {
 			return err
 		}
+	}
+
+	return nil
+}
+
+func setupBootAssetRawPartitions(imagePath string, partCount int, rawPartitions []BootAssetRawPartitions) error {
+	printOut("Setting up raw boot asset partitions for", imagePath, "...")
+	var part int = partCount
+
+	for _, asset := range rawPartitions{
+		part += 1
+
+		size, err := strconv.Atoi(asset.Size)
+		if err != nil {
+			return err
+		}
+		size = size * 2
+
+		printOut("creating partition:", asset.Name)
+
+		opts := fmt.Sprintf("0:0:+%d", size)
+		if err := exec.Command("sgdisk", "-a", "1", "-n", opts, imagePath).Run(); err != nil {
+			return err
+		}
+
+		opts = fmt.Sprintf("%d:%s", part, asset.Name)
+		if err := exec.Command("sgdisk", "-c", opts, imagePath).Run(); err != nil {
+			return err
+		}
+
+		opts = fmt.Sprintf("%d:%s", part, asset.Type)
+		if err := exec.Command("sgdisk", "-t", opts, imagePath).Run(); err != nil {
+			return err
+		}
+
+	}
+
+	printOut("sorting partitions")
+	if err := exec.Command("sgdisk", "-s", imagePath).Run(); err != nil {
+		return fmt.Errorf("issues while sorting partitions: %s", err)
 	}
 
 	return nil

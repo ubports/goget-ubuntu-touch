@@ -37,7 +37,7 @@ type CoreGrubImage struct {
 	legacyGrub bool
 }
 
-func NewCoreGrubImage(location string, size int64, rootSize int, hw HardwareDescription, oem OemDescription, updateGrub bool) *CoreGrubImage {
+func NewCoreGrubImage(location string, size int64, rootSize int, hw HardwareDescription, oem OemDescription, updateGrub bool, label string) *CoreGrubImage {
 	return &CoreGrubImage{
 		BaseImage: BaseImage{
 			location:  location,
@@ -46,6 +46,7 @@ func NewCoreGrubImage(location string, size int64, rootSize int, hw HardwareDesc
 			hardware:  hw,
 			oem:       oem,
 			partCount: 5,
+			label: label,
 		},
 		legacyGrub: updateGrub,
 	}
