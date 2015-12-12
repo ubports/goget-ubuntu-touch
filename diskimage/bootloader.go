@@ -119,7 +119,7 @@ func setupBootAssetRawPartitions(imagePath string, partCount int, rawPartitions 
 
 	printOut("sorting partitions")
 	if err := exec.Command("sgdisk", "-s", imagePath).Run(); err != nil {
-		return fmt.Errorf("issues while sorting partitions: %s", err)
+		return err
 	}
 
 	return nil

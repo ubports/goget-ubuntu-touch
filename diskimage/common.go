@@ -510,7 +510,9 @@ func (img *BaseImage) FlashExtra() error {
 
 	if bootAssets := img.oem.OEM.Hardware.BootAssets; bootAssets != nil {
 		if bootAssets.RawPartitions != nil {
-			setupBootAssetRawPartitions(img.location, img.partCount, bootAssets.RawPartitions)
+			if err := setupBootAssetRawPartitions(img.location, img.partCount, bootAssets.RawPartitions); err != nil {
+				return err
+			}
 		}
 		return setupBootAssetRawFiles(img.location, oemRoot, bootAssets.RawFiles)
 	}
