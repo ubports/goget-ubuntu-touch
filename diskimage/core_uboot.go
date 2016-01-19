@@ -66,7 +66,7 @@ type FlashInstructions struct {
 	Bootloader []string `yaml:"bootloader"`
 }
 
-func NewCoreUBootImage(location string, size int64, rootSize int, hw HardwareDescription, oem OemDescription) *CoreUBootImage {
+func NewCoreUBootImage(location string, size int64, rootSize int, hw HardwareDescription, oem OemDescription, label string) *CoreUBootImage {
 	return &CoreUBootImage{
 		BaseImage{
 			hardware:  hw,
@@ -75,6 +75,7 @@ func NewCoreUBootImage(location string, size int64, rootSize int, hw HardwareDes
 			size:      size,
 			rootSize:  rootSize,
 			partCount: 4,
+			label: label,
 		},
 	}
 }
@@ -84,8 +85,12 @@ func (img *CoreUBootImage) Partition() error {
 	if err := sysutils.CreateEmptyFile(img.location, img.size, sysutils.GB); err != nil {
 		return err
 	}
+	table := mkLabelMsdos
 
-	parted, err := newParted(mkLabelMsdos)
+	if img.label == "gpt" {
+		table = mkLabelGpt
+	}
+	parted, err := newParted(table)
 	if err != nil {
 		return err
 	}

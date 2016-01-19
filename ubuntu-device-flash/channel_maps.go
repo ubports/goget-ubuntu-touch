@@ -28,12 +28,14 @@ func systemImageChannel(flavor, release, channel string) string {
 
 const (
 	archArmhf = "armhf"
+	archArm64 = "arm64"
 	archAmd64 = "amd64"
 	archi386  = "i386"
 )
 
 const (
 	deviceArmhf = "generic_armhf"
+	deviceArm64 = "generic_arm64"
 	deviceAmd64 = "generic_amd64"
 	devicei386  = "generic_i386"
 )
@@ -42,6 +44,8 @@ func systemImageDeviceChannel(arch string) string {
 	switch arch {
 	case archArmhf:
 		return deviceArmhf
+	case archArm64:
+		return deviceArm64
 	case archAmd64:
 		return deviceAmd64
 	case archi386:
