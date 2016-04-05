@@ -99,5 +99,9 @@ func (s *Snapper) deploy(systemImage *ubuntuimage.Image, filePathChan <-chan str
 }
 
 func (s *Snapper) create() error {
-	return fmt.Errorf("Sorry, building core images is currently not supported, please check again later")
+	return fmt.Errorf(`Building core images is currently not supported.
+
+Images for ubuntu-core 15.04 can be build with the ppa:snappy-dev/tools.
+Building images for ubuntu-core 16.04 will be supported by this tool soon.
+`)
 }
