@@ -36,6 +36,7 @@ type TouchCmd struct {
 	Wipe          bool   `long:"wipe" description:"Clear all data after flashing"`
 	Serial        string `long:"serial" description:"Serial of the device to operate"`
 	DeveloperMode bool   `long:"developer-mode" description:"Enables developer mode after the factory reset, this is meant for automation and makes the device insecure by default (requires --password)"`
+	AdbKeys       string `long:"adb-keys" description:"Specify a local adb keys files, instead of using default ~/.android/adbkey.pub (requires --developer-mode)"`
 	DeviceTarball string `long:"device-tarball" description:"Specify a local device tarball to override the one from the server (using official Ubuntu images with different device tarballs)"`
 	CustomTarball string `long:"custom-tarball" description:"Specify a local custom tarball to override the one from the server (using official Ubuntu images with different custom tarballs)"`
 	RunScript     string `long:"run-script" description:"Run a script given by path to finish the flashing process, instead of rebooting to recovery (mostly used during development to work around quirky or incomplete recovery images)"`
@@ -79,12 +80,40 @@ func (touchCmd *TouchCmd) Execute(args []string) error {
 		log.Fatal("Developer mode requires --password to be set (and --wipe or --bootstrap)")
 	}
 
+	if touchCmd.AdbKeys != "" && !touchCmd.DeveloperMode {
+		log.Fatal("Adb keys requires --developer-mode to be set")
+	}
+
+	var adbKeyPath string
+	if touchCmd.DeveloperMode {
+		if touchCmd.AdbKeys != "" {
+			p, err := expandFile(touchCmd.AdbKeys)
+			if err != nil {
+				log.Fatalln("Issues with custom adb keys file", err)
+			}
+			adbKeyPath = p
+		} else {
+			home := os.Getenv("HOME")
+			p, err := expandFile(filepath.Join(home, "/.android/adbkey.pub"))
+			if err != nil {
+				fmt.Println("WARNING: missing ~/.android/adbkey.pub, your device will not be preauthorised")
+			} else {
+				fmt.Println("no --adb-keys defined, using default ~/.android/adbkey.pub")
+				adbKeyPath = p
+			}
+		}
+	}
+
 	if touchCmd.Password != "" && !touchCmd.Wipe {
 		log.Fatal("Default password setup requires --wipe or --bootstrap")
 	}
 
 	if touchCmd.Password != "" || touchCmd.DeveloperMode {
 		fmt.Println("WARNING --developer-mode and --password are dangerous as they remove security features from your device")
+	}
+
+	if touchCmd.AdbKeys != "" && touchCmd.DeveloperMode {
+		fmt.Println("WARNING: --adb-keys is dangerous, potentially authorising multiple cliets to connect to your device")
 	}
 
 	var deviceTarballPath string
@@ -220,7 +249,13 @@ func (touchCmd *TouchCmd) Execute(args []string) error {
 	var enableList []string
 	if touchCmd.DeveloperMode {
 		enableList = append(enableList, "developer_mode")
-		enableList = append(enableList, "adb_onlock")
+		// provision target device with adbkeys if available
+		if adbKeyPath != "" {
+			err := touchCmd.adb.Push(adbKeyPath, "/cache/recovery/adbkey.pub")
+			if err == nil {
+				enableList = append(enableList, "adb_keys adbkey.pub")
+			}
+		}
 	}
 	if touchCmd.Password != "" {
 		enableList = append(enableList, "default_password "+touchCmd.Password)
