@@ -31,19 +31,3 @@ func Test(t *testing.T) { TestingT(t) }
 type SnappyTestSuite struct{}
 
 var _ = Suite(&SnappyTestSuite{})
-
-func (s *SnappyTestSuite) TestLegacy(c *C) {
-	c.Check(isLegacy("rolling", "edge", 1), Equals, false)
-
-	c.Check(isLegacy("15.04", "edge", 1), Equals, true)
-	c.Check(isLegacy("15.04", "edge", 149), Equals, true)
-	c.Check(isLegacy("15.04", "edge", 150), Equals, false)
-
-	c.Check(isLegacy("15.04", "alpha", 1), Equals, true)
-	c.Check(isLegacy("15.04", "alpha", 9), Equals, true)
-	c.Check(isLegacy("15.04", "alpha", 10), Equals, false)
-
-	c.Check(isLegacy("15.04", "stable", 1), Equals, true)
-	c.Check(isLegacy("15.04", "stable", 4), Equals, true)
-	c.Check(isLegacy("15.04", "stable", 5), Equals, false)
-}
