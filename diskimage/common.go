@@ -88,9 +88,9 @@ type BootAssetRawFiles struct {
 }
 
 type BootAssetRawPartitions struct {
-	Name   string `yaml:"name"`
-	Size   string `yaml:"size"`
-	Type   string `yaml:"type"`
+	Name string `yaml:"name"`
+	Size string `yaml:"size"`
+	Type string `yaml:"type"`
 }
 
 type BootAssetFiles struct {
@@ -102,8 +102,8 @@ type BootAssetFiles struct {
 }
 
 type BootAssets struct {
-	Files    []BootAssetFiles    `yaml:"files,omitempty"`
-	RawFiles []BootAssetRawFiles `yaml:"raw-files,omitempty"`
+	Files         []BootAssetFiles         `yaml:"files,omitempty"`
+	RawFiles      []BootAssetRawFiles      `yaml:"raw-files,omitempty"`
 	RawPartitions []BootAssetRawPartitions `yaml:"raw-partitions,omitempty"`
 }
 
@@ -208,7 +208,7 @@ type BaseImage struct {
 	partCount int
 	size      int64
 	rootSize  int
-        label   string
+	label     string
 }
 
 // Mount mounts the image. This also maps the loop device.

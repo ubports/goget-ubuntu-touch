@@ -20,12 +20,12 @@ package diskimage
 // with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import (
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strconv"
-	"fmt"
 
 	"launchpad.net/goget-ubuntu-touch/sysutils"
 )
@@ -89,7 +89,7 @@ func setupBootAssetRawPartitions(imagePath string, partCount int, rawPartitions 
 	printOut("Setting up raw boot asset partitions for", imagePath, "...")
 	var part int = partCount
 
-	for _, asset := range rawPartitions{
+	for _, asset := range rawPartitions {
 		part += 1
 
 		size, err := strconv.Atoi(asset.Size)

@@ -46,7 +46,7 @@ func NewCoreGrubImage(location string, size int64, rootSize int, hw HardwareDesc
 			hardware:  hw,
 			oem:       oem,
 			partCount: 5,
-			label: label,
+			label:     label,
 		},
 		legacyGrub: updateGrub,
 	}

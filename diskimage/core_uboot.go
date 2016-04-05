@@ -75,7 +75,7 @@ func NewCoreUBootImage(location string, size int64, rootSize int, hw HardwareDes
 			size:      size,
 			rootSize:  rootSize,
 			partCount: 4,
-			label: label,
+			label:     label,
 		},
 	}
 }
