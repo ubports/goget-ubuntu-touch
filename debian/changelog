@@ -1,3 +1,9 @@
+goget-ubuntu-touch (0.33-0ubuntu2) xenial; urgency=medium
+
+  * debian/control: Remove version Build-Depends for golang-snappy-dev. 
+
+ -- Sergio Schvezov <sergio.schvezov@canonical.com>  Wed, 18 Nov 2015 09:32:39 -0300
+
 goget-ubuntu-touch (0.33-0ubuntu1) xenial; urgency=medium
 
   * Exit 1 on parameter errors (LP: #1473333) 
