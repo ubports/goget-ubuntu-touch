@@ -76,7 +76,7 @@ type Snapper struct {
 
 	img      diskimage.CoreImage
 	hardware diskimage.HardwareDescription
-	oem      diskimage.GadgetDescription
+	oem      diskimage.OemDescription
 
 	size int64
 
