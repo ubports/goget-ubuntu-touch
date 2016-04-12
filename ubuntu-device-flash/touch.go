@@ -226,17 +226,35 @@ func (touchCmd *TouchCmd) Execute(args []string) error {
 			}
 		}
 
-		if err := touchCmd.fastboot.Flash("recovery", recovery); err != nil {
-			return errors.New("can't flash recovery image")
-		}
-		if err := touchCmd.fastboot.Format("cache"); err != nil {
-			log.Print("Cache formatting was not successful, flashing may fail, " +
-				"check your partitions on device")
+		log.Print("recovery ", recovery);
+
+		if touchCmd.Device != "turbo" {
+			if err := touchCmd.fastboot.Flash("recovery", recovery); err != nil {
+				return errors.New("can't flash recovery image")
+			}
+
+			if err := touchCmd.fastboot.Format("cache"); err != nil {
+				log.Print("Cache formatting was not successful, flashing may fail, " +
+					"check your partitions on device")
+			}
+
+			if err := touchCmd.fastboot.BootImage(recovery); err != nil {
+				return errors.New("Can't boot recovery image")
+			}
+		} else {
+			if err := touchCmd.fastboot.Flash("recovery", recovery); err != nil {
+				return errors.New("can't flash recovery image")
+			}
+
+			// Turbo bootloader doesn't support the BootImage command so we have
+			// to flash the recovery first and then reboot through a OEM specific
+			// command the bootloader offers.
+			if err := touchCmd.fastboot.SendOemCommand("reboot recovery"); err != nil {
+				return errors.New("Can't reboot device");
+			}
 		}
 
-		if err := touchCmd.fastboot.BootImage(recovery); err != nil {
-			return errors.New("Can't boot recovery image")
-		}
+
 		if err := touchCmd.adb.WaitForRecovery(); err != nil {
 			return err
 		}
