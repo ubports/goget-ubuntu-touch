@@ -226,13 +226,11 @@ func (touchCmd *TouchCmd) Execute(args []string) error {
 			}
 		}
 
-		log.Print("recovery ", recovery);
+		if err := touchCmd.fastboot.Flash("recovery", recovery); err != nil {
+			return errors.New("can't flash recovery image")
+		}
 
 		if touchCmd.Device != "turbo" {
-			if err := touchCmd.fastboot.Flash("recovery", recovery); err != nil {
-				return errors.New("can't flash recovery image")
-			}
-
 			if err := touchCmd.fastboot.Format("cache"); err != nil {
 				log.Print("Cache formatting was not successful, flashing may fail, " +
 					"check your partitions on device")
@@ -242,9 +240,8 @@ func (touchCmd *TouchCmd) Execute(args []string) error {
 				return errors.New("Can't boot recovery image")
 			}
 		} else {
-			if err := touchCmd.fastboot.Flash("recovery", recovery); err != nil {
-				return errors.New("can't flash recovery image")
-			}
+			// For turbo we also have to move cache formatting into the recovery
+			// as the relevant fastboot format command doesn't work.
 
 			// Turbo bootloader doesn't support the BootImage command so we have
 			// to flash the recovery first and then reboot through a OEM specific
@@ -253,7 +250,6 @@ func (touchCmd *TouchCmd) Execute(args []string) error {
 				return errors.New("Can't reboot device");
 			}
 		}
-
 
 		if err := touchCmd.adb.WaitForRecovery(); err != nil {
 			return err
@@ -326,7 +322,17 @@ func (touchCmd *TouchCmd) setupDevice() (err error) {
 		if touchCmd.Bootstrap {
 			log.Print("Expecting the device to be in the bootloader... waiting")
 			touchCmd.Device, err = touchCmd.fastboot.GetDevice()
-			return err
+
+				// For turbo it was missed to put the proper name into the bootloader
+				// and this can't be changed anymore after production already started.
+				// Reflashing the bootloader through an OTA update to fix this is also
+				// very unlikely to happen so we have to work around here and make sure
+				// this never happens again.
+				if touchCmd.Device == "smdk" {
+					touchCmd.Device = "turbo"
+				}
+
+				return err
 		} else {
 			log.Print("Expecting the device to expose an adb interface...")
 			// TODO needs to work from recovery as well
