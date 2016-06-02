@@ -367,7 +367,7 @@ func bitPusher(adb devices.UbuntuDebugBridge, files <-chan Files, done chan<- bo
 		log.Fatal("Target device cannot be reached over adb")
 	}
 	if _, err := adb.Shell("rm -rf /cache/recovery/*.xz /cache/recovery/*.xz.asc"); err != nil {
-		log.Fatal("Cannot cleanup /cache/ to ensure clean deployment", err)
+		log.Fatal("Cannot cleanup /cache/recovery/ to ensure clean deployment", err)
 	}
 	for {
 		file := <-files
