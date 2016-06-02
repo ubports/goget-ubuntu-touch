@@ -323,16 +323,16 @@ func (touchCmd *TouchCmd) setupDevice() (err error) {
 			log.Print("Expecting the device to be in the bootloader... waiting")
 			touchCmd.Device, err = touchCmd.fastboot.GetDevice()
 
-				// For turbo it was missed to put the proper name into the bootloader
-				// and this can't be changed anymore after production already started.
-				// Reflashing the bootloader through an OTA update to fix this is also
-				// very unlikely to happen so we have to work around here and make sure
-				// this never happens again.
-				if touchCmd.Device == "smdk" {
-					touchCmd.Device = "turbo"
-				}
+			// For turbo it was missed to put the proper name into the bootloader
+			// and this can't be changed anymore after production already started.
+			// Reflashing the bootloader through an OTA update to fix this is also
+			// very unlikely to happen so we have to work around here and make sure
+			// this never happens again.
+			if touchCmd.Device == "smdk" {
+				touchCmd.Device = "turbo"
+			}
 
-				return err
+			return err
 		} else {
 			log.Print("Expecting the device to expose an adb interface...")
 			// TODO needs to work from recovery as well
