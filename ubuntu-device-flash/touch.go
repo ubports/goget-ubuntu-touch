@@ -254,6 +254,12 @@ func (touchCmd *TouchCmd) Execute(args []string) error {
 		if err := touchCmd.adb.WaitForRecovery(); err != nil {
 			return err
 		}
+
+		if touchCmd.Device == "turbo" {
+			if _, err := adb.Shell("rm -rf /cache/*"); err != nil {
+				log.Fatal("Cannot cleanup /cache/ to ensure clean deployment", err)
+			}
+		}
 	}
 	go bitPusher(touchCmd.adb, files, done)
 	for i := 0; i < totalFiles; i++ {
@@ -360,11 +366,8 @@ func bitPusher(adb devices.UbuntuDebugBridge, files <-chan Files, done chan<- bo
 	if err := adb.Ping(); err != nil {
 		log.Fatal("Target device cannot be reached over adb")
 	}
-	if _, err := adb.Shell("rm -rf /cache/*"); err != nil {
+	if _, err := adb.Shell("rm -rf /cache/recovery/*.xz /cache/recovery/*.xz.asc"); err != nil {
 		log.Fatal("Cannot cleanup /cache/ to ensure clean deployment", err)
-	}
-	if _, err := adb.Shell("mkdir /cache/recovery/"); err != nil {
-		log.Fatal("Cannot create /cache/recovery to ensure clean deployment", err)
 	}
 	for {
 		file := <-files
