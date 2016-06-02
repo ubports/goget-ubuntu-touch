@@ -69,10 +69,6 @@ func GetUbuntuCommands(files []File, downloadDir string, wipe bool, enable []str
 	}()
 	if wipe {
 		writer.WriteString("format data\n")
-		// Not all device support this command yet but using it doesn't
-		// cause any harm as system-image-uprader will just print a
-		// warning an goes with the next command.
-		writer.WriteString("format cache\n")
 	}
 	if files != nil {
 		writer.WriteString(commandsStart)
