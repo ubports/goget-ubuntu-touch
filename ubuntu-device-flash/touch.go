@@ -256,6 +256,9 @@ func (touchCmd *TouchCmd) Execute(args []string) error {
 		}
 
 		if touchCmd.Device == "turbo" {
+			// On turbo we can't run `fastboot format cache` as the bootloader
+			// does not support this command. We're erasing all bits from the
+			// cache partition manually once we've booted into the recovery.
 			if _, err := adb.Shell("rm -rf /cache/*"); err != nil {
 				log.Fatal("Cannot cleanup /cache/ to ensure clean deployment", err)
 			}
