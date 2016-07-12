@@ -2,7 +2,7 @@
 // ubuntu-device-flash - Tool to download and flash devices with an Ubuntu Image
 //                       based system
 //
-// Copyright (c) 2013-2014 Canonical Ltd.
+// Copyright (c) 2013-2016 Canonical Ltd.
 //
 // Written by Sergio Schvezov <sergio.schvezov@canonical.com>
 //
@@ -230,36 +230,52 @@ func (touchCmd *TouchCmd) Execute(args []string) error {
 			return errors.New("can't flash recovery image")
 		}
 
-		if touchCmd.Device != "turbo" {
+		var deviceSupportsCacheFormat bool = true
+		var deviceSupportsBootImage bool = true
+		var deviceSupportsOemRebootRecovery bool = false
+
+		if touchCmd.Device == "turbo" {
+			deviceSupportsCacheFormat = false
+			deviceSupportsBootImage = false
+			deviceSupportsOemRebootRecovery = true
+		}
+		if touchCmd.Device == "frieza" || touchCmd.Device == "cooler" {
+			deviceSupportsCacheFormat = false
+		}
+
+		if deviceSupportsCacheFormat {
 			if err := touchCmd.fastboot.Format("cache"); err != nil {
 				log.Print("Cache formatting was not successful, flashing may fail, " +
 					"check your partitions on device")
 			}
+		}
 
+		if deviceSupportsBootImage {
 			if err := touchCmd.fastboot.BootImage(recovery); err != nil {
 				return errors.New("Can't boot recovery image")
 			}
-		} else {
-			// For turbo we also have to move cache formatting into the recovery
-			// as the relevant fastboot format command doesn't work.
-
-			// Turbo bootloader doesn't support the BootImage command so we have
+		} else if deviceSupportsOemRebootRecovery {
+			// Some bootloaders does not support the BootImage command so we have
 			// to flash the recovery first and then reboot through a OEM specific
 			// command the bootloader offers.
 			if err := touchCmd.fastboot.SendOemCommand("reboot recovery"); err != nil {
 				return errors.New("Can't reboot device");
 			}
+		} else {
+			log.Print("We can't reboot your device automatically. Please reboot " +
+					  "your device manually to recovery mode.");
 		}
 
+		log.Print("Waiting for device to enter recovery mode ...")
 		if err := touchCmd.adb.WaitForRecovery(); err != nil {
 			return err
 		}
 
-		if touchCmd.Device == "turbo" {
-			// On turbo we can't run `fastboot format cache` as the bootloader
+		if !deviceSupportsCacheFormat {
+			// On some devices we can't run `fastboot format cache` as the bootloader
 			// does not support this command. We're erasing all bits from the
 			// cache partition manually once we've booted into the recovery.
-			if _, err := adb.Shell("rm -rf /cache/*"); err != nil {
+			if _, err := touchCmd.adb.Shell("rm -rf /cache/*"); err != nil {
 				log.Fatal("Cannot cleanup /cache/ to ensure clean deployment", err)
 			}
 		}
