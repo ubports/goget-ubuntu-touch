@@ -278,6 +278,10 @@ func (touchCmd *TouchCmd) Execute(args []string) error {
 			if _, err := touchCmd.adb.Shell("rm -rf /cache/*"); err != nil {
 				log.Fatal("Cannot cleanup /cache/ to ensure clean deployment", err)
 			}
+
+			if _, err := touchCmd.adb.Shell("mkdir /cache/recovery"); err != nil {
+				log.Fatal("Failed to recreate filesystem structure on cache partition", err)
+			}
 		}
 	}
 	go bitPusher(touchCmd.adb, files, done)
