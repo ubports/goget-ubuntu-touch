@@ -35,6 +35,7 @@ type TouchCmd struct {
 	Bootstrap     bool   `long:"bootstrap" description:"bootstrap the system, do this from the bootloader"`
 	Wipe          bool   `long:"wipe" description:"Clear all data after flashing"`
 	Serial        string `long:"serial" description:"Serial of the device to operate"`
+	AdbSerial     string `long:"adb-serial" description:"Serial for ADB to specify the device to operate"`
 	DeveloperMode bool   `long:"developer-mode" description:"Enables developer mode after the factory reset, this is meant for automation and makes the device insecure by default (requires --password)"`
 	AdbKeys       string `long:"adb-keys" description:"Specify a local adb keys files, instead of using default ~/.android/adbkey.pub (requires --developer-mode)"`
 	DeviceTarball string `long:"device-tarball" description:"Specify a local device tarball to override the one from the server (using official Ubuntu images with different device tarballs)"`
@@ -345,6 +346,10 @@ func (touchCmd *TouchCmd) setupDevice() (err error) {
 	if touchCmd.Serial != "" {
 		touchCmd.adb.SetSerial(touchCmd.Serial)
 		touchCmd.fastboot.SetSerial(touchCmd.Serial)
+	}
+
+	if touchCmd.AdbSerial != "" {
+		touchCmd.adb.SetSerial(touchCmd.AdbSerial)
 	}
 
 	if touchCmd.Device == "" {
