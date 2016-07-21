@@ -260,11 +260,11 @@ func (touchCmd *TouchCmd) Execute(args []string) error {
 			// to flash the recovery first and then reboot through a OEM specific
 			// command the bootloader offers.
 			if err := touchCmd.fastboot.SendOemCommand("reboot recovery"); err != nil {
-				return errors.New("Can't reboot device");
+				return errors.New("Can't reboot device")
 			}
 		} else {
 			log.Print("We can't reboot your device automatically. Please reboot " +
-					  "your device manually to recovery mode.");
+				"your device manually to recovery mode.")
 		}
 
 		log.Print("Waiting for device to enter recovery mode ...")
