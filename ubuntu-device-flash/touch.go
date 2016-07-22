@@ -2,7 +2,7 @@
 // ubuntu-device-flash - Tool to download and flash devices with an Ubuntu Image
 //                       based system
 //
-// Copyright (c) 2013-2014 Canonical Ltd.
+// Copyright (c) 2013-2016 Canonical Ltd.
 //
 // Written by Sergio Schvezov <sergio.schvezov@canonical.com>
 //
@@ -35,6 +35,7 @@ type TouchCmd struct {
 	Bootstrap     bool   `long:"bootstrap" description:"bootstrap the system, do this from the bootloader"`
 	Wipe          bool   `long:"wipe" description:"Clear all data after flashing"`
 	Serial        string `long:"serial" description:"Serial of the device to operate"`
+	AdbSerial     string `long:"adb-serial" description:"Serial for ADB to specify the device to operate"`
 	DeveloperMode bool   `long:"developer-mode" description:"Enables developer mode after the factory reset, this is meant for automation and makes the device insecure by default (requires --password)"`
 	AdbKeys       string `long:"adb-keys" description:"Specify a local adb keys files, instead of using default ~/.android/adbkey.pub (requires --developer-mode)"`
 	DeviceTarball string `long:"device-tarball" description:"Specify a local device tarball to override the one from the server (using official Ubuntu images with different device tarballs)"`
@@ -234,16 +235,59 @@ func (touchCmd *TouchCmd) Execute(args []string) error {
 		if err := touchCmd.fastboot.Flash("recovery", recovery); err != nil {
 			return errors.New("can't flash recovery image")
 		}
-		if err := touchCmd.fastboot.Format("cache"); err != nil {
-			log.Print("Cache formatting was not successful, flashing may fail, " +
-				"check your partitions on device")
+
+		var deviceSupportsCacheFormat bool = true
+		var deviceSupportsBootImage bool = true
+		var deviceSupportsOemRebootRecovery bool = false
+
+		if touchCmd.Device == "turbo" {
+			deviceSupportsCacheFormat = false
+			deviceSupportsBootImage = false
+			deviceSupportsOemRebootRecovery = true
+		}
+		if touchCmd.Device == "frieza" || touchCmd.Device == "cooler" {
+			deviceSupportsCacheFormat = false
 		}
 
-		if err := touchCmd.fastboot.BootImage(recovery); err != nil {
-			return errors.New("Can't boot recovery image")
+		if deviceSupportsCacheFormat {
+			if err := touchCmd.fastboot.Format("cache"); err != nil {
+				log.Print("Cache formatting was not successful, flashing may fail, " +
+					"check your partitions on device")
+			}
 		}
+
+		if deviceSupportsBootImage {
+			if err := touchCmd.fastboot.BootImage(recovery); err != nil {
+				return errors.New("Can't boot recovery image")
+			}
+		} else if deviceSupportsOemRebootRecovery {
+			// Some bootloaders does not support the BootImage command so we have
+			// to flash the recovery first and then reboot through a OEM specific
+			// command the bootloader offers.
+			if err := touchCmd.fastboot.SendOemCommand("reboot recovery"); err != nil {
+				return errors.New("Can't reboot device")
+			}
+		} else {
+			log.Print("We can't reboot your device automatically. Please reboot " +
+				"your device manually to recovery mode.")
+		}
+
+		log.Print("Waiting for device to enter recovery mode ...")
 		if err := touchCmd.adb.WaitForRecovery(); err != nil {
 			return err
+		}
+
+		if !deviceSupportsCacheFormat {
+			// On some devices we can't run `fastboot format cache` as the bootloader
+			// does not support this command. We're erasing all bits from the
+			// cache partition manually once we've booted into the recovery.
+			if _, err := touchCmd.adb.Shell("rm -rf /cache/*"); err != nil {
+				log.Fatal("Cannot cleanup /cache/ to ensure clean deployment", err)
+			}
+
+			if _, err := touchCmd.adb.Shell("mkdir /cache/recovery"); err != nil {
+				log.Fatal("Failed to recreate filesystem structure on cache partition", err)
+			}
 		}
 	}
 	go bitPusher(touchCmd.adb, files, done)
@@ -309,10 +353,24 @@ func (touchCmd *TouchCmd) setupDevice() (err error) {
 		touchCmd.fastboot.SetSerial(touchCmd.Serial)
 	}
 
+	if touchCmd.AdbSerial != "" {
+		touchCmd.adb.SetSerial(touchCmd.AdbSerial)
+	}
+
 	if touchCmd.Device == "" {
 		if touchCmd.Bootstrap {
 			log.Print("Expecting the device to be in the bootloader... waiting")
 			touchCmd.Device, err = touchCmd.fastboot.GetDevice()
+
+			// For turbo it was missed to put the proper name into the bootloader
+			// and this can't be changed anymore after production already started.
+			// Reflashing the bootloader through an OTA update to fix this is also
+			// very unlikely to happen so we have to work around here and make sure
+			// this never happens again.
+			if touchCmd.Device == "smdk" {
+				touchCmd.Device = "turbo"
+			}
+
 			return err
 		} else {
 			log.Print("Expecting the device to expose an adb interface...")
