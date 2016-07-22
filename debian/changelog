@@ -1,3 +1,10 @@
+goget-ubuntu-touch (0.34+16.10.20160722-0ubuntu1) yakkety; urgency=medium
+
+  [ Simon Fels ]
+  * Add bootstrap support for turbo/frieza/cooler devices
+
+ -- Łukasz Zemczak <lukasz.zemczak@canonical.com>  Fri, 22 Jul 2016 16:02:30 +0000
+
 goget-ubuntu-touch (0.34-0ubuntu1) xenial; urgency=medium
 
   [ Ondrej Kubik ]
