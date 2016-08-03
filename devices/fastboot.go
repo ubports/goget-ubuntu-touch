@@ -85,3 +85,10 @@ func (fastboot Fastboot) GetDevice() (device string, err error) {
 	}
 	return device, err
 }
+
+// Send OEM specific commands to bootloader
+func (fastboot Fastboot) SendOemCommand(command string) (err error) {
+	cmd := append(fastboot.params, []string{"oem", command}...)
+	err = exec.Command(fastbootCommand, cmd...).Run()
+	return err
+}
