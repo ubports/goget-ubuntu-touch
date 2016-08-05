@@ -49,7 +49,7 @@ type CreateCmd struct {
 var createCmd CreateCmd
 
 const (
-	defaultChannel = "ubuntu-touch/devel"
+	defaultChannel = "ubuntu-touch/stable"
 	defaultServer  = "https://system-image.ubuntu.com"
 	defaultArch    = "i386"
 )
