@@ -1,3 +1,11 @@
+goget-ubuntu-touch (0.34+16.10.20160805-0ubuntu1) yakkety; urgency=medium
+
+  [ Andrea Bernabei ]
+  * Default to ubuntu-touch/stable instead of ubuntu-touch/devel for
+    emulator creation (LP: #1594306)
+
+ -- Łukasz Zemczak <lukasz.zemczak@canonical.com>  Fri, 05 Aug 2016 13:21:10 +0000
+
 goget-ubuntu-touch (0.34+16.10.20160722-0ubuntu1) yakkety; urgency=medium
 
   [ Simon Fels ]
