@@ -1,3 +1,9 @@
+goget-ubuntu-touch (0.35+ubports) xenial; urgency=medium
+
+  * Imported to UBports
+
+ -- UBports auto importer <infra@ubports.com>  Thu, 11 Jan 2018 10:13:54 +0000
+
 goget-ubuntu-touch (0.34+16.10.20160805-0ubuntu1) yakkety; urgency=medium
 
   [ Andrea Bernabei ]
