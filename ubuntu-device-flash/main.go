@@ -24,7 +24,7 @@ import (
 	"fmt"
 	"os"
 
-	"launchpad.net/goget-ubuntu-touch/ubuntuimage"
+	"github.com/ubports/goget-ubuntu-touch/ubuntuimage"
 )
 
 import flags "github.com/jessevdk/go-flags"

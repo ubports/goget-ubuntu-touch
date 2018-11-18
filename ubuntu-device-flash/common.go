@@ -9,8 +9,8 @@ import (
 	"strings"
 	"syscall"
 
-	"launchpad.net/goget-ubuntu-touch/sysutils"
-	"launchpad.net/goget-ubuntu-touch/ubuntuimage"
+	"github.com/ubports/goget-ubuntu-touch/sysutils"
+	"github.com/ubports/goget-ubuntu-touch/ubuntuimage"
 )
 
 func getImage(deviceChannel ubuntuimage.DeviceChannel) (image ubuntuimage.Image, err error) {

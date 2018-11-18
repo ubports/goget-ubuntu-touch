@@ -26,7 +26,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"launchpad.net/goget-ubuntu-touch/ubuntuimage"
+	"github.com/ubports/goget-ubuntu-touch/ubuntuimage"
 )
 
 func writeDeviceStamp(dataDir, device string) (err error) {

@@ -24,7 +24,7 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"launchpad.net/goget-ubuntu-touch/diskimage"
+	"github.com/ubports/goget-ubuntu-touch/diskimage"
 )
 
 type SnapshotCmd struct {

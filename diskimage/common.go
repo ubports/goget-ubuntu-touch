@@ -18,7 +18,7 @@ import (
 	"strings"
 	"syscall"
 
-	"launchpad.net/goget-ubuntu-touch/sysutils"
+	"github.com/ubports/goget-ubuntu-touch/sysutils"
 )
 
 // This program is free software: you can redistribute it and/or modify it
