@@ -24,7 +24,7 @@ import (
 	"errors"
 	"fmt"
 
-	"launchpad.net/goget-ubuntu-touch/ubuntuimage"
+	"github.com/ubports/goget-ubuntu-touch/ubuntuimage"
 )
 
 func init() {

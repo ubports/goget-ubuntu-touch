@@ -27,7 +27,7 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"launchpad.net/goget-ubuntu-touch/sysutils"
+	"github.com/ubports/goget-ubuntu-touch/sysutils"
 )
 
 func setupBootAssetFiles(bootMount, bootPath, oemRootPath string, files []BootAssetFiles) error {

@@ -27,7 +27,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"launchpad.net/goget-ubuntu-touch/bootimg"
+	"github.com/ubports/goget-ubuntu-touch/bootimg"
 )
 
 func getDeviceTar(files []string) (string, error) {

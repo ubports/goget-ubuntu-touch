@@ -20,8 +20,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"launchpad.net/goget-ubuntu-touch/devices"
-	"launchpad.net/goget-ubuntu-touch/ubuntuimage"
+	"github.com/ubports/goget-ubuntu-touch/devices"
+	"github.com/ubports/goget-ubuntu-touch/ubuntuimage"
 )
 
 func init() {
