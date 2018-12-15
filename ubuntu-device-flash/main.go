@@ -24,7 +24,7 @@ import (
 	"fmt"
 	"os"
 
-	"launchpad.net/goget-ubuntu-touch/ubuntuimage"
+	"github.com/ubports/goget-ubuntu-touch/ubuntuimage"
 )
 
 import flags "github.com/jessevdk/go-flags"
@@ -61,7 +61,7 @@ func execute(args []string) {
 		return
 	}
 
-	if _, err := parser.ParseArgs(args); err != nil {
+	if _, err := parser.ParseArgs(args[1:]); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}

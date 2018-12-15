@@ -29,7 +29,7 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"launchpad.net/goget-ubuntu-touch/sysutils"
+	"github.com/ubports/goget-ubuntu-touch/sysutils"
 )
 
 type DiskImage struct {

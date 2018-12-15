@@ -24,7 +24,7 @@ import (
 	"log"
 	"os"
 
-	"launchpad.net/goget-ubuntu-touch/bootimg"
+	"github.com/ubports/goget-ubuntu-touch/bootimg"
 )
 
 func checkError(err error) {

@@ -11,8 +11,8 @@ package main
 import (
 	"fmt"
 
-	"launchpad.net/goget-ubuntu-touch/diskimage"
-	"launchpad.net/goget-ubuntu-touch/ubuntuimage"
+	"github.com/ubports/goget-ubuntu-touch/diskimage"
+	"github.com/ubports/goget-ubuntu-touch/ubuntuimage"
 )
 
 type imageFlavor string
