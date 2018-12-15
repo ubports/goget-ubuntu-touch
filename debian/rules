@@ -2,7 +2,7 @@
 # -*- makefile -*-
 
 export DH_OPTIONS
-export DH_GOPKG := launchpad.net/goget-ubuntu-touch
+export DH_GOPKG := github.com/ubports/goget-ubuntu-touch
 
 %:
 	dh $@ --buildsystem=golang --with=golang --fail-missing --with bash-completion
@@ -10,8 +10,8 @@ export DH_GOPKG := launchpad.net/goget-ubuntu-touch
 override_dh_auto_install:
 	dh_auto_install -O--buildsystem=golang
 	rm -rf ${CURDIR}/debian/tmp/usr/bin/abootimg-extract
-	rm -rf ${CURDIR}/debian/tmp/usr/share/gocode/src/launchpad.net/goget-ubuntu-touch/ubuntu-emulator
-	rm -rf ${CURDIR}/debian/tmp/usr/share/gocode/src/launchpad.net/goget-ubuntu-touch/ubuntu-device-flash
-	rm -rf ${CURDIR}/debian/tmp/usr/share/gocode/src/launchpad.net/goget-ubuntu-touch/ubuntu-device-do
-	rm -rf ${CURDIR}/debian/tmp/usr/share/gocode/src/launchpad.net/goget-ubuntu-touch/diskimage
-	rm -rf ${CURDIR}/debian/tmp/usr/share/gocode/src/launchpad.net/goget-ubuntu-touch/sysutils
+	rm -rf ${CURDIR}/debian/tmp/usr/share/gocode/src/github.com/ubports/goget-ubuntu-touch/ubuntu-emulator
+	rm -rf ${CURDIR}/debian/tmp/usr/share/gocode/src/github.com/ubports/goget-ubuntu-touch/ubuntu-device-flash
+	rm -rf ${CURDIR}/debian/tmp/usr/share/gocode/src/github.com/ubports/goget-ubuntu-touch/ubuntu-device-do
+	rm -rf ${CURDIR}/debian/tmp/usr/share/gocode/src/github.com/ubports/goget-ubuntu-touch/diskimage
+	rm -rf ${CURDIR}/debian/tmp/usr/share/gocode/src/github.com/ubports/goget-ubuntu-touch/sysutils

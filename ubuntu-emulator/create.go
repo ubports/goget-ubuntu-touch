@@ -30,9 +30,9 @@ import (
 	"syscall"
 	"text/template"
 
-	"launchpad.net/goget-ubuntu-touch/diskimage"
-	"launchpad.net/goget-ubuntu-touch/sysutils"
-	"launchpad.net/goget-ubuntu-touch/ubuntuimage"
+	"github.com/ubports/goget-ubuntu-touch/diskimage"
+	"github.com/ubports/goget-ubuntu-touch/sysutils"
+	"github.com/ubports/goget-ubuntu-touch/ubuntuimage"
 )
 
 type CreateCmd struct {

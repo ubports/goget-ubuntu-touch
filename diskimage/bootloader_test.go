@@ -27,7 +27,7 @@ import (
 	"testing"
 
 	. "launchpad.net/gocheck"
-	"launchpad.net/goget-ubuntu-touch/sysutils"
+	"github.com/ubports/goget-ubuntu-touch/sysutils"
 )
 
 // Hook up gocheck into the "go test" runner.
