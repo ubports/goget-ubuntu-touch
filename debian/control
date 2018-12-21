@@ -20,7 +20,6 @@ Package: ubuntu-device-flash
 Architecture: any
 Depends:
  adb | android-tools-adb,
- click-ubuntu-policy,
  debsig-verify,
  dosfstools,
  fakeroot,
