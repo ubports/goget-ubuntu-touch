@@ -2,35 +2,35 @@ Source: goget-ubuntu-touch
 Section: devel
 Priority: optional
 Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
-Build-Depends: debhelper (>= 9),
-               dh-golang,
-               bash-completion,
-               golang-go,
-               golang-gettext-dev,
-               golang-go-flags-dev,
-               golang-gocheck-dev,
-               golang-juju-loggo-dev,
-               golang-pb-dev,
-               golang-yaml.v2-dev,
+Build-Depends:
+ bash-completion,
+ debhelper (>= 9),
+ dh-golang,
+ golang-github-gosexy-gettext-dev | golang-gettext-dev,
+ golang-go,
+ golang-go-flags-dev,
+ golang-gopkg-check.v1-dev | golang-gocheck-dev,
+ golang-gopkg-yaml.v2-dev | golang-yaml.v2-dev,
+ golang-juju-loggo-dev,
+ golang-pb-dev,
 Standards-Version: 3.9.5
 Homepage: https://github.com/ubports/goget-ubuntu-touch
-Vcs-Browser: http://bazaar.launchpad.net/~phablet-team/goget-ubuntu-touch/trunk/files
-Vcs-Bzr: lp:goget-ubuntu-touch
 
 Package: ubuntu-device-flash
 Architecture: any
-Depends: android-tools-adb,
-         android-tools-fastboot,
-         debsig-verify,
-         click-ubuntu-policy,
-         dosfstools,
-         fakeroot,
-         kpartx,
-         parted,
-         qemu-user-static,
-         ${misc:Depends},
-         ${shlibs:Depends},
-Built-Using: ${misc:Built-Using}
+Depends:
+ adb | android-tools-adb,
+ debsig-verify,
+ dosfstools,
+ fakeroot,
+ fastboot | android-tools-fastboot,
+ kpartx,
+ parted,
+ qemu-user-static,
+ ${misc:Depends},
+ ${shlibs:Depends},
+Built-Using:
+ ${misc:Built-Using},
 Description: Flash supported devices with Ubuntu
  Use this tool to flash a suported device with Ubuntu by either
  bootstrapping from fastboot or reflashing from an already
@@ -38,43 +38,51 @@ Description: Flash supported devices with Ubuntu
 
 Package: ubuntu-device-do
 Architecture: any
-Depends: android-tools-adb,
-         ${misc:Depends},
-         ${shlibs:Depends},
-Built-Using: ${misc:Built-Using}
+Depends:
+ adb | android-tools-adb,
+ ${misc:Depends},
+ ${shlibs:Depends},
+Built-Using:
+ ${misc:Built-Using},
 Description: Tool to interact with Ubuntu Touch devices
  Use this tool to interact with your Ubuntu Touch device
 
 Package: ubuntu-emulator
-Architecture: i386 amd64
-Depends: ubuntu-emulator-runtime,
-         xz-utils,
-         ${misc:Depends},
-         ${shlibs:Depends},
-Recommends: android-tools-adb,
-            qemu-user-static,
-Built-Using: ${misc:Built-Using}
+Architecture: amd64 i386
+Depends:
+ ubuntu-emulator-runtime,
+ xz-utils,
+ ${misc:Depends},
+ ${shlibs:Depends},
+Recommends:
+ android-tools-adb,
+ qemu-user-static,
+Built-Using:
+ ${misc:Built-Using},
 Description: Create and run emulator images of Ubuntu Touch
  Create and destroy Ubuntu Touch instances and run them with the emulator
 
 Package: golang-goget-ubuntu-touch-bootimg-dev
 Architecture: all
-Depends: ${misc:Depends},
-         ${shlibs:Depends},
+Depends:
+ ${misc:Depends},
+ ${shlibs:Depends},
 Description: Go library for manipulating Android boot.img files
  Package reads and extracts Android boot.img files
 
 Package: golang-goget-ubuntu-touch-devices-dev
 Architecture: all
-Depends: ${misc:Depends},
-         ${shlibs:Depends},
+Depends:
+ ${misc:Depends},
+ ${shlibs:Depends},
 Description: Go library for interfacing with adb and fastboot
  Provides facilities to interface with adb and fastboot
 
 Package: golang-goget-ubuntu-touch-ubuntuimage-dev
 Architecture: all
-Depends: ${misc:Depends},
-         ${shlibs:Depends},
+Depends:
+ ${misc:Depends},
+ ${shlibs:Depends},
 Description: Go library for interfacing with an Ubuntu image server
  Provides facilities to interface with an Ubuntu image server to
  download OS image assets from different channels and for different
