@@ -42,7 +42,7 @@ type TouchCmd struct {
 	CustomTarball string `long:"custom-tarball" description:"Specify a local custom tarball to override the one from the server (using official Ubuntu images with different custom tarballs)"`
 	RunScript     string `long:"run-script" description:"Run a script given by path to finish the flashing process, instead of rebooting to recovery (mostly used during development to work around quirky or incomplete recovery images)"`
 	Password      string `long:"password" description:"This sets up the default password for the phablet user. This option is meant for CI and not general use"`
-	Channel       string `long:"channel" description:"Specify the channel to use" default:"ubuntu-touch/stable/ubuntu"`
+	Channel       string `long:"channel" description:"Specify the channel to use" default:"ubports-touch/16.04/stable"`
 	Device        string `long:"device" description:"Specify the device to flash"`
 	RecoveryImage string `long:"recovery-image" description:"Specify the recovery image file to use when flashing, overriding the one from the device tarball (useful if the latter has no adb enabled)"`
 	fastboot      devices.Fastboot

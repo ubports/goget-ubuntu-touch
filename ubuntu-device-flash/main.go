@@ -32,7 +32,7 @@ import flags "github.com/jessevdk/go-flags"
 type arguments struct {
 	Revision      int    `long:"revision" description:"revision to use, absolute or relative allowed"`
 	DownloadOnly  bool   `long:"download-only" description:"Only download."`
-	Server        string `long:"server" description:"Use a different image server" default:"https://system-image.ubuntu.com"`
+	Server        string `long:"server" description:"Use a different image server" default:"https://system-image.ubports.com"`
 	CleanCache    bool   `long:"clean-cache" description:"Cleans up cache with all downloaded bits"`
 	TLSSkipVerify bool   `long:"tls-skip-verify" description:"Skip TLS certificate validation"`
 	Verbose       bool   `long:"verbose" short:"v" description:"More messages will be printed out"`

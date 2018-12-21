@@ -49,8 +49,8 @@ type CreateCmd struct {
 var createCmd CreateCmd
 
 const (
-	defaultChannel = "ubuntu-touch/stable"
-	defaultServer  = "https://system-image.ubuntu.com"
+	defaultChannel = "ubports-touch/16.04/stable"
+	defaultServer  = "https://system-image.ubports.com"
 	defaultArch    = "i386"
 )
 
